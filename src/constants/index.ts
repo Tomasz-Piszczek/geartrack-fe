@@ -47,6 +47,7 @@ export const ROUTES = {
   TOOLS: '/tools',
   MACHINES: '/machines',
   EMPLOYEES: '/employees',
+  EMPLOYEE_DETAIL: '/employees/:id',
   SETTINGS: '/settings',
 } as const;
 

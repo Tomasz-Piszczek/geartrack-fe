@@ -30,6 +30,9 @@ export interface MachineDto {
   factoryNumber: string;
   employeeId?: string;
   employeeName?: string;
+  nextInspectionDate?: string;
+  lastInspectionDate?: string;
+  totalInspections?: number;
 }
 
 export interface AssignMachineDto {
@@ -132,4 +135,24 @@ export interface NavigationItem {
   path: string;
   icon?: React.ComponentType<{ className?: string }>;
   children?: NavigationItem[];
+}
+
+// Pagination types
+export interface PagedResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
+export interface PaginationParams {
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+  search?: string;
 }

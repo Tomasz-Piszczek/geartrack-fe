@@ -43,4 +43,11 @@ export const toolsApi = {
       data: assignment,
     });
   },
+
+  getAvailableQuantity: async (toolId: string): Promise<{availableQuantity: number, totalAssigned: number}> => {
+    const response = await apiClient.get<{availableQuantity: number, totalAssigned: number}>(
+      `${API_ENDPOINTS.TOOLS.BY_ID(toolId)}/available-quantity`
+    );
+    return response.data;
+  },
 };

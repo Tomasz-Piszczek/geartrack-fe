@@ -3,7 +3,6 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import { HiCog } from 'react-icons/hi';
-import { FaGoogle } from 'react-icons/fa';
 import { authApi } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import { useGoogleAuth } from '../../hooks/useGoogleAuth';
