@@ -10,6 +10,7 @@ import DashboardPage from './pages/dashboard/DashboardPage';
 import ToolsPage from './pages/tools/ToolsPage';
 import MachinesPage from './pages/machines/MachinesPage';
 import EmployeesPage from './pages/employees/EmployeesPage';
+import EmployeeDetailPage from './pages/employees/EmployeeDetailPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import ToastContainer from './components/common/ToastContainer';
 import { ROUTES } from './constants';
@@ -59,6 +60,16 @@ function App() {
                   <ProtectedRoute>
                     <MainLayout>
                       <EmployeesPage />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.EMPLOYEE_DETAIL}
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <EmployeeDetailPage />
                     </MainLayout>
                   </ProtectedRoute>
                 }

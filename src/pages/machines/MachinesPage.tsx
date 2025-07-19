@@ -29,12 +29,12 @@ const MachinesPage: React.FC = () => {
 
   const { data: machines = [], isLoading } = useQuery({
     queryKey: [QUERY_KEYS.MACHINES],
-    queryFn: machinesApi.getAll,
+    queryFn: machinesApi.getAllNonPaginated,
   });
 
   const { data: employees = [] } = useQuery({
     queryKey: [QUERY_KEYS.EMPLOYEES],
-    queryFn: employeesApi.getAll,
+    queryFn: employeesApi.getAllNonPaginated,
   });
 
   const {
@@ -91,10 +91,10 @@ const MachinesPage: React.FC = () => {
     },
   });
 
-  const filteredMachines = machines.filter(machine =>
+  const filteredMachines = Array.isArray(machines) ? machines.filter(machine =>
     machine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     machine.factoryNumber.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) : [];
 
   const handleOpenModal = (machine?: MachineDto) => {
     setEditingMachine(machine || null);
@@ -188,11 +188,13 @@ const MachinesPage: React.FC = () => {
       <div className="table-wrapper">
         <Table hoverable>
           <Table.Head>
-            <Table.HeadCell className="bg-section-grey-dark text-white">Name</Table.HeadCell>
-            <Table.HeadCell className="bg-section-grey-dark text-white">Factory Number</Table.HeadCell>
-            <Table.HeadCell className="bg-section-grey-dark text-white">Assigned To</Table.HeadCell>
-            <Table.HeadCell className="bg-section-grey-dark text-white">Status</Table.HeadCell>
-            <Table.HeadCell className="bg-section-grey-dark text-white">Actions</Table.HeadCell>
+            <Table.Row>
+              <Table.HeadCell className="bg-section-grey-dark text-white">Name</Table.HeadCell>
+              <Table.HeadCell className="bg-section-grey-dark text-white">Factory Number</Table.HeadCell>
+              <Table.HeadCell className="bg-section-grey-dark text-white">Assigned To</Table.HeadCell>
+              <Table.HeadCell className="bg-section-grey-dark text-white">Status</Table.HeadCell>
+              <Table.HeadCell className="bg-section-grey-dark text-white">Actions</Table.HeadCell>
+            </Table.Row>
           </Table.Head>
           <Table.Body>
             {isLoading ? (
