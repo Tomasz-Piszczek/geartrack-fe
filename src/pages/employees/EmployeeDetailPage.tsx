@@ -1,0 +1,506 @@
+import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  HiArrowLeft, 
+  HiPlus, 
+  HiTrash, 
+  HiUser, 
+  HiCurrencyDollar, 
+  HiCog, 
+  HiSearch 
+} from 'react-icons/hi';
+import Button from '../../components/common/Button';
+import Input from '../../components/common/Input';
+import Card from '../../components/common/Card';
+import Modal from '../../components/common/Modal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { employeesApi } from '../../api/employees';
+import { toolsApi } from '../../api/tools';
+import { QUERY_KEYS, ROUTES } from '../../constants';
+import { toast } from '../../lib/toast';
+
+interface AssignToolFormData {
+  toolId: string;
+  quantity: number;
+  condition: string;
+}
+
+interface RemoveToolFormData {
+  quantity: number;
+}
+
+const EmployeeDetailPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [showAssignToolModal, setShowAssignToolModal] = useState(false);
+  const [showRemoveToolModal, setShowRemoveToolModal] = useState(false);
+  const [selectedToolForRemoval, setSelectedToolForRemoval] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const queryClient = useQueryClient();
+
+  const { data: employee, isLoading: isLoadingEmployee } = useQuery({
+    queryKey: [QUERY_KEYS.EMPLOYEES, id],
+    queryFn: () => employeesApi.getById(id!),
+    enabled: !!id,
+  });
+
+  const { data: availableTools = [] } = useQuery({
+    queryKey: [QUERY_KEYS.TOOLS],
+    queryFn: toolsApi.getAll,
+  });
+
+  // Get available quantities for all tools
+  const { data: toolQuantities = {} } = useQuery({
+    queryKey: [QUERY_KEYS.TOOLS, 'quantities'],
+    queryFn: async () => {
+      const quantities: Record<string, {availableQuantity: number, totalAssigned: number}> = {};
+      for (const tool of availableTools) {
+        if (tool.uuid) {
+          try {
+            quantities[tool.uuid] = await toolsApi.getAvailableQuantity(tool.uuid);
+          } catch (error) {
+            console.warn(`Failed to get quantities for tool ${tool.uuid}:`, error);
+            quantities[tool.uuid] = { availableQuantity: 0, totalAssigned: 0 };
+          }
+        }
+      }
+      return quantities;
+    },
+    enabled: availableTools.length > 0,
+  });
+
+  const { data: employeeTools = [], isLoading: isLoadingTools } = useQuery({
+    queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'],
+    queryFn: () => employeesApi.getAssignedTools(id!),
+    enabled: !!id,
+  });
+
+  const {
+    register: registerTool,
+    handleSubmit: handleSubmitTool,
+    formState: { errors: toolErrors },
+    reset: resetTool,
+  } = useForm<AssignToolFormData>();
+
+  const {
+    register: registerRemove,
+    handleSubmit: handleSubmitRemove,
+    formState: { errors: removeErrors },
+    reset: resetRemove,
+  } = useForm<RemoveToolFormData>();
+
+  const assignToolMutation = useMutation({
+    mutationFn: toolsApi.assign,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS, 'quantities'] });
+      toast.success('Tool assigned successfully');
+      handleCloseAssignToolModal();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to assign tool');
+    },
+  });
+
+  const unassignToolMutation = useMutation({
+    mutationFn: toolsApi.unassign,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS, 'quantities'] });
+      toast.success('Tool removed successfully');
+      handleCloseRemoveToolModal();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to remove tool');
+    },
+  });
+
+  const filteredEmployeeTools = employeeTools.filter(assignment =>
+    (assignment.toolName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (assignment.toolFactoryNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+  );
+
+  const handleOpenAssignToolModal = () => {
+    resetTool({
+      toolId: '',
+      quantity: 1,
+      condition: 'Good',
+    });
+    setShowAssignToolModal(true);
+  };
+
+  const handleCloseAssignToolModal = () => {
+    setShowAssignToolModal(false);
+    resetTool();
+  };
+
+  const handleOpenRemoveToolModal = (toolAssignment: any) => {
+    setSelectedToolForRemoval(toolAssignment);
+    resetRemove({
+      quantity: 1,
+    });
+    setShowRemoveToolModal(true);
+  };
+
+  const handleCloseRemoveToolModal = () => {
+    setShowRemoveToolModal(false);
+    setSelectedToolForRemoval(null);
+    resetRemove();
+  };
+
+  const onSubmitToolAssignment = (data: AssignToolFormData) => {
+    if (employee) {
+      assignToolMutation.mutate({
+        employeeId: employee.uuid!,
+        toolId: data.toolId,
+        quantity: data.quantity,
+        condition: data.condition,
+      });
+    }
+  };
+
+  const onSubmitToolRemoval = (data: RemoveToolFormData) => {
+    if (selectedToolForRemoval) {
+      unassignToolMutation.mutate({
+        employeeId: employee!.uuid!,
+        toolId: selectedToolForRemoval.toolId,
+        quantity: data.quantity,
+        condition: selectedToolForRemoval.condition,
+      });
+    }
+  };
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  if (isLoadingEmployee) {
+    return (
+      <div className="fade-in">
+        <div className="flex justify-center items-center h-64">
+          <div className="spinner"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!employee) {
+    return (
+      <div className="fade-in">
+        <div className="text-center text-surface-grey-dark py-12">
+          <HiUser className="w-16 h-16 mx-auto mb-4 opacity-50" />
+          <p className="text-lg">Employee not found</p>
+          <Button
+            color="gray"
+            onClick={() => navigate(ROUTES.EMPLOYEES)}
+            className="mt-4"
+          >
+            <HiArrowLeft className="w-4 h-4 mr-2" />
+            Back to Employees
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fade-in">
+      <div className="flex items-center gap-4 mb-8">
+        <Button
+          color="gray"
+          onClick={() => navigate(ROUTES.EMPLOYEES)}
+          className="bg-section-grey hover:bg-section-grey-light"
+        >
+          <HiArrowLeft className="w-4 h-4" />
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            {employee.firstName} {employee.lastName}
+          </h1>
+          <p className="text-surface-grey-dark">Employee Details & Tool Assignments</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <Card className="lg:col-span-1">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-20 h-20 rounded-full bg-dark-green flex items-center justify-center mb-4">
+              <span className="text-white font-bold text-2xl">
+                {getInitials(employee.firstName, employee.lastName)}
+              </span>
+            </div>
+            
+            <h2 className="text-2xl font-semibold text-white mb-2">
+              {employee.firstName} {employee.lastName}
+            </h2>
+            
+            <div className="flex items-center gap-2 text-surface-grey-dark mb-6">
+              <HiCurrencyDollar className="w-5 h-5" />
+              <span className="text-lg">${employee.hourlyRate}/hour</span>
+            </div>
+
+            <div className="text-center space-y-2">
+              <p className="text-surface-grey text-sm">Employee ID</p>
+              <p className="text-white font-mono text-xs">{employee.uuid}</p>
+            </div>
+          </div>
+        </Card>
+
+        <div className="lg:col-span-2">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-2">Assigned Tools</h2>
+              <p className="text-surface-grey-dark">
+                {filteredEmployeeTools.length} tool{filteredEmployeeTools.length !== 1 ? 's' : ''} assigned
+              </p>
+            </div>
+            <Button
+              color="primary"
+              onClick={handleOpenAssignToolModal}
+              className="bg-dark-green hover:bg-dark-green/80"
+            >
+              <HiPlus className="w-4 h-4 mr-2" />
+              Assign Tool
+            </Button>
+          </div>
+
+          <div className="mb-6">
+            <div className="relative max-w-md">
+              <Input
+                icon={HiSearch}
+                placeholder="Search assigned tools..."
+                value={searchTerm}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                className="bg-section-grey"
+              />
+            </div>
+          </div>
+
+          {isLoadingTools ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="spinner"></div>
+            </div>
+          ) : filteredEmployeeTools.length === 0 ? (
+            <Card className="text-center py-12">
+              <HiCog className="w-16 h-16 mx-auto mb-4 opacity-50 text-surface-grey-dark" />
+              <p className="text-lg text-surface-grey-dark">No tools assigned</p>
+              <p className="text-sm text-surface-grey">Assign tools to track usage and condition</p>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {filteredEmployeeTools.map((assignment) => (
+                <Card key={`${assignment.toolId}-${assignment.assignedAt}`} className="hover:shadow-lg transition-all">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-lg bg-dark-green flex items-center justify-center">
+                          <HiCog className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-white">
+                            {assignment.toolName}
+                          </h3>
+                          <p className="text-surface-grey-dark text-sm">
+                            Factory #: {assignment.toolFactoryNumber}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <p className="text-surface-grey">Quantity</p>
+                          <p className="text-white font-medium">{assignment.quantity}</p>
+                        </div>
+                        <div>
+                          <p className="text-surface-grey">Condition</p>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            assignment.condition === 'Excellent' ? 'bg-green-900 text-green-300' :
+                            assignment.condition === 'Good' ? 'bg-blue-900 text-blue-300' :
+                            assignment.condition === 'Fair' ? 'bg-yellow-900 text-yellow-300' :
+                            'bg-red-900 text-red-300'
+                          }`}>
+                            {assignment.condition}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-surface-grey">Assigned</p>
+                          <p className="text-white font-medium">{formatDate(assignment.assignedAt)}</p>
+                        </div>
+                        <div>
+                          <p className="text-surface-grey">Size</p>
+                          <p className="text-white font-medium">{assignment.toolSize || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="ml-4">
+                      <Button
+                        color="gray"
+                        size="sm"
+                        onClick={() => handleOpenRemoveToolModal(assignment)}
+                        className="bg-red-900 hover:bg-red-800 text-red-300"
+                      >
+                        <HiTrash className="w-4 h-4 mr-1" />
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Assign Tool Modal */}
+      <Modal show={showAssignToolModal} onClose={handleCloseAssignToolModal}>
+        <Modal.Header className="bg-section-grey border-lighter-border">
+          <span className="text-white">
+            Assign Tool to {employee.firstName} {employee.lastName}
+          </span>
+        </Modal.Header>
+        <Modal.Body className="bg-section-grey">
+          <form onSubmit={handleSubmitTool(onSubmitToolAssignment)} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Tool
+              </label>
+              <select
+                {...registerTool('toolId', { required: 'Tool is required' })}
+                className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
+              >
+                <option value="">Select a tool</option>
+                {availableTools.map((tool) => {
+                  const quantities = toolQuantities[tool.uuid!] || { availableQuantity: 0 };
+                  return (
+                    <option key={tool.uuid} value={tool.uuid}>
+                      {tool.name} - {tool.factoryNumber} (Available: {quantities.availableQuantity})
+                    </option>
+                  );
+                })}
+              </select>
+              {toolErrors.toolId && (
+                <p className="mt-1 text-sm text-red-400">{toolErrors.toolId.message}</p>
+              )}
+            </div>
+
+            <Input
+              id="quantity"
+              label="Quantity"
+              type="number"
+              min="1"
+              {...registerTool('quantity', { 
+                required: 'Quantity is required',
+                min: { value: 1, message: 'Quantity must be at least 1' }
+              })}
+              error={toolErrors.quantity?.message}
+              className="bg-section-grey-light"
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Condition
+              </label>
+              <select
+                {...registerTool('condition', { required: 'Condition is required' })}
+                className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
+              >
+                <option value="Excellent">Excellent</option>
+                <option value="Good">Good</option>
+                <option value="Fair">Fair</option>
+                <option value="Poor">Poor</option>
+              </select>
+              {toolErrors.condition && (
+                <p className="mt-1 text-sm text-red-400">{toolErrors.condition.message}</p>
+              )}
+            </div>
+          </form>
+        </Modal.Body>
+        <Modal.Footer className="bg-section-grey border-lighter-border">
+          <Button
+            color="primary"
+            onClick={handleSubmitTool(onSubmitToolAssignment)}
+            disabled={assignToolMutation.isPending}
+            className="bg-dark-green hover:bg-dark-green/80"
+          >
+            {assignToolMutation.isPending ? (
+              <div className="flex items-center gap-2">
+                <div className="spinner w-4 h-4"></div>
+                Assigning...
+              </div>
+            ) : (
+              'Assign Tool'
+            )}
+          </Button>
+          <Button color="gray" onClick={handleCloseAssignToolModal}>
+            Cancel
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Remove Tool Modal */}
+      <Modal show={showRemoveToolModal} onClose={handleCloseRemoveToolModal}>
+        <Modal.Header className="bg-section-grey border-lighter-border">
+          <span className="text-white">
+            Remove Tool from {employee.firstName} {employee.lastName}
+          </span>
+        </Modal.Header>
+        <Modal.Body className="bg-section-grey">
+          <div className="mb-4">
+            <p className="text-white">
+              Tool: <span className="font-medium">{selectedToolForRemoval?.toolName}</span>
+            </p>
+            <p className="text-surface-grey text-sm">
+              Currently assigned: {selectedToolForRemoval?.quantity} unit(s)
+            </p>
+          </div>
+          <form onSubmit={handleSubmitRemove(onSubmitToolRemoval)} className="space-y-4">
+            <Input
+              id="quantity"
+              label="Quantity to Remove"
+              type="number"
+              min="1"
+              max={selectedToolForRemoval?.quantity || 1}
+              {...registerRemove('quantity', { 
+                required: 'Quantity is required',
+                min: { value: 1, message: 'Quantity must be at least 1' },
+                max: { value: selectedToolForRemoval?.quantity || 1, message: `Cannot remove more than ${selectedToolForRemoval?.quantity}` }
+              })}
+              error={removeErrors.quantity?.message}
+              className="bg-section-grey-light"
+            />
+          </form>
+        </Modal.Body>
+        <Modal.Footer className="bg-section-grey border-lighter-border">
+          <Button
+            color="primary"
+            onClick={handleSubmitRemove(onSubmitToolRemoval)}
+            disabled={unassignToolMutation.isPending}
+            className="bg-red-900 hover:bg-red-800"
+          >
+            {unassignToolMutation.isPending ? (
+              <div className="flex items-center gap-2">
+                <div className="spinner w-4 h-4"></div>
+                Removing...
+              </div>
+            ) : (
+              'Remove Tool'
+            )}
+          </Button>
+          <Button color="gray" onClick={handleCloseRemoveToolModal}>
+            Cancel
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </div>
+  );
+};
+
+export default EmployeeDetailPage;
