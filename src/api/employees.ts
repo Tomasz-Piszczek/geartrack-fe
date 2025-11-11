@@ -9,6 +9,7 @@ export const employeesApi = {
     if (params?.size !== undefined) queryParams.append('size', params.size.toString());
     if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
     if (params?.sortDirection) queryParams.append('sortDirection', params.sortDirection);
+    if (params?.search) queryParams.append('search', params.search);
     
     const url = `${API_ENDPOINTS.EMPLOYEES.BASE}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await apiClient.get<PagedResponse<EmployeeDto>>(url);
@@ -16,10 +17,11 @@ export const employeesApi = {
   },
 
   getAllNonPaginated: async (): Promise<EmployeeDto[]> => {
-    const response = await apiClient.get<EmployeeDto[]>(
-      `${API_ENDPOINTS.EMPLOYEES.BASE}/all`
+    // Use paginated endpoint with large page size to get all records
+    const response = await apiClient.get<PagedResponse<EmployeeDto>>(
+      `${API_ENDPOINTS.EMPLOYEES.BASE}?size=1000`
     );
-    return response.data;
+    return response.data.content;
   },
 
   create: async (employee: EmployeeDto): Promise<EmployeeDto> => {

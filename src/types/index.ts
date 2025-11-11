@@ -40,14 +40,33 @@ export interface AssignMachineDto {
   employeeId: string;
 }
 
+export interface MachineInspectionDto {
+  uuid?: string;
+  machineId: string;
+  machineName?: string;
+  machineFactoryNumber?: string;
+  inspectionDate: string;
+  notes?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateMachineInspectionDto {
+  machineId: string;
+  inspectionDate: string;
+  notes?: string;
+  status?: string;
+}
+
 // Tool types
 export interface ToolDto {
   uuid?: string;
   name: string;
-  factoryNumber: string;
-  size: string;
+  factoryNumber?: string;
   quantity: number;
   value: number;
+  availableQuantity?: number;
 }
 
 export interface AssignToolDto {
@@ -57,6 +76,8 @@ export interface AssignToolDto {
   quantity: number;
   condition: string;
   assignedAt?: string;
+  employeeName?: string;
+  toolName?: string;
 }
 
 // API response types

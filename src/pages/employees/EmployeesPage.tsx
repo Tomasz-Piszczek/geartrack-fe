@@ -59,25 +59,6 @@ const EmployeesPage: React.FC = () => {
     queryFn: toolsApi.getAll,
   });
 
-  // Get available quantities for all tools
-  const { data: toolQuantities = {} } = useQuery({
-    queryKey: [QUERY_KEYS.TOOLS, 'quantities'],
-    queryFn: async () => {
-      const quantities: Record<string, {availableQuantity: number, totalAssigned: number}> = {};
-      for (const tool of tools) {
-        if (tool.uuid) {
-          try {
-            quantities[tool.uuid] = await toolsApi.getAvailableQuantity(tool.uuid);
-          } catch (error) {
-            console.warn(`Failed to get quantities for tool ${tool.uuid}:`, error);
-            quantities[tool.uuid] = { availableQuantity: 0, totalAssigned: 0 };
-          }
-        }
-      }
-      return quantities;
-    },
-    enabled: tools.length > 0,
-  });
 
   const {
     register,
@@ -422,14 +403,11 @@ const EmployeesPage: React.FC = () => {
                 className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
               >
                 <option value="">Select a tool</option>
-                {tools.map((tool) => {
-                  const quantities = toolQuantities[tool.uuid!] || { availableQuantity: 0 };
-                  return (
-                    <option key={tool.uuid} value={tool.uuid}>
-                      {tool.name} - {tool.factoryNumber} (Available: {quantities.availableQuantity})
-                    </option>
-                  );
-                })}
+                {tools.map((tool) => (
+                  <option key={tool.uuid} value={tool.uuid}>
+                    {tool.name}{tool.factoryNumber ? ` - ${tool.factoryNumber}` : ''} (Available: {tool.availableQuantity || 0})
+                  </option>
+                ))}
               </select>
               {toolErrors.toolId && (
                 <p className="mt-1 text-sm text-red-400">{toolErrors.toolId.message}</p>
