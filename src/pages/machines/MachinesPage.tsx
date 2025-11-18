@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { machinesApi } from '../../api/machines';
 import { employeesApi } from '../../api/employees';
-import type { MachineDto, CreateMachineInspectionDto } from '../../types';
+import type { MachineDto } from '../../types';
 import { QUERY_KEYS, VALIDATION } from '../../constants';
 import { toast } from '../../lib/toast';
 import Table from '../../components/common/Table';
@@ -281,13 +281,13 @@ const MachinesPage: React.FC = () => {
               </Table.Row>
             ) : (
               filteredMachines.map((machine) => (
-                <Table.Row key={machine.uuid} className="hover:bg-section-grey-light cursor-pointer">
-                  <Table.Cell className="text-white" onClick={() => handleOpenInspectionHistoryModal(machine)}>{machine.name}</Table.Cell>
-                  <Table.Cell className="text-white" onClick={() => handleOpenInspectionHistoryModal(machine)}>{machine.factoryNumber}</Table.Cell>
-                  <Table.Cell className="text-white" onClick={() => handleOpenInspectionHistoryModal(machine)}>
+                <Table.Row key={machine.uuid} className="hover:bg-section-grey-light cursor-pointer" onClick={() => handleOpenInspectionHistoryModal(machine)}>
+                  <Table.Cell className="text-white">{machine.name}</Table.Cell>
+                  <Table.Cell className="text-white">{machine.factoryNumber}</Table.Cell>
+                  <Table.Cell className="text-white">
                     {machine.employeeName || 'Unassigned'}
                   </Table.Cell>
-                  <Table.Cell className="text-white" onClick={() => handleOpenInspectionHistoryModal(machine)}>
+                  <Table.Cell className="text-white">
                     {machine.nextInspectionDate ? 
                       new Date(machine.nextInspectionDate).toLocaleDateString() : 
                       'Not scheduled'
@@ -499,7 +499,7 @@ const MachinesPage: React.FC = () => {
       </Modal>
 
       {/* Inspection History Modal */}
-      <Modal show={showInspectionHistoryModal} onClose={handleCloseInspectionHistoryModal} size="lg">
+      <Modal show={showInspectionHistoryModal} onClose={handleCloseInspectionHistoryModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
             Inspection History - {viewingMachine?.name}
@@ -556,7 +556,7 @@ const MachinesPage: React.FC = () => {
                             {inspection.status || 'Unknown'}
                           </span>
                         </Table.Cell>
-                        <Table.Cell className="text-white max-w-xs truncate" title={inspection.notes}>
+                        <Table.Cell className="text-white max-w-xs truncate">
                           {inspection.notes || '-'}
                         </Table.Cell>
                       </Table.Row>

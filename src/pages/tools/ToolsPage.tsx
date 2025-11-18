@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { HiPlus, HiPencil, HiTrash, HiSearch, HiEye } from 'react-icons/hi';
+import { HiPlus, HiPencil, HiTrash, HiSearch } from 'react-icons/hi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { toolsApi } from '../../api/tools';
-import type { ToolDto, AssignToolDto } from '../../types';
+import type { ToolDto } from '../../types';
 import { QUERY_KEYS, VALIDATION } from '../../constants';
 import { toast } from '../../lib/toast';
 import Table from '../../components/common/Table';
@@ -196,11 +196,7 @@ const ToolsPage: React.FC = () => {
               </Table.Row>
             ) : (
               filteredTools.map((tool) => (
-                <Table.Row 
-                  key={tool.uuid} 
-                  className="hover:bg-section-grey-light cursor-pointer"
-                  onClick={() => handleOpenAssignmentModal(tool)}
-                >
+                <Table.Row key={tool.uuid} className="hover:bg-section-grey-light cursor-pointer" onClick={() => handleOpenAssignmentModal(tool)}>
                   <Table.Cell className="text-white">{tool.name}</Table.Cell>
                   <Table.Cell className="text-white">{tool.factoryNumber || '-'}</Table.Cell>
                   <Table.Cell className="text-white">{tool.quantity}</Table.Cell>
@@ -304,7 +300,7 @@ const ToolsPage: React.FC = () => {
       </Modal>
 
       {/* Assignment Modal */}
-      <Modal show={showAssignmentModal} onClose={handleCloseAssignmentModal} size="lg">
+      <Modal show={showAssignmentModal} onClose={handleCloseAssignmentModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
             Employees Assigned to "{selectedTool?.name}"

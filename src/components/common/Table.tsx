@@ -19,6 +19,7 @@ interface TableBodyProps {
 interface TableRowProps {
   children: React.ReactNode;
   className?: string;
+  onClick?: () => void;
 }
 
 interface TableCellProps {
@@ -64,9 +65,9 @@ const TableBody: React.FC<TableBodyProps> = ({ children, className = '' }) => {
   );
 };
 
-const TableRow: React.FC<TableRowProps> = ({ children, className = '' }) => {
+const TableRow: React.FC<TableRowProps> = ({ children, className = '', onClick }) => {
   return (
-    <tr className={`group/tr ${className}`}>
+    <tr className={`group/tr ${className}`} onClick={onClick}>
       {children}
     </tr>
   );
