@@ -1,0 +1,123 @@
+name: Deploy Frontend to Dev
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: http://3.75.94.58:8080
+
+      - name: Upload build artifacts
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-files
+          path: dist/
+
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-files
+          path: dist/
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Deploy to S3
+        run: |
+          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }}/ --delete
+
+      - name: Create CloudFront distribution (if not exists)
+        run: |
+          # Check if distribution exists
+          DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Origins.Items[0].DomainName=='${{ secrets.S3_BUCKET_NAME }}.s3.amazonaws.com'].Id" --output text)
+          
+          if [ -z "$DISTRIBUTION_ID" ]; then
+            echo "Creating CloudFront distribution..."
+            aws cloudfront create-distribution \
+              --distribution-config \
+              '{
+                "CallerReference": "'$(date +%s)'",
+                "Comment": "GearTrack Frontend Dev",
+                "Enabled": true,
+                "Origins": {
+                  "Quantity": 1,
+                  "Items": [{
+                    "Id": "S3-${{ secrets.S3_BUCKET_NAME }}",
+                    "DomainName": "${{ secrets.S3_BUCKET_NAME }}.s3-website.eu-central-1.amazonaws.com",
+                    "CustomOriginConfig": {
+                      "HTTPPort": 80,
+                      "HTTPSPort": 443,
+                      "OriginProtocolPolicy": "http-only"
+                    }
+                  }]
+                },
+                "DefaultRootObject": "index.html",
+                "DefaultCacheBehavior": {
+                  "TargetOriginId": "S3-${{ secrets.S3_BUCKET_NAME }}",
+                  "ViewerProtocolPolicy": "redirect-to-https",
+                  "TrustedSigners": {
+                    "Enabled": false,
+                    "Quantity": 0
+                  },
+                  "ForwardedValues": {
+                    "QueryString": false,
+                    "Cookies": {
+                      "Forward": "none"
+                    }
+                  },
+                  "MinTTL": 0,
+                  "DefaultTTL": 86400,
+                  "MaxTTL": 31536000,
+                  "AllowedMethods": {
+                    "Quantity": 2,
+                    "Items": ["GET", "HEAD"]
+                  }
+                },
+                "CustomErrorResponses": {
+                  "Quantity": 1,
+                  "Items": [{
+                    "ErrorCode": 404,
+                    "ResponseCode": 200,
+                    "ResponsePagePath": "/index.html",
+                    "ErrorCachingMinTTL": 300
+                  }]
+                }
+              }'
+          else
+            echo "CloudFront distribution already exists: $DISTRIBUTION_ID"
+            # Invalidate cache
+            aws cloudfront create-invalidation \
+              --distribution-id $DISTRIBUTION_ID \
+              --paths "/*"
+          fi

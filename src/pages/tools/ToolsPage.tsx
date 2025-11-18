@@ -13,21 +13,28 @@ import Input from '../../components/common/Input';
 
 interface ToolFormData {
   name: string;
-  factoryNumber: string;
-  size: string;
+  factoryNumber?: string;
   quantity: number;
   value: number;
 }
 
 const ToolsPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [editingTool, setEditingTool] = useState<ToolDto | null>(null);
+  const [selectedTool, setSelectedTool] = useState<ToolDto | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
 
   const { data: tools = [], isLoading } = useQuery({
     queryKey: [QUERY_KEYS.TOOLS],
     queryFn: toolsApi.getAll,
+  });
+
+  const { data: toolAssignments = [], isLoading: isAssignmentsLoading } = useQuery({
+    queryKey: [QUERY_KEYS.TOOLS, selectedTool?.uuid, 'assignments'],
+    queryFn: () => toolsApi.getEmployeesAssignedToTool(selectedTool!.uuid!),
+    enabled: !!selectedTool?.uuid,
   });
 
   const {
@@ -72,10 +79,15 @@ const ToolsPage: React.FC = () => {
     },
   });
 
-  const filteredTools = tools.filter(tool =>
-    tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tool.factoryNumber.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTools = tools.filter(tool => {
+    if (!searchTerm.trim()) return true;
+    
+    const search = searchTerm.toLowerCase().trim();
+    const toolName = tool.name?.toLowerCase() || '';
+    const factoryNumber = tool.factoryNumber?.toLowerCase() || '';
+    
+    return toolName.includes(search) || factoryNumber.includes(search);
+  });
 
   const handleOpenModal = (tool?: ToolDto) => {
     setEditingTool(tool || null);
@@ -83,7 +95,6 @@ const ToolsPage: React.FC = () => {
       reset({
         name: tool.name,
         factoryNumber: tool.factoryNumber,
-        size: tool.size,
         quantity: tool.quantity,
         value: tool.value,
       });
@@ -91,7 +102,6 @@ const ToolsPage: React.FC = () => {
       reset({
         name: '',
         factoryNumber: '',
-        size: '',
         quantity: 0,
         value: 0,
       });
@@ -120,6 +130,16 @@ const ToolsPage: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this tool?')) {
       deleteMutation.mutate(id);
     }
+  };
+
+  const handleOpenAssignmentModal = (tool: ToolDto) => {
+    setSelectedTool(tool);
+    setShowAssignmentModal(true);
+  };
+
+  const handleCloseAssignmentModal = () => {
+    setShowAssignmentModal(false);
+    setSelectedTool(null);
   };
 
   return (
@@ -156,8 +176,8 @@ const ToolsPage: React.FC = () => {
           <Table.Head>
             <Table.HeadCell className="bg-section-grey-dark text-white">Name</Table.HeadCell>
             <Table.HeadCell className="bg-section-grey-dark text-white">Factory Number</Table.HeadCell>
-            <Table.HeadCell className="bg-section-grey-dark text-white">Size</Table.HeadCell>
             <Table.HeadCell className="bg-section-grey-dark text-white">Quantity</Table.HeadCell>
+            <Table.HeadCell className="bg-section-grey-dark text-white">Available</Table.HeadCell>
             <Table.HeadCell className="bg-section-grey-dark text-white">Value</Table.HeadCell>
             <Table.HeadCell className="bg-section-grey-dark text-white">Actions</Table.HeadCell>
           </Table.Head>
@@ -176,25 +196,31 @@ const ToolsPage: React.FC = () => {
               </Table.Row>
             ) : (
               filteredTools.map((tool) => (
-                <Table.Row key={tool.uuid} className="hover:bg-section-grey-light">
+                <Table.Row key={tool.uuid} className="hover:bg-section-grey-light cursor-pointer" onClick={() => handleOpenAssignmentModal(tool)}>
                   <Table.Cell className="text-white">{tool.name}</Table.Cell>
-                  <Table.Cell className="text-white">{tool.factoryNumber}</Table.Cell>
-                  <Table.Cell className="text-white">{tool.size}</Table.Cell>
+                  <Table.Cell className="text-white">{tool.factoryNumber || '-'}</Table.Cell>
                   <Table.Cell className="text-white">{tool.quantity}</Table.Cell>
+                  <Table.Cell className="text-white">{tool.availableQuantity || 0}</Table.Cell>
                   <Table.Cell className="text-white">${tool.value.toFixed(2)}</Table.Cell>
                   <Table.Cell>
                     <div className="flex gap-2">
                       <Button
                         size="sm"
                         color="gray"
-                        onClick={() => handleOpenModal(tool)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenModal(tool);
+                        }}
                       >
                         <HiPencil className="w-4 h-4" />
                       </Button>
                       <Button
                         size="sm"
                         color="failure"
-                        onClick={() => handleDelete(tool.uuid!)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(tool.uuid!);
+                        }}
                       >
                         <HiTrash className="w-4 h-4" />
                       </Button>
@@ -225,17 +251,9 @@ const ToolsPage: React.FC = () => {
 
             <Input
               id="factoryNumber"
-              label="Factory Number"
-              {...register('factoryNumber', { required: VALIDATION.REQUIRED })}
+              label="Factory Number (Optional)"
+              {...register('factoryNumber')}
               error={errors.factoryNumber?.message}
-              className="bg-section-grey-light"
-            />
-
-            <Input
-              id="size"
-              label="Size"
-              {...register('size', { required: VALIDATION.REQUIRED })}
-              error={errors.size?.message}
               className="bg-section-grey-light"
             />
 
@@ -277,6 +295,52 @@ const ToolsPage: React.FC = () => {
           </Button>
           <Button color="gray" onClick={handleCloseModal}>
             Cancel
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Assignment Modal */}
+      <Modal show={showAssignmentModal} onClose={handleCloseAssignmentModal}>
+        <Modal.Header className="bg-section-grey border-lighter-border">
+          <span className="text-white">
+            Employees Assigned to "{selectedTool?.name}"
+          </span>
+        </Modal.Header>
+        <Modal.Body className="bg-section-grey">
+          {isAssignmentsLoading ? (
+            <div className="text-center text-white py-4">Loading assignments...</div>
+          ) : toolAssignments.length === 0 ? (
+            <div className="text-center text-surface-grey-dark py-8">
+              No employees assigned to this tool
+            </div>
+          ) : (
+            <div className="table-wrapper">
+              <Table hoverable>
+                <Table.Head>
+                  <Table.HeadCell className="bg-section-grey-dark text-white">Employee</Table.HeadCell>
+                  <Table.HeadCell className="bg-section-grey-dark text-white">Assigned Date</Table.HeadCell>
+                  <Table.HeadCell className="bg-section-grey-dark text-white">Quantity</Table.HeadCell>
+                  <Table.HeadCell className="bg-section-grey-dark text-white">Condition</Table.HeadCell>
+                </Table.Head>
+                <Table.Body>
+                  {toolAssignments.map((assignment, index) => (
+                    <Table.Row key={`${assignment.employeeId}-${assignment.toolId}-${index}`} className="hover:bg-section-grey-light">
+                      <Table.Cell className="text-white">{assignment.employeeName || `Employee ${assignment.employeeId}`}</Table.Cell>
+                      <Table.Cell className="text-white">
+                        {assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString() : '-'}
+                      </Table.Cell>
+                      <Table.Cell className="text-white">{assignment.quantity}</Table.Cell>
+                      <Table.Cell className="text-white">{assignment.condition}</Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="bg-section-grey border-lighter-border">
+          <Button color="gray" onClick={handleCloseAssignmentModal}>
+            Close
           </Button>
         </Modal.Footer>
       </Modal>

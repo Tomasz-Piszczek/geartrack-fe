@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:local": "cp .env.local .env 2> /dev/null || copy .env.local .env && tsc -b && vite build",
+    "build:dev": "cp .env.development .env 2> /dev/null || copy .env.development .env && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
