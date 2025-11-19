@@ -221,7 +221,8 @@ const MachinesPage: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this machine?')) {
+    const confirmMessage = 'Are you sure you want to delete this machine?\n\nWarning: This will remove the machine assignment from the employee and delete all inspection history. This action cannot be undone.';
+    if (window.confirm(confirmMessage)) {
       deleteMutation.mutate(id);
     }
   };

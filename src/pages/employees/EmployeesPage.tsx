@@ -10,7 +10,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { employeesApi } from '../../api/employees';
 import { toolsApi } from '../../api/tools';
-import type { EmployeeDto, PaginationParams } from '../../types';
+import type { EmployeeDto, PaginationParams, ToolCondition } from '../../types';
+import { ToolCondition as ToolConditionValues } from '../../types';
 import { QUERY_KEYS, VALIDATION } from '../../constants';
 import { toast } from '../../lib/toast';
 import Modal from '../../components/common/Modal';
@@ -24,7 +25,7 @@ interface EmployeeFormData {
 interface AssignToolFormData {
   toolId: string;
   quantity: number;
-  condition: string;
+  condition: ToolCondition;
 }
 
 const EmployeesPage: React.FC = () => {
@@ -165,7 +166,7 @@ const EmployeesPage: React.FC = () => {
     resetTool({
       toolId: '',
       quantity: 1,
-      condition: 'Good',
+      condition: ToolConditionValues.GOOD,
     });
     setShowAssignToolModal(true);
   };
@@ -435,10 +436,9 @@ const EmployeesPage: React.FC = () => {
                 {...registerTool('condition', { required: 'Condition is required' })}
                 className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
               >
-                <option value="Excellent">Excellent</option>
-                <option value="Good">Good</option>
-                <option value="Fair">Fair</option>
-                <option value="Poor">Poor</option>
+                <option value={ToolConditionValues.NEW}>{ToolConditionValues.NEW}</option>
+                <option value={ToolConditionValues.GOOD}>{ToolConditionValues.GOOD}</option>
+                <option value={ToolConditionValues.POOR}>{ToolConditionValues.POOR}</option>
               </select>
               {toolErrors.condition && (
                 <p className="mt-1 text-sm text-red-400">{toolErrors.condition.message}</p>

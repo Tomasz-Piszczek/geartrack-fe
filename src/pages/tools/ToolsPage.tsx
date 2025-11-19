@@ -72,6 +72,7 @@ const ToolsPage: React.FC = () => {
     mutationFn: toolsApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES] });
       toast.success('Tool deleted successfully');
     },
     onError: (error: any) => {
@@ -127,7 +128,8 @@ const ToolsPage: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this tool?')) {
+    const confirmMessage = 'Are you sure you want to delete this tool?\n\nWarning: This will remove the tool from all employees who currently have it assigned and cannot be undone.';
+    if (window.confirm(confirmMessage)) {
       deleteMutation.mutate(id);
     }
   };

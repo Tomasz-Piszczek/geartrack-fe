@@ -18,12 +18,13 @@ import { useForm } from 'react-hook-form';
 import { employeesApi } from '../../api/employees';
 import { toolsApi } from '../../api/tools';
 import { QUERY_KEYS, ROUTES } from '../../constants';
+import { ToolCondition } from '../../types';
 import { toast } from '../../lib/toast';
 
 interface AssignToolFormData {
   toolId: string;
   quantity: number;
-  condition: string;
+  condition: ToolCondition;
 }
 
 interface RemoveToolFormData {
@@ -108,7 +109,7 @@ const EmployeeDetailPage: React.FC = () => {
     resetTool({
       toolId: '',
       quantity: 1,
-      condition: 'GOOD',
+      condition: ToolCondition.GOOD,
     });
     setShowAssignToolModal(true);
   };
@@ -296,9 +297,9 @@ const EmployeeDetailPage: React.FC = () => {
                         <div>
                           <p className="text-surface-grey">Condition</p>
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            assignment.condition === 'NEW' ? 'bg-green-900 text-green-300' :
-                            assignment.condition === 'GOOD' ? 'bg-blue-900 text-blue-300' :
-                            assignment.condition === 'POOR' ? 'bg-red-900 text-red-300' :
+                            assignment.condition === ToolCondition.NEW ? 'bg-green-900 text-green-300' :
+                            assignment.condition === ToolCondition.GOOD ? 'bg-blue-900 text-blue-300' :
+                            assignment.condition === ToolCondition.POOR ? 'bg-red-900 text-red-300' :
                             'bg-gray-900 text-gray-300'
                           }`}>
                             {assignment.condition}
@@ -380,9 +381,9 @@ const EmployeeDetailPage: React.FC = () => {
                 {...registerTool('condition', { required: 'Condition is required' })}
                 className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
               >
-                <option value="NEW">NEW</option>
-                <option value="GOOD">GOOD</option>
-                <option value="POOR">POOR</option>
+                <option value={ToolCondition.NEW}>{ToolCondition.NEW}</option>
+                <option value={ToolCondition.GOOD}>{ToolCondition.GOOD}</option>
+                <option value={ToolCondition.POOR}>{ToolCondition.POOR}</option>
               </select>
               {toolErrors.condition && (
                 <p className="mt-1 text-sm text-red-400">{toolErrors.condition.message}</p>
