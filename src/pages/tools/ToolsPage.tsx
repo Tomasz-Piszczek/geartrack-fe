@@ -95,6 +95,7 @@ const ToolsPage: React.FC = () => {
   });
 
   const handleOpenModal = (tool?: ToolDto) => {
+    console.log('DEBUG: Opening modal', tool ? 'edit' : 'create');
     setEditingTool(tool || null);
     if (tool) {
       reset({
@@ -112,23 +113,30 @@ const ToolsPage: React.FC = () => {
       });
     }
     setShowModal(true);
+    console.log('DEBUG: Modal opened, showModal=true');
   };
 
   const handleCloseModal = () => {
+    console.log('DEBUG: handleCloseModal called');
     setShowModal(false);
     setEditingTool(null);
     reset();
+    console.log('DEBUG: handleCloseModal completed');
   };
 
   const onSubmit = (data: ToolFormData) => {
+    console.log('DEBUG: Form submitted, about to call mutation');
     if (editingTool) {
+      console.log('DEBUG: Calling update mutation');
       updateMutation.mutate({
         ...editingTool,
         ...data,
       });
     } else {
+      console.log('DEBUG: Calling create mutation');
       createMutation.mutate(data);
     }
+    console.log('DEBUG: Mutation called');
   };
 
   const handleDelete = (id: string) => {
@@ -292,7 +300,10 @@ const ToolsPage: React.FC = () => {
         <Modal.Footer className="bg-section-grey border-lighter-border">
           <Button
             color="primary"
-            onClick={handleSubmit(onSubmit)}
+            onClick={() => {
+              console.log('DEBUG: Submit button clicked');
+              handleSubmit(onSubmit)();
+            }}
             disabled={createMutation.isPending || updateMutation.isPending}
             loading={createMutation.isPending || updateMutation.isPending}
             className="bg-dark-green hover:bg-dark-green/80"
