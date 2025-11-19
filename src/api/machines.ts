@@ -1,6 +1,6 @@
 import apiClient from '../lib/api-client';
 import { API_ENDPOINTS } from '../constants';
-import type { MachineDto, AssignMachineDto, PagedResponse, PaginationParams } from '../types';
+import type { MachineDto, AssignMachineDto, PagedResponse, PaginationParams, MachineInspectionDto, CreateMachineInspectionDto } from '../types';
 
 export const machinesApi = {
   getAll: async (params?: PaginationParams): Promise<PagedResponse<MachineDto>> => {
@@ -16,10 +16,11 @@ export const machinesApi = {
   },
 
   getAllNonPaginated: async (): Promise<MachineDto[]> => {
-    const response = await apiClient.get<MachineDto[]>(
-      `${API_ENDPOINTS.MACHINES.BASE}/all`
+    // Use paginated endpoint with large page size to get all records
+    const response = await apiClient.get<PagedResponse<MachineDto>>(
+      `${API_ENDPOINTS.MACHINES.BASE}?size=1000`
     );
-    return response.data;
+    return response.data.content;
   },
 
   create: async (machine: MachineDto): Promise<MachineDto> => {
@@ -46,6 +47,22 @@ export const machinesApi = {
     const response = await apiClient.post<MachineDto>(
       API_ENDPOINTS.MACHINES.ASSIGN,
       assignment
+    );
+    return response.data;
+  },
+
+  // Inspection methods
+  getMachineInspectionHistory: async (machineId: string): Promise<MachineInspectionDto[]> => {
+    const response = await apiClient.get<MachineInspectionDto[]>(
+      API_ENDPOINTS.MACHINES.MACHINE_INSPECTION_HISTORY(machineId)
+    );
+    return response.data;
+  },
+
+  createInspection: async (inspection: CreateMachineInspectionDto): Promise<MachineInspectionDto> => {
+    const response = await apiClient.post<MachineInspectionDto>(
+      API_ENDPOINTS.MACHINES.INSPECTIONS,
+      inspection
     );
     return response.data;
   },

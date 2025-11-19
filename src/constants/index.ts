@@ -1,5 +1,5 @@
 // API endpoints
-export const API_BASE_URL = 'http://localhost:8080';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 export const API_ENDPOINTS = {
   AUTH: {
@@ -15,12 +15,16 @@ export const API_ENDPOINTS = {
     BASE: '/api/machines',
     BY_ID: (id: string) => `/api/machines/${id}`,
     ASSIGN: '/api/machines/assign',
+    INSPECTIONS: '/api/machine-inspections',
+    MACHINE_INSPECTIONS: (machineId: string) => `/api/machine-inspections/machine/${machineId}`,
+    MACHINE_INSPECTION_HISTORY: (machineId: string) => `/api/machine-inspections/machine/${machineId}/history`,
   },
   TOOLS: {
     BASE: '/api/tools',
     BY_ID: (id: string) => `/api/tools/${id}`,
     ASSIGN: '/api/tools/assign',
     UNASSIGN: '/api/tools/unassign',
+    EMPLOYEES: (toolId: string) => `/api/tools/${toolId}/employees`,
   },
 } as const;
 
@@ -85,11 +89,9 @@ export const STATUS = {
 
 // Tool conditions
 export const TOOL_CONDITIONS = [
-  'Excellent',
-  'Good',
-  'Fair',
-  'Poor',
-  'Needs Repair',
+  'NEW',
+  'GOOD',
+  'POOR',
 ] as const;
 
 // Error messages

@@ -40,14 +40,42 @@ export interface AssignMachineDto {
   employeeId: string;
 }
 
+export interface MachineInspectionDto {
+  uuid?: string;
+  machineId: string;
+  machineName?: string;
+  machineFactoryNumber?: string;
+  inspectionDate: string;
+  notes?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateMachineInspectionDto {
+  machineId: string;
+  inspectionDate: string;
+  notes?: string;
+  status?: string;
+}
+
+// Tool condition enum
+export const ToolCondition = {
+  NEW: 'NEW',
+  GOOD: 'GOOD', 
+  POOR: 'POOR',
+} as const;
+
+export type ToolCondition = typeof ToolCondition[keyof typeof ToolCondition];
+
 // Tool types
 export interface ToolDto {
   uuid?: string;
   name: string;
-  factoryNumber: string;
-  size: string;
+  factoryNumber?: string;
   quantity: number;
   value: number;
+  availableQuantity?: number;
 }
 
 export interface AssignToolDto {
@@ -55,8 +83,10 @@ export interface AssignToolDto {
   employeeId: string;
   toolId: string;
   quantity: number;
-  condition: string;
+  condition: ToolCondition;
   assignedAt?: string;
+  employeeName?: string;
+  toolName?: string;
 }
 
 // API response types

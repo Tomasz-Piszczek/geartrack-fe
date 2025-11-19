@@ -10,7 +10,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { employeesApi } from '../../api/employees';
 import { toolsApi } from '../../api/tools';
-import type { EmployeeDto, PaginationParams } from '../../types';
+import type { EmployeeDto, PaginationParams, ToolCondition } from '../../types';
+import { ToolCondition as ToolConditionValues } from '../../types';
 import { QUERY_KEYS, VALIDATION } from '../../constants';
 import { toast } from '../../lib/toast';
 import Modal from '../../components/common/Modal';
@@ -24,7 +25,7 @@ interface EmployeeFormData {
 interface AssignToolFormData {
   toolId: string;
   quantity: number;
-  condition: string;
+  condition: ToolCondition;
 }
 
 const EmployeesPage: React.FC = () => {
@@ -59,25 +60,6 @@ const EmployeesPage: React.FC = () => {
     queryFn: toolsApi.getAll,
   });
 
-  // Get available quantities for all tools
-  const { data: toolQuantities = {} } = useQuery({
-    queryKey: [QUERY_KEYS.TOOLS, 'quantities'],
-    queryFn: async () => {
-      const quantities: Record<string, {availableQuantity: number, totalAssigned: number}> = {};
-      for (const tool of tools) {
-        if (tool.uuid) {
-          try {
-            quantities[tool.uuid] = await toolsApi.getAvailableQuantity(tool.uuid);
-          } catch (error) {
-            console.warn(`Failed to get quantities for tool ${tool.uuid}:`, error);
-            quantities[tool.uuid] = { availableQuantity: 0, totalAssigned: 0 };
-          }
-        }
-      }
-      return quantities;
-    },
-    enabled: tools.length > 0,
-  });
 
   const {
     register,
@@ -184,7 +166,7 @@ const EmployeesPage: React.FC = () => {
     resetTool({
       toolId: '',
       quantity: 1,
-      condition: 'Good',
+      condition: ToolConditionValues.GOOD,
     });
     setShowAssignToolModal(true);
   };
@@ -422,14 +404,11 @@ const EmployeesPage: React.FC = () => {
                 className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
               >
                 <option value="">Select a tool</option>
-                {tools.map((tool) => {
-                  const quantities = toolQuantities[tool.uuid!] || { availableQuantity: 0 };
-                  return (
-                    <option key={tool.uuid} value={tool.uuid}>
-                      {tool.name} - {tool.factoryNumber} (Available: {quantities.availableQuantity})
-                    </option>
-                  );
-                })}
+                {tools.map((tool) => (
+                  <option key={tool.uuid} value={tool.uuid}>
+                    {tool.name}{tool.factoryNumber ? ` - ${tool.factoryNumber}` : ''} (Available: {tool.availableQuantity || 0})
+                  </option>
+                ))}
               </select>
               {toolErrors.toolId && (
                 <p className="mt-1 text-sm text-red-400">{toolErrors.toolId.message}</p>
@@ -457,10 +436,9 @@ const EmployeesPage: React.FC = () => {
                 {...registerTool('condition', { required: 'Condition is required' })}
                 className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
               >
-                <option value="Excellent">Excellent</option>
-                <option value="Good">Good</option>
-                <option value="Fair">Fair</option>
-                <option value="Poor">Poor</option>
+                <option value={ToolConditionValues.NEW}>{ToolConditionValues.NEW}</option>
+                <option value={ToolConditionValues.GOOD}>{ToolConditionValues.GOOD}</option>
+                <option value={ToolConditionValues.POOR}>{ToolConditionValues.POOR}</option>
               </select>
               {toolErrors.condition && (
                 <p className="mt-1 text-sm text-red-400">{toolErrors.condition.message}</p>

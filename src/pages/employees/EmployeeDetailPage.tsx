@@ -18,12 +18,13 @@ import { useForm } from 'react-hook-form';
 import { employeesApi } from '../../api/employees';
 import { toolsApi } from '../../api/tools';
 import { QUERY_KEYS, ROUTES } from '../../constants';
+import { ToolCondition } from '../../types';
 import { toast } from '../../lib/toast';
 
 interface AssignToolFormData {
   toolId: string;
   quantity: number;
-  condition: string;
+  condition: ToolCondition;
 }
 
 interface RemoveToolFormData {
@@ -50,25 +51,6 @@ const EmployeeDetailPage: React.FC = () => {
     queryFn: toolsApi.getAll,
   });
 
-  // Get available quantities for all tools
-  const { data: toolQuantities = {} } = useQuery({
-    queryKey: [QUERY_KEYS.TOOLS, 'quantities'],
-    queryFn: async () => {
-      const quantities: Record<string, {availableQuantity: number, totalAssigned: number}> = {};
-      for (const tool of availableTools) {
-        if (tool.uuid) {
-          try {
-            quantities[tool.uuid] = await toolsApi.getAvailableQuantity(tool.uuid);
-          } catch (error) {
-            console.warn(`Failed to get quantities for tool ${tool.uuid}:`, error);
-            quantities[tool.uuid] = { availableQuantity: 0, totalAssigned: 0 };
-          }
-        }
-      }
-      return quantities;
-    },
-    enabled: availableTools.length > 0,
-  });
 
   const { data: employeeTools = [], isLoading: isLoadingTools } = useQuery({
     queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'],
@@ -127,7 +109,7 @@ const EmployeeDetailPage: React.FC = () => {
     resetTool({
       toolId: '',
       quantity: 1,
-      condition: 'Good',
+      condition: ToolCondition.GOOD,
     });
     setShowAssignToolModal(true);
   };
@@ -246,10 +228,6 @@ const EmployeeDetailPage: React.FC = () => {
               <span className="text-lg">${employee.hourlyRate}/hour</span>
             </div>
 
-            <div className="text-center space-y-2">
-              <p className="text-surface-grey text-sm">Employee ID</p>
-              <p className="text-white font-mono text-xs">{employee.uuid}</p>
-            </div>
           </div>
         </Card>
 
@@ -306,10 +284,8 @@ const EmployeeDetailPage: React.FC = () => {
                         <div>
                           <h3 className="text-lg font-semibold text-white">
                             {assignment.toolName}
+                            {assignment.toolFactoryNumber ? ` #${assignment.toolFactoryNumber}` : ''}
                           </h3>
-                          <p className="text-surface-grey-dark text-sm">
-                            Factory #: {assignment.toolFactoryNumber}
-                          </p>
                         </div>
                       </div>
                       
@@ -321,10 +297,10 @@ const EmployeeDetailPage: React.FC = () => {
                         <div>
                           <p className="text-surface-grey">Condition</p>
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            assignment.condition === 'Excellent' ? 'bg-green-900 text-green-300' :
-                            assignment.condition === 'Good' ? 'bg-blue-900 text-blue-300' :
-                            assignment.condition === 'Fair' ? 'bg-yellow-900 text-yellow-300' :
-                            'bg-red-900 text-red-300'
+                            assignment.condition === ToolCondition.NEW ? 'bg-green-900 text-green-300' :
+                            assignment.condition === ToolCondition.GOOD ? 'bg-blue-900 text-blue-300' :
+                            assignment.condition === ToolCondition.POOR ? 'bg-red-900 text-red-300' :
+                            'bg-gray-900 text-gray-300'
                           }`}>
                             {assignment.condition}
                           </span>
@@ -332,10 +308,6 @@ const EmployeeDetailPage: React.FC = () => {
                         <div>
                           <p className="text-surface-grey">Assigned</p>
                           <p className="text-white font-medium">{formatDate(assignment.assignedAt)}</p>
-                        </div>
-                        <div>
-                          <p className="text-surface-grey">Size</p>
-                          <p className="text-white font-medium">{assignment.toolSize || 'N/A'}</p>
                         </div>
                       </div>
                     </div>
@@ -377,14 +349,11 @@ const EmployeeDetailPage: React.FC = () => {
                 className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
               >
                 <option value="">Select a tool</option>
-                {availableTools.map((tool) => {
-                  const quantities = toolQuantities[tool.uuid!] || { availableQuantity: 0 };
-                  return (
-                    <option key={tool.uuid} value={tool.uuid}>
-                      {tool.name} - {tool.factoryNumber} (Available: {quantities.availableQuantity})
-                    </option>
-                  );
-                })}
+                {availableTools.map((tool) => (
+                  <option key={tool.uuid} value={tool.uuid}>
+                    {tool.name}{tool.factoryNumber ? ` - ${tool.factoryNumber}` : ''} (Available: {tool.availableQuantity || 0})
+                  </option>
+                ))}
               </select>
               {toolErrors.toolId && (
                 <p className="mt-1 text-sm text-red-400">{toolErrors.toolId.message}</p>
@@ -412,10 +381,9 @@ const EmployeeDetailPage: React.FC = () => {
                 {...registerTool('condition', { required: 'Condition is required' })}
                 className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
               >
-                <option value="Excellent">Excellent</option>
-                <option value="Good">Good</option>
-                <option value="Fair">Fair</option>
-                <option value="Poor">Poor</option>
+                <option value={ToolCondition.NEW}>{ToolCondition.NEW}</option>
+                <option value={ToolCondition.GOOD}>{ToolCondition.GOOD}</option>
+                <option value={ToolCondition.POOR}>{ToolCondition.POOR}</option>
               </select>
               {toolErrors.condition && (
                 <p className="mt-1 text-sm text-red-400">{toolErrors.condition.message}</p>
