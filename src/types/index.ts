@@ -59,6 +59,15 @@ export interface CreateMachineInspectionDto {
   status?: string;
 }
 
+// Tool condition enum
+export const ToolCondition = {
+  NEW: 'NEW',
+  GOOD: 'GOOD', 
+  POOR: 'POOR',
+} as const;
+
+export type ToolCondition = typeof ToolCondition[keyof typeof ToolCondition];
+
 // Tool types
 export interface ToolDto {
   uuid?: string;
@@ -74,7 +83,7 @@ export interface AssignToolDto {
   employeeId: string;
   toolId: string;
   quantity: number;
-  condition: string;
+  condition: ToolCondition;
   assignedAt?: string;
   employeeName?: string;
   toolName?: string;
