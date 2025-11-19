@@ -47,9 +47,13 @@ const ToolsPage: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: toolsApi.create,
     onSuccess: () => {
+      console.log('DEBUG: Tool created, about to invalidate queries');
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
+      console.log('DEBUG: Queries invalidated, showing toast');
       toast.success('Tool created successfully');
+      console.log('DEBUG: Toast shown, about to close modal');
       handleCloseModal();
+      console.log('DEBUG: Modal close called');
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to create tool');
