@@ -87,6 +87,8 @@ export interface AssignToolDto {
   assignedAt?: string;
   employeeName?: string;
   toolName?: string;
+  toolPrice?: number;
+  toolFactoryNumber?: string;
 }
 
 // API response types

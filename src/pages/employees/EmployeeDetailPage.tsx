@@ -7,7 +7,8 @@ import {
   HiUser, 
   HiCurrencyDollar, 
   HiCog, 
-  HiSearch 
+  HiSearch,
+  HiPrinter
 } from 'react-icons/hi';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
@@ -25,6 +26,7 @@ interface AssignToolFormData {
   toolId: string;
   quantity: number;
   condition: ToolCondition;
+  assignedAt: string;
 }
 
 interface RemoveToolFormData {
@@ -106,10 +108,12 @@ const EmployeeDetailPage: React.FC = () => {
   );
 
   const handleOpenAssignToolModal = () => {
+    const today = new Date().toISOString().split('T')[0];
     resetTool({
       toolId: '',
       quantity: 1,
       condition: ToolCondition.GOOD,
+      assignedAt: today,
     });
     setShowAssignToolModal(true);
   };
@@ -140,6 +144,7 @@ const EmployeeDetailPage: React.FC = () => {
         toolId: data.toolId,
         quantity: data.quantity,
         condition: data.condition,
+        assignedAt: data.assignedAt,
       });
     }
   };
@@ -161,6 +166,130 @@ const EmployeeDetailPage: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
+  };
+
+  const aggregateToolsByNameAndDate = () => {
+    const toolMap = new Map<string, { quantity: number, date: string }>();
+    
+    employeeTools.forEach(assignment => {
+      const toolName = assignment.toolName || 'Unknown Tool';
+      const assignedDate = assignment.assignedAt || '';
+      const key = `${toolName}_${assignedDate}`;
+      
+      const existing = toolMap.get(key);
+      if (existing) {
+        existing.quantity += assignment.quantity;
+      } else {
+        toolMap.set(key, {
+          quantity: assignment.quantity,
+          date: assignedDate
+        });
+      }
+    });
+    
+    return Array.from(toolMap.entries())
+      .map(([key, data]) => {
+        const toolName = key.split('_')[0];
+        return {
+          name: toolName,
+          quantity: data.quantity,
+          date: data.date
+        };
+      })
+      .sort((a, b) => {
+        if (a.name === b.name) {
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        }
+        return a.name.localeCompare(b.name);
+      });
+  };
+
+  const handlePrintToolList = () => {
+    const aggregatedTools = aggregateToolsByNameAndDate();
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html lang="pl">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Lista Narzędzi</title>
+        <style>
+          @media print {
+            body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+            .no-print { display: none !important; }
+          }
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: white; 
+            color: black; 
+          }
+          table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+          }
+          th, td { 
+            border: 1px solid #000; 
+            padding: 12px; 
+            text-align: left; 
+          }
+          th { 
+            background-color: #f5f5f5; 
+            font-weight: bold; 
+            font-size: 16px; 
+          }
+          td { 
+            font-size: 14px; 
+          }
+          .quantity { 
+            text-align: center; 
+            font-weight: bold; 
+          }
+          .date { 
+            text-align: center; 
+          }
+        </style>
+      </head>
+      <body>
+        <table>
+          <thead>
+            <tr>
+              <th>Nazwa</th>
+              <th>Ilość</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${aggregatedTools.map(tool => `
+              <tr>
+                <td>${tool.name}</td>
+                <td class="quantity">${tool.quantity}</td>
+                <td class="date">${new Date(tool.date).toLocaleDateString('pl-PL')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <script>
+          window.onload = function() {
+            window.print();
+            window.onafterprint = function() {
+              window.close();
+            };
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+    }
   };
 
   if (isLoadingEmployee) {
@@ -239,14 +368,24 @@ const EmployeeDetailPage: React.FC = () => {
                 {filteredEmployeeTools.length} tool{filteredEmployeeTools.length !== 1 ? 's' : ''} assigned
               </p>
             </div>
-            <Button
-              color="primary"
-              onClick={handleOpenAssignToolModal}
-              className="bg-dark-green hover:bg-dark-green/80"
-            >
-              <HiPlus className="w-4 h-4 mr-2" />
-              Assign Tool
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                color="gray"
+                onClick={handlePrintToolList}
+                className="bg-blue-900 hover:bg-blue-800 text-blue-300"
+              >
+                <HiPrinter className="w-4 h-4 mr-2" />
+                Print Tool List
+              </Button>
+              <Button
+                color="primary"
+                onClick={handleOpenAssignToolModal}
+                className="bg-dark-green hover:bg-dark-green/80"
+              >
+                <HiPlus className="w-4 h-4 mr-2" />
+                Assign Tool
+              </Button>
+            </div>
           </div>
 
           <div className="mb-6">
@@ -289,10 +428,14 @@ const EmployeeDetailPage: React.FC = () => {
                         </div>
                       </div>
                       
-                      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                         <div>
                           <p className="text-surface-grey">Quantity</p>
                           <p className="text-white font-medium">{assignment.quantity}</p>
+                        </div>
+                        <div>
+                          <p className="text-surface-grey">Price</p>
+                          <p className="text-white font-medium">${assignment.toolPrice?.toFixed(2) || '0.00'}</p>
                         </div>
                         <div>
                           <p className="text-surface-grey">Condition</p>
@@ -389,6 +532,15 @@ const EmployeeDetailPage: React.FC = () => {
                 <p className="mt-1 text-sm text-red-400">{toolErrors.condition.message}</p>
               )}
             </div>
+
+            <Input
+              id="assignedAt"
+              label="Assignment Date"
+              type="date"
+              {...registerTool('assignedAt', { required: 'Assignment date is required' })}
+              error={toolErrors.assignedAt?.message}
+              className="bg-section-grey-light"
+            />
           </form>
         </Modal.Body>
         <Modal.Footer className="bg-section-grey border-lighter-border">
