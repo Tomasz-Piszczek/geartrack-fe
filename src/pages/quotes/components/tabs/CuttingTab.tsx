@@ -12,7 +12,6 @@ const CuttingTab: React.FC = () => {
   };
 
   const handleMarginPercentChange = (value: number) => {
-    const marginPln = (data.price * value) / 100;
     dispatch({ type: 'SET_TAB_FIELD', tab: 'cutting', field: 'marginPercent', value });
   };
 

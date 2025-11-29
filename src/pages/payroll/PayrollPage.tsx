@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { HiSave, HiCurrencyDollar } from 'react-icons/hi';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { HiSave } from 'react-icons/hi';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { payrollApi, type PayrollRecordDto } from '../../api/payroll';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
@@ -16,7 +16,6 @@ const PayrollPage: React.FC = () => {
   const [currentNoteIndex, setCurrentNoteIndex] = useState<number | null>(null);
   const [noteValue, setNoteValue] = useState('');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const queryClient = useQueryClient();
 
   const months = [
     { value: 1, label: 'Styczeń' },

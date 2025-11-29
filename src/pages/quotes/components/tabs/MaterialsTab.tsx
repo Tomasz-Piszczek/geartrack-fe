@@ -33,8 +33,8 @@ const MaterialsTab: React.FC = () => {
       materialPrice = parseFloat(customPrice) || 0;
     } else {
       const material = mockMaterials.find(m => m.name === selectedMaterial);
-      materialName = material.name;
-      materialPrice = material.price;
+      materialName = material?.name || '';
+      materialPrice = material?.price || 0;
     }
 
     const finalPricePerUnit = pricePerUnit ? parseFloat(pricePerUnit) || 0 : materialPrice * (1 + (parseFloat(marginPercent) || 0) / 100);
@@ -227,7 +227,7 @@ const MaterialsTab: React.FC = () => {
             </Button>
             <Button
               onClick={() => setShowAddForm(false)}
-              variant="secondary"
+              color="gray"
             >
               Anuluj
             </Button>
@@ -298,7 +298,7 @@ const MaterialsTab: React.FC = () => {
                   <td className="px-4 py-3">
                     <Button
                       onClick={() => handleRemoveMaterial(material.id)}
-                      variant="danger"
+                      color="red"
                       size="sm"
                     >
                       Usuń
