@@ -61,9 +61,9 @@ export interface CreateMachineInspectionDto {
 
 // Tool condition enum
 export const ToolCondition = {
-  NEW: 'NEW',
-  GOOD: 'GOOD', 
-  POOR: 'POOR',
+  NEW: 'NOWY',
+  GOOD: 'DOBRY', 
+  POOR: 'SŁABY',
 } as const;
 
 export type ToolCondition = typeof ToolCondition[keyof typeof ToolCondition];

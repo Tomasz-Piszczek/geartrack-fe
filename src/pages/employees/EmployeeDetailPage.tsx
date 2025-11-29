@@ -314,7 +314,7 @@ const EmployeeDetailPage: React.FC = () => {
             className="mt-4"
           >
             <HiArrowLeft className="w-4 h-4 mr-2" />
-            Back to Employees
+            Powrót do pracowników
           </Button>
         </div>
       </div>
@@ -335,7 +335,7 @@ const EmployeeDetailPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-white mb-2">
             {employee.firstName} {employee.lastName}
           </h1>
-          <p className="text-surface-grey-dark">Employee Details & Tool Assignments</p>
+          <p className="text-surface-grey-dark">Szczegóły pracownika i przypisanie narzędzi</p>
         </div>
       </div>
 
@@ -354,7 +354,7 @@ const EmployeeDetailPage: React.FC = () => {
             
             <div className="flex items-center gap-2 text-surface-grey-dark mb-6">
               <HiCurrencyDollar className="w-5 h-5" />
-              <span className="text-lg">${employee.hourlyRate}/hour</span>
+              <span className="text-lg">{employee.hourlyRate}zł/godzina</span>
             </div>
 
           </div>
@@ -363,9 +363,9 @@ const EmployeeDetailPage: React.FC = () => {
         <div className="lg:col-span-2">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-white mb-2">Assigned Tools</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">Przypisane narzędzia</h2>
               <p className="text-surface-grey-dark">
-                {filteredEmployeeTools.length} tool{filteredEmployeeTools.length !== 1 ? 's' : ''} assigned
+                Przypisane narzędzia: {filteredEmployeeTools.length}
               </p>
             </div>
             <div className="flex gap-3">
@@ -375,7 +375,7 @@ const EmployeeDetailPage: React.FC = () => {
                 className="bg-blue-900 hover:bg-blue-800 text-blue-300"
               >
                 <HiPrinter className="w-4 h-4 mr-2" />
-                Print Tool List
+                Drukuj listę narzędzi
               </Button>
               <Button
                 color="primary"
@@ -383,7 +383,7 @@ const EmployeeDetailPage: React.FC = () => {
                 className="bg-dark-green hover:bg-dark-green/80"
               >
                 <HiPlus className="w-4 h-4 mr-2" />
-                Assign Tool
+                Przypisz narzędzie
               </Button>
             </div>
           </div>
@@ -392,7 +392,7 @@ const EmployeeDetailPage: React.FC = () => {
             <div className="relative max-w-md">
               <Input
                 icon={HiSearch}
-                placeholder="Search assigned tools..."
+                placeholder="Szukaj przypisanych narzędzi..."
                 value={searchTerm}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                 className="bg-section-grey"
@@ -407,8 +407,8 @@ const EmployeeDetailPage: React.FC = () => {
           ) : filteredEmployeeTools.length === 0 ? (
             <Card className="text-center py-12">
               <HiCog className="w-16 h-16 mx-auto mb-4 opacity-50 text-surface-grey-dark" />
-              <p className="text-lg text-surface-grey-dark">No tools assigned</p>
-              <p className="text-sm text-surface-grey">Assign tools to track usage and condition</p>
+              <p className="text-lg text-surface-grey-dark">Brak przypisanych narzędzi</p>
+              <p className="text-sm text-surface-grey">Śledź użycie i stan poprzez przypisanie narzędzi</p>
             </Card>
           ) : (
             <div className="space-y-4">
@@ -430,15 +430,15 @@ const EmployeeDetailPage: React.FC = () => {
                       
                       <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                         <div>
-                          <p className="text-surface-grey">Quantity</p>
+                          <p className="text-surface-grey">Ilość</p>
                           <p className="text-white font-medium">{assignment.quantity}</p>
                         </div>
                         <div>
-                          <p className="text-surface-grey">Price</p>
-                          <p className="text-white font-medium">${assignment.toolPrice?.toFixed(2) || '0.00'}</p>
+                          <p className="text-surface-grey">Cena</p>
+                          <p className="text-white font-medium">{assignment.toolPrice?.toFixed(2) || '0.00'}zł</p>
                         </div>
                         <div>
-                          <p className="text-surface-grey">Condition</p>
+                          <p className="text-surface-grey">Stan</p>
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
                             assignment.condition === ToolCondition.NEW ? 'bg-green-900 text-green-300' :
                             assignment.condition === ToolCondition.GOOD ? 'bg-blue-900 text-blue-300' :
@@ -449,7 +449,7 @@ const EmployeeDetailPage: React.FC = () => {
                           </span>
                         </div>
                         <div>
-                          <p className="text-surface-grey">Assigned</p>
+                          <p className="text-surface-grey">Przypisano</p>
                           <p className="text-white font-medium">{formatDate(assignment.assignedAt)}</p>
                         </div>
                       </div>
@@ -463,7 +463,7 @@ const EmployeeDetailPage: React.FC = () => {
                         className="bg-red-900 hover:bg-red-800 text-red-300"
                       >
                         <HiTrash className="w-4 h-4 mr-1" />
-                        Remove
+                        Usuń
                       </Button>
                     </div>
                   </div>
@@ -478,23 +478,23 @@ const EmployeeDetailPage: React.FC = () => {
       <Modal show={showAssignToolModal} onClose={handleCloseAssignToolModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
-            Assign Tool to {employee.firstName} {employee.lastName}
+            Przypisz narzędzie do {employee.firstName} {employee.lastName}
           </span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
           <form onSubmit={handleSubmitTool(onSubmitToolAssignment)} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-white mb-2">
-                Tool
+                Narzędzie
               </label>
               <select
                 {...registerTool('toolId', { required: 'Tool is required' })}
                 className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
               >
-                <option value="">Select a tool</option>
+                <option value="">Wybierz narzędzie</option>
                 {availableTools.map((tool) => (
                   <option key={tool.uuid} value={tool.uuid}>
-                    {tool.name}{tool.factoryNumber ? ` - ${tool.factoryNumber}` : ''} (Available: {tool.availableQuantity || 0})
+                    {tool.name}{tool.factoryNumber ? ` - ${tool.factoryNumber}` : ''} (Dostępne: {tool.availableQuantity || 0})
                   </option>
                 ))}
               </select>
@@ -505,7 +505,7 @@ const EmployeeDetailPage: React.FC = () => {
 
             <Input
               id="quantity"
-              label="Quantity"
+              label="Ilość"
               type="number"
               min="1"
               {...registerTool('quantity', { 
@@ -518,7 +518,7 @@ const EmployeeDetailPage: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-white mb-2">
-                Condition
+                Stan
               </label>
               <select
                 {...registerTool('condition', { required: 'Condition is required' })}
@@ -535,7 +535,7 @@ const EmployeeDetailPage: React.FC = () => {
 
             <Input
               id="assignedAt"
-              label="Assignment Date"
+              label="Data przypisania"
               type="date"
               {...registerTool('assignedAt', { required: 'Assignment date is required' })}
               error={toolErrors.assignedAt?.message}
@@ -553,14 +553,14 @@ const EmployeeDetailPage: React.FC = () => {
             {assignToolMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <div className="spinner w-4 h-4"></div>
-                Assigning...
+                Przypisywanie...
               </div>
             ) : (
-              'Assign Tool'
+              'Przypisz narzędzie'
             )}
           </Button>
           <Button color="gray" onClick={handleCloseAssignToolModal}>
-            Cancel
+            Anuluj
           </Button>
         </Modal.Footer>
       </Modal>
@@ -569,22 +569,22 @@ const EmployeeDetailPage: React.FC = () => {
       <Modal show={showRemoveToolModal} onClose={handleCloseRemoveToolModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
-            Remove Tool from {employee.firstName} {employee.lastName}
+            Usuń narzędzie od {employee.firstName} {employee.lastName}
           </span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
           <div className="mb-4">
             <p className="text-white">
-              Tool: <span className="font-medium">{selectedToolForRemoval?.toolName}</span>
+              Narzędzie: <span className="font-medium">{selectedToolForRemoval?.toolName}</span>
             </p>
             <p className="text-surface-grey text-sm">
-              Currently assigned: {selectedToolForRemoval?.quantity} unit(s)
+              Aktualnie przypisane: {selectedToolForRemoval?.quantity} sztuk
             </p>
           </div>
           <form onSubmit={handleSubmitRemove(onSubmitToolRemoval)} className="space-y-4">
             <Input
               id="quantity"
-              label="Quantity to Remove"
+              label="Ilość do usunięcia"
               type="number"
               min="1"
               max={selectedToolForRemoval?.quantity || 1}
@@ -608,14 +608,14 @@ const EmployeeDetailPage: React.FC = () => {
             {unassignToolMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <div className="spinner w-4 h-4"></div>
-                Removing...
+                Usuwanie...
               </div>
             ) : (
-              'Remove Tool'
+              'Usuń narzędzie'
             )}
           </Button>
           <Button color="gray" onClick={handleCloseRemoveToolModal}>
-            Cancel
+            Anuluj
           </Button>
         </Modal.Footer>
       </Modal>
