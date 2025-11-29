@@ -34,6 +34,7 @@ export const QUERY_KEYS = {
   MACHINES: 'machines',
   TOOLS: 'tools',
   USER: 'user',
+  PAYROLL: 'payroll',
 } as const;
 
 // Local storage keys
@@ -52,6 +53,8 @@ export const ROUTES = {
   MACHINES: '/machines',
   EMPLOYEES: '/employees',
   EMPLOYEE_DETAIL: '/employees/:id',
+  PAYROLL: '/payroll',
+  QUOTES: '/quotes',
   SETTINGS: '/settings',
 } as const;
 

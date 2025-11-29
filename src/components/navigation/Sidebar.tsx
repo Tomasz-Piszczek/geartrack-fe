@@ -5,7 +5,9 @@ import {
   HiCog, 
   HiUsers, 
   HiDesktopComputer,
-  HiAdjustments
+  HiDocumentText,
+  HiAdjustments,
+  HiCurrencyDollar
 } from 'react-icons/hi';
 import { ROUTES } from '../../constants';
 import Brand from './Brand';
@@ -34,6 +36,16 @@ const MainSidebar: React.FC = () => {
       path: ROUTES.EMPLOYEES,
       label: 'Pracownicy',
       icon: HiUsers,
+    },
+    {
+      path: ROUTES.PAYROLL,
+      label: 'Wypłaty',
+      icon: HiCurrencyDollar,
+    },
+    {
+      path: ROUTES.QUOTES,
+      label: 'Wyceny',
+      icon: HiDocumentText,
     },
     {
       path: ROUTES.SETTINGS,
