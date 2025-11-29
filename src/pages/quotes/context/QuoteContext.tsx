@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, type ReactNode } from 'react';
 
 export interface Material {
   id: string;
@@ -187,7 +187,10 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useQuote() {
+export function useQuote(): QuoteContextType {
   const context = useContext(QuoteContext);
+  if (!context) {
+    throw new Error('useQuote must be used within a QuoteProvider');
+  }
   return context;
 }

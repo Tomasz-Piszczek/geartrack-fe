@@ -12,7 +12,6 @@ const PackagingTab: React.FC = () => {
   };
 
   const handleMarginPercentChange = (value: number) => {
-    const marginPln = (data.price * value) / 100;
     dispatch({ type: 'SET_TAB_FIELD', tab: 'packaging', field: 'marginPercent', value });
   };
 
