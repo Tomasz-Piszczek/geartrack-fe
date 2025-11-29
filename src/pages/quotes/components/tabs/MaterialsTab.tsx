@@ -298,7 +298,7 @@ const MaterialsTab: React.FC = () => {
                   <td className="px-4 py-3">
                     <Button
                       onClick={() => handleRemoveMaterial(material.id)}
-                      color="red"
+                      color="failure"
                       size="sm"
                     >
                       Usuń
