@@ -106,7 +106,7 @@ const Pagination: React.FC<PaginationProps> = ({
 
       {adjustablePage && onPerPageChange && (
         <div className="flex items-center space-x-2">
-          <label className="text-sm text-surface-grey">Rows per page:</label>
+          <label className="text-sm text-surface-grey">Wierszy na stronę:</label>
           <select
             value={perPage}
             onChange={(e) => onPerPageChange(Number(e.target.value))}
@@ -122,16 +122,16 @@ const Pagination: React.FC<PaginationProps> = ({
       )}
 
       <div className="text-sm text-surface-grey text-center">
-        Showing{' '}
+        Wyświetlane{' '}
         <span className="text-white font-medium">
           {Math.max((currentPage - 1) * perPage + 1, 1)}
         </span>{' '}
-        to{' '}
+        do{' '}
         <span className="text-white font-medium">
           {Math.min(currentPage * perPage, totalElements)}
         </span>{' '}
-        of{' '}
-        <span className="text-white font-medium">{totalElements}</span> results
+        z{' '}
+        <span className="text-white font-medium">{totalElements}</span> wyników
       </div>
     </div>
   );

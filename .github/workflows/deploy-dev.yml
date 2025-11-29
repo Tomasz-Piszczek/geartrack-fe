@@ -25,7 +25,7 @@ jobs:
       - name: Build application
         run: npm run build
         env:
-          VITE_API_BASE_URL: http://3.75.94.58:8080
+          VITE_API_BASE_URL: https://api.deltar.live/service1
 
       - name: Upload build artifacts
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'

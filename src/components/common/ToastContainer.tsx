@@ -57,10 +57,7 @@ const ToastContainer: React.FC = () => {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={getToastClassName(toast.type)}
-          style={{
-            animation: 'slideIn 0.3s ease-out',
-          }}
+          className={`${getToastClassName(toast.type)} slide-in`}
         >
           {getToastIcon(toast.type)}
           <p className="flex-1 text-sm font-medium">{toast.message}</p>

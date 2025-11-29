@@ -11,6 +11,8 @@ import ToolsPage from './pages/tools/ToolsPage';
 import MachinesPage from './pages/machines/MachinesPage';
 import EmployeesPage from './pages/employees/EmployeesPage';
 import EmployeeDetailPage from './pages/employees/EmployeeDetailPage';
+import PayrollPage from './pages/payroll/PayrollPage';
+import QuotesPage from './pages/quotes/QuotesPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import ToastContainer from './components/common/ToastContainer';
 import { ROUTES } from './constants';
@@ -70,6 +72,26 @@ function App() {
                   <ProtectedRoute>
                     <MainLayout>
                       <EmployeeDetailPage />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.PAYROLL}
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <PayrollPage />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.QUOTES}
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <QuotesPage />
                     </MainLayout>
                   </ProtectedRoute>
                 }

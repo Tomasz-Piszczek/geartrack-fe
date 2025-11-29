@@ -41,14 +41,14 @@ const MainNavbar: React.FC = () => {
                     className="flex items-center gap-1 text-xs text-surface-grey-dark hover:text-white transition-colors"
                   >
                     <HiAdjustments className="w-3 h-3" />
-                    Settings
+                    Ustawienia
                   </button>
                   <button
                     onClick={handleLogout}
                     className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors"
                   >
                     <HiLogout className="w-3 h-3" />
-                    Logout
+                    Wyloguj
                   </button>
                 </div>
               </div>

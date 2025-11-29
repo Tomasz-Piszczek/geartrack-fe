@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -6,13 +6,13 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   icon?: React.ComponentType<{ className?: string }>;
 }
 
-const Input: React.FC<InputProps> = ({
+const Input = forwardRef<HTMLInputElement, InputProps>(({
   label,
   error,
   icon: Icon,
   className = '',
   ...props
-}) => {
+}, ref) => {
   const baseClasses = 'input-style';
   const errorClasses = error ? 'ring-2 ring-red-500' : '';
   
@@ -30,6 +30,7 @@ const Input: React.FC<InputProps> = ({
           </div>
         )}
         <input
+          ref={ref}
           className={`${baseClasses} ${errorClasses} ${Icon ? 'pl-10' : ''} ${className}`}
           {...props}
         />
@@ -39,6 +40,8 @@ const Input: React.FC<InputProps> = ({
       )}
     </div>
   );
-};
+});
+
+Input.displayName = 'Input';
 
 export default Input;

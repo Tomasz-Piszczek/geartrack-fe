@@ -200,7 +200,7 @@ const EmployeesPage: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this employee?')) {
+    if (window.confirm('Czy na pewno chcesz usunąć tego pracownika?')) {
       deleteMutation.mutate(id);
     }
   };
@@ -213,8 +213,8 @@ const EmployeesPage: React.FC = () => {
     <div className="fade-in">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Employees</h1>
-          <p className="text-surface-grey-dark">Manage your team members</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Pracownicy</h1>
+          <p className="text-surface-grey-dark">Zarządzaj członkami swojego zespołu</p>
         </div>
         <Button
           color="primary"
@@ -222,7 +222,7 @@ const EmployeesPage: React.FC = () => {
           className="bg-dark-green hover:bg-dark-green/80"
         >
           <HiPlus className="w-4 h-4 mr-2" />
-          Add Employee
+          Dodaj pracownika
         </Button>
       </div>
 
@@ -230,7 +230,7 @@ const EmployeesPage: React.FC = () => {
         <div className="relative max-w-md">
           <Input
             icon={HiSearch}
-            placeholder="Search employees..."
+            placeholder="Szukaj pracowników..."
             value={searchTerm}
             onChange={handleSearchChange}
             className="bg-section-grey"
@@ -245,8 +245,8 @@ const EmployeesPage: React.FC = () => {
       ) : employees.length === 0 ? (
         <div className="text-center text-surface-grey-dark py-12">
           <HiUser className="w-16 h-16 mx-auto mb-4 opacity-50" />
-          <p className="text-lg">No employees found</p>
-          <p className="text-sm">Add your first employee to get started</p>
+          <p className="text-lg">Nie znaleziono pracowników</p>
+          <p className="text-sm">Dodaj pierwszego pracownika, aby zacząć</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -269,7 +269,7 @@ const EmployeesPage: React.FC = () => {
                 
                 <div className="flex items-center gap-2 text-surface-grey-dark mb-4">
                   <HiCurrencyDollar className="w-4 h-4" />
-                  <span>${employee.hourlyRate}/hour</span>
+                  <span>{employee.hourlyRate}zł/godzina</span>
                 </div>
 
                 <div className="flex justify-between items-center w-full">
@@ -283,23 +283,23 @@ const EmployeesPage: React.FC = () => {
                     className="bg-dark-green hover:bg-dark-green/80"
                   >
                     <HiCog className="w-4 h-4 mr-1" />
-                    Assign Tool
+                    Przypisz narzędzie
                   </Button>
                   <div onClick={(e) => e.stopPropagation()}>
                     <DropdownActions
                       actions={[
                         {
-                          label: 'View Details',
+                          label: 'Zobacz szczegóły',
                           icon: HiUser,
                           onClick: () => navigate(`/employees/${employee.uuid}`),
                         },
                         {
-                          label: 'Edit',
+                          label: 'Edytuj',
                           icon: HiPencil,
                           onClick: () => handleOpenModal(employee),
                         },
                         {
-                          label: 'Delete',
+                          label: 'Usuń',
                           icon: HiTrash,
                           onClick: () => handleDelete(employee.uuid!),
                           destructive: true,
@@ -330,14 +330,14 @@ const EmployeesPage: React.FC = () => {
       <Modal show={showModal} onClose={handleCloseModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
-            {editingEmployee ? 'Edit Employee' : 'Add New Employee'}
+            {editingEmployee ? 'Edytuj pracownika' : 'Dodaj nowego pracownika'}
           </span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input
               id="firstName"
-              label="First Name"
+              label="Imię"
               {...register('firstName', { required: VALIDATION.REQUIRED })}
               error={errors.firstName?.message}
               className="bg-section-grey-light"
@@ -345,7 +345,7 @@ const EmployeesPage: React.FC = () => {
 
             <Input
               id="lastName"
-              label="Last Name"
+              label="Nazwisko"
               {...register('lastName', { required: VALIDATION.REQUIRED })}
               error={errors.lastName?.message}
               className="bg-section-grey-light"
@@ -353,7 +353,7 @@ const EmployeesPage: React.FC = () => {
 
             <Input
               id="hourlyRate"
-              label="Hourly Rate ($)"
+              label="Stawka godzinowa (zł)"
               type="number"
               step="0.01"
               {...register('hourlyRate', { 
@@ -375,14 +375,14 @@ const EmployeesPage: React.FC = () => {
             {createMutation.isPending || updateMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <div className="spinner w-4 h-4"></div>
-                {editingEmployee ? 'Updating...' : 'Creating...'}
+                {editingEmployee ? 'Aktualizowanie...' : 'Tworzenie...'}
               </div>
             ) : (
-              editingEmployee ? 'Update Employee' : 'Create Employee'
+              editingEmployee ? 'Aktualizuj pracownika' : 'Utwórz pracownika'
             )}
           </Button>
           <Button color="gray" onClick={handleCloseModal}>
-            Cancel
+            Anuluj
           </Button>
         </Modal.Footer>
       </Modal>
@@ -390,23 +390,23 @@ const EmployeesPage: React.FC = () => {
       <Modal show={showAssignToolModal} onClose={handleCloseAssignToolModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
-            Assign Tool to {selectedEmployeeForTool?.firstName} {selectedEmployeeForTool?.lastName}
+            Przypisz narzędzie do {selectedEmployeeForTool?.firstName} {selectedEmployeeForTool?.lastName}
           </span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
           <form onSubmit={handleSubmitTool(onSubmitToolAssignment)} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-white mb-2">
-                Tool
+                Narzędzie
               </label>
               <select
                 {...registerTool('toolId', { required: 'Tool is required' })}
                 className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
               >
-                <option value="">Select a tool</option>
+                <option value="">Wybierz narzędzie</option>
                 {tools.map((tool) => (
                   <option key={tool.uuid} value={tool.uuid}>
-                    {tool.name}{tool.factoryNumber ? ` - ${tool.factoryNumber}` : ''} (Available: {tool.availableQuantity || 0})
+                    {tool.name}{tool.factoryNumber ? ` - ${tool.factoryNumber}` : ''} (Dostępne: {tool.availableQuantity || 0})
                   </option>
                 ))}
               </select>
@@ -417,7 +417,7 @@ const EmployeesPage: React.FC = () => {
 
             <Input
               id="quantity"
-              label="Quantity"
+              label="Ilość"
               type="number"
               min="1"
               {...registerTool('quantity', { 
@@ -430,7 +430,7 @@ const EmployeesPage: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-white mb-2">
-                Condition
+                Stan
               </label>
               <select
                 {...registerTool('condition', { required: 'Condition is required' })}
@@ -456,14 +456,14 @@ const EmployeesPage: React.FC = () => {
             {assignToolMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <div className="spinner w-4 h-4"></div>
-                Assigning...
+                Przypisywanie...
               </div>
             ) : (
-              'Assign Tool'
+              'Przypisz narzędzie'
             )}
           </Button>
           <Button color="gray" onClick={handleCloseAssignToolModal}>
-            Cancel
+            Anuluj
           </Button>
         </Modal.Footer>
       </Modal>
