@@ -155,28 +155,28 @@ const DashboardPage: React.FC = () => {
 
   const statsCards = [
     {
-      title: 'Total Employees',
+      title: 'Łączna liczba pracowników',
       value: employees.length,
       icon: HiUsers,
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
     },
     {
-      title: 'Total Machines',
+      title: 'Łączna liczba maszyn',
       value: machines.length,
       icon: HiDesktopComputer,
       color: 'text-green-500',
       bgColor: 'bg-green-500/10',
     },
     {
-      title: 'Total Tools',
+      title: 'Łączna liczba narzędzi',
       value: tools.length,
       icon: HiCog,
       color: 'text-orange-500',
       bgColor: 'bg-orange-500/10',
     },
     {
-      title: 'Assigned Items',
+      title: 'Przypisane elementy',
       value: machines.filter(m => m.employeeId).length + tools.reduce((acc, tool) => acc + tool.quantity, 0),
       icon: HiCollection,
       color: 'text-purple-500',
@@ -187,8 +187,8 @@ const DashboardPage: React.FC = () => {
   return (
     <div className="fade-in">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
-        <p className="text-surface-grey-dark">Welcome to GearTrack - Equipment Management System</p>
+        <h1 className="text-3xl font-bold text-white mb-2">Pulpit</h1>
+        <p className="text-surface-grey-dark">Witaj w GearTrack - System Zarządzania Sprzętem</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -209,55 +209,55 @@ const DashboardPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-section-grey border-lighter-border">
-          <h3 className="text-xl font-semibold text-white mb-4">Recent Activities</h3>
+          <h3 className="text-xl font-semibold text-white mb-4">Ostatnie aktywności</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 bg-section-grey-light rounded-lg">
               <HiUsers className="w-5 h-5 text-blue-500" />
               <div>
-                <p className="text-white text-sm">New employee added</p>
-                <p className="text-surface-grey-dark text-xs">2 hours ago</p>
+                <p className="text-white text-sm">Dodano nowego pracownika</p>
+                <p className="text-surface-grey-dark text-xs">2 godziny temu</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 bg-section-grey-light rounded-lg">
               <HiDesktopComputer className="w-5 h-5 text-green-500" />
               <div>
-                <p className="text-white text-sm">Machine assigned</p>
-                <p className="text-surface-grey-dark text-xs">4 hours ago</p>
+                <p className="text-white text-sm">Przypisano maszynę</p>
+                <p className="text-surface-grey-dark text-xs">4 godziny temu</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 bg-section-grey-light rounded-lg">
               <HiCog className="w-5 h-5 text-orange-500" />
               <div>
-                <p className="text-white text-sm">Tool inventory updated</p>
-                <p className="text-surface-grey-dark text-xs">1 day ago</p>
+                <p className="text-white text-sm">Zaktualizowano inwentarz narzędzi</p>
+                <p className="text-surface-grey-dark text-xs">1 dzień temu</p>
               </div>
             </div>
           </div>
         </Card>
 
         <Card className="bg-section-grey border-lighter-border">
-          <h3 className="text-xl font-semibold text-white mb-4">Quick Actions</h3>
+          <h3 className="text-xl font-semibold text-white mb-4">Szybkie akcje</h3>
           <div className="space-y-3">
             <button 
               onClick={handleOpenEmployeeModal}
               className="w-full p-3 bg-dark-green hover:bg-dark-green/80 rounded-lg text-white text-left transition-colors"
             >
               <HiUsers className="w-5 h-5 inline mr-2" />
-              Add New Employee
+              Dodaj nowego pracownika
             </button>
             <button 
               onClick={handleOpenMachineModal}
               className="w-full p-3 bg-dark-green hover:bg-dark-green/80 rounded-lg text-white text-left transition-colors"
             >
               <HiDesktopComputer className="w-5 h-5 inline mr-2" />
-              Register New Machine
+              Zarejestruj nową maszynę
             </button>
             <button 
               onClick={handleOpenToolModal}
               className="w-full p-3 bg-dark-green hover:bg-dark-green/80 rounded-lg text-white text-left transition-colors"
             >
               <HiCog className="w-5 h-5 inline mr-2" />
-              Add Tool to Inventory
+              Dodaj narzędzie do magazynu
             </button>
           </div>
         </Card>
@@ -266,13 +266,13 @@ const DashboardPage: React.FC = () => {
       {/* Add Employee Modal */}
       <Modal show={showEmployeeModal} onClose={handleCloseEmployeeModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
-          <span className="text-white">Add New Employee</span>
+          <span className="text-white">Dodaj nowego pracownika</span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
           <form onSubmit={handleSubmitEmployee(onSubmitEmployee)} className="space-y-4">
             <Input
               id="firstName"
-              label="First Name"
+              label="Imię"
               {...registerEmployee('firstName', { required: VALIDATION.REQUIRED })}
               error={employeeErrors.firstName?.message}
               className="bg-section-grey-light"
@@ -280,7 +280,7 @@ const DashboardPage: React.FC = () => {
 
             <Input
               id="lastName"
-              label="Last Name"
+              label="Nazwisko"
               {...registerEmployee('lastName', { required: VALIDATION.REQUIRED })}
               error={employeeErrors.lastName?.message}
               className="bg-section-grey-light"
@@ -288,7 +288,7 @@ const DashboardPage: React.FC = () => {
 
             <Input
               id="hourlyRate"
-              label="Hourly Rate ($)"
+              label="Stawka godzinowa (zł)"
               type="number"
               step="0.01"
               {...registerEmployee('hourlyRate', { 
@@ -310,14 +310,14 @@ const DashboardPage: React.FC = () => {
             {createEmployeeMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <div className="spinner w-4 h-4"></div>
-                Creating...
+                Tworzenie...
               </div>
             ) : (
-              'Create Employee'
+              'Utwórz pracownika'
             )}
           </Button>
           <Button color="gray" onClick={handleCloseEmployeeModal}>
-            Cancel
+            Anuluj
           </Button>
         </Modal.Footer>
       </Modal>
@@ -325,13 +325,13 @@ const DashboardPage: React.FC = () => {
       {/* Add Machine Modal */}
       <Modal show={showMachineModal} onClose={handleCloseMachineModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
-          <span className="text-white">Register New Machine</span>
+          <span className="text-white">Zarejestruj nową maszynę</span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
           <form onSubmit={handleSubmitMachine(onSubmitMachine)} className="space-y-4">
             <Input
               id="name"
-              label="Machine Name"
+              label="Nazwa maszyny"
               {...registerMachine('name', { required: VALIDATION.REQUIRED })}
               error={machineErrors.name?.message}
               className="bg-section-grey-light"
@@ -339,7 +339,7 @@ const DashboardPage: React.FC = () => {
 
             <Input
               id="factoryNumber"
-              label="Factory Number"
+              label="Numer fabryczny"
               {...registerMachine('factoryNumber', { required: VALIDATION.REQUIRED })}
               error={machineErrors.factoryNumber?.message}
               className="bg-section-grey-light"
@@ -356,14 +356,14 @@ const DashboardPage: React.FC = () => {
             {createMachineMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <div className="spinner w-4 h-4"></div>
-                Creating...
+                Tworzenie...
               </div>
             ) : (
-              'Register Machine'
+              'Zarejestruj maszynę'
             )}
           </Button>
           <Button color="gray" onClick={handleCloseMachineModal}>
-            Cancel
+            Anuluj
           </Button>
         </Modal.Footer>
       </Modal>
@@ -371,13 +371,13 @@ const DashboardPage: React.FC = () => {
       {/* Add Tool Modal */}
       <Modal show={showToolModal} onClose={handleCloseToolModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
-          <span className="text-white">Add Tool to Inventory</span>
+          <span className="text-white">Dodaj narzędzie do magazynu</span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
           <form onSubmit={handleSubmitTool(onSubmitTool)} className="space-y-4">
             <Input
               id="name"
-              label="Tool Name"
+              label="Nazwa narzędzia"
               {...registerTool('name', { required: VALIDATION.REQUIRED })}
               error={toolErrors.name?.message}
               className="bg-section-grey-light"
@@ -385,7 +385,7 @@ const DashboardPage: React.FC = () => {
 
             <Input
               id="factoryNumber"
-              label="Factory Number"
+              label="Numer fabryczny"
               {...registerTool('factoryNumber', { required: VALIDATION.REQUIRED })}
               error={toolErrors.factoryNumber?.message}
               className="bg-section-grey-light"
@@ -393,7 +393,7 @@ const DashboardPage: React.FC = () => {
 
             <Input
               id="size"
-              label="Size"
+              label="Rozmiar"
               {...registerTool('size')}
               error={toolErrors.size?.message}
               className="bg-section-grey-light"
@@ -401,7 +401,7 @@ const DashboardPage: React.FC = () => {
 
             <Input
               id="quantity"
-              label="Quantity"
+              label="Ilość"
               type="number"
               {...registerTool('quantity', { 
                 required: VALIDATION.REQUIRED,
@@ -413,7 +413,7 @@ const DashboardPage: React.FC = () => {
 
             <Input
               id="value"
-              label="Value ($)"
+              label="Wartość (zł)"
               type="number"
               step="0.01"
               {...registerTool('value', { 
@@ -435,14 +435,14 @@ const DashboardPage: React.FC = () => {
             {createToolMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <div className="spinner w-4 h-4"></div>
-                Adding...
+                Dodawanie...
               </div>
             ) : (
-              'Add Tool'
+              'Dodaj narzędzie'
             )}
           </Button>
           <Button color="gray" onClick={handleCloseToolModal}>
-            Cancel
+            Anuluj
           </Button>
         </Modal.Footer>
       </Modal>

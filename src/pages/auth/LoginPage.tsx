@@ -97,7 +97,7 @@ const LoginPage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-white">GearTrack</h1>
-            <p className="text-surface-grey-dark">Equipment Management System</p>
+            <p className="text-surface-grey-dark">System Zarządzania Sprzętem</p>
           </div>
         </div>
       </div>
@@ -107,7 +107,7 @@ const LoginPage: React.FC = () => {
           <div className="inline-block mt-1 text-white border-2 rounded-full border-lighter-border">
             <div className="flex justify-content items-center font-mono uppercase font-semibold text-sm md:text-base text-center">
               <div className="z-10 px-7 pt-3 pb-2 rounded-full border-2 border-main shadow-green-shadow transition-shadow">
-                LOGIN TO ACCOUNT
+                ZALOGUJ SIĘ DO KONTA
               </div>
             </div>
           </div>
@@ -115,10 +115,10 @@ const LoginPage: React.FC = () => {
 
         <form onSubmit={handleSubmit(onSubmit)} className="form w-full pt-6">
           <h3 className="sub-heading text-center px-1 font-sans font-semibold">
-            Login to your Account
+            Zaloguj się do swojego konta
           </h3>
           <p className="font-base leading-[22.5px] text-sm sm:text-lg text-center mt-3 mb-12 text-gray-400 max-w-[500px] mx-auto">
-            Access your GearTrack account to manage equipment, track assignments, and view analytics.
+            Uzyskaj dostęp do konta GearTrack, aby zarządzać sprzętem, śledzić przypisania i przeglądać analizy.
           </p>
 
           <div className="mb-8 flex flex-col gap-6 items-center justify-center">
@@ -131,7 +131,7 @@ const LoginPage: React.FC = () => {
                     message: VALIDATION.EMAIL.INVALID,
                   },
                 })}
-                placeholder="EMAIL ADDRESS"
+                placeholder="ADRES E-MAIL"
                 type="email"
                 className="input-style w-full mx-auto border-none text-white"
                 disabled={isLoading}
@@ -150,7 +150,7 @@ const LoginPage: React.FC = () => {
                     message: VALIDATION.PASSWORD.MIN_LENGTH,
                   },
                 })}
-                placeholder="PASSWORD"
+                placeholder="HASŁO"
                 type="password"
                 className="input-style w-full mx-auto border-none text-white"
                 disabled={isLoading}
@@ -169,7 +169,7 @@ const LoginPage: React.FC = () => {
                   disabled={isLoading}
                 />
                 <Label htmlFor="rememberMe" className="text-main mb-0 cursor-pointer">
-                  Remember me
+                  Zapamiętaj mnie
                 </Label>
               </div>
             </div>
@@ -182,10 +182,10 @@ const LoginPage: React.FC = () => {
                 loading={isLoading}
                 className="w-full max-w-[450px]"
               >
-                {isLoading ? 'LOGGING IN...' : 'LOGIN TO GEARTRACK'}
+                {isLoading ? 'LOGOWANIE...' : 'ZALOGUJ DO GEARTRACK'}
               </Button>
 
-              <div className="text-surface-grey-dark text-sm">or</div>
+              <div className="text-surface-grey-dark text-sm">lub</div>
 
               <div className="w-full max-w-[450px] flex justify-center">
                 <div id="google-signin-button" className="w-full"></div>
@@ -193,12 +193,12 @@ const LoginPage: React.FC = () => {
 
               <div className="text-center mt-6">
                 <p className="text-surface-grey-dark text-sm">
-                  Don't have an account?{' '}
+                  Nie masz konta?{' '}
                   <Link 
                     to={ROUTES.REGISTER} 
                     className="text-dark-green hover:text-dark-green/80 transition-colors"
                   >
-                    Create one here
+                    Utwórz je tutaj
                   </Link>
                 </p>
               </div>

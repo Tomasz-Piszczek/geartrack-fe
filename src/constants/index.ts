@@ -34,6 +34,7 @@ export const QUERY_KEYS = {
   MACHINES: 'machines',
   TOOLS: 'tools',
   USER: 'user',
+  PAYROLL: 'payroll',
 } as const;
 
 // Local storage keys
@@ -52,21 +53,23 @@ export const ROUTES = {
   MACHINES: '/machines',
   EMPLOYEES: '/employees',
   EMPLOYEE_DETAIL: '/employees/:id',
+  PAYROLL: '/payroll',
+  QUOTES: '/quotes',
   SETTINGS: '/settings',
 } as const;
 
 // Form validation constants
 export const VALIDATION = {
   EMAIL: {
-    REQUIRED: 'Email is required',
-    INVALID: 'Please enter a valid email address',
+    REQUIRED: 'Email jest wymagany',
+    INVALID: 'Wprowadź prawidłowy adres email',
   },
   PASSWORD: {
-    REQUIRED: 'Password is required',
-    MIN_LENGTH: 'Password must be at least 6 characters',
+    REQUIRED: 'Hasło jest wymagane',
+    MIN_LENGTH: 'Hasło musi mieć co najmniej 6 znaków',
   },
-  REQUIRED: 'This field is required',
-  POSITIVE_NUMBER: 'Must be a positive number',
+  REQUIRED: 'To pole jest wymagane',
+  POSITIVE_NUMBER: 'Musi być liczbą dodatnią',
 } as const;
 
 // UI constants
@@ -89,28 +92,28 @@ export const STATUS = {
 
 // Tool conditions
 export const TOOL_CONDITIONS = [
-  'NEW',
-  'GOOD',
-  'POOR',
+  'NOWY',
+  'DOBRY',
+  'SŁABY',
 ] as const;
 
 // Error messages
 export const ERROR_MESSAGES = {
-  NETWORK_ERROR: 'Network error. Please check your connection and try again.',
-  UNAUTHORIZED: 'You are not authorized to perform this action.',
-  FORBIDDEN: 'Access denied.',
-  NOT_FOUND: 'Resource not found.',
-  VALIDATION_ERROR: 'Please check your input and try again.',
-  GENERIC_ERROR: 'An unexpected error occurred. Please try again.',
+  NETWORK_ERROR: 'Błąd sieci. Sprawdź połączenie i spróbuj ponownie.',
+  UNAUTHORIZED: 'Nie masz uprawnień do wykonania tej akcji.',
+  FORBIDDEN: 'Dostęp zabroniony.',
+  NOT_FOUND: 'Zasób nie został znaleziony.',
+  VALIDATION_ERROR: 'Sprawdź dane wejściowe i spróbuj ponownie.',
+  GENERIC_ERROR: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.',
 } as const;
 
 // Success messages
 export const SUCCESS_MESSAGES = {
-  CREATED: 'Item created successfully',
-  UPDATED: 'Item updated successfully',
-  DELETED: 'Item deleted successfully',
-  ASSIGNED: 'Assignment completed successfully',
-  UNASSIGNED: 'Unassignment completed successfully',
+  CREATED: 'Element został pomyślnie utworzony',
+  UPDATED: 'Element został pomyślnie zaktualizowany',
+  DELETED: 'Element został pomyślnie usunięty',
+  ASSIGNED: 'Przypisanie zostało pomyślnie zakończone',
+  UNASSIGNED: 'Cofnięcie przypisania zostało pomyślnie zakończone',
 } as const;
 
 // Theme constants

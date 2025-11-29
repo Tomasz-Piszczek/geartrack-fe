@@ -140,7 +140,7 @@ const ToolsPage: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    const confirmMessage = 'Are you sure you want to delete this tool?\n\nWarning: This will remove the tool from all employees who currently have it assigned and cannot be undone.';
+    const confirmMessage = 'Czy na pewno chcesz usunąć to narzędzie?\n\nUwaga: To usunie narzędzie od wszystkich pracowników, którzy obecnie mają je przypisane i nie można tego cofnąć.';
     if (window.confirm(confirmMessage)) {
       deleteMutation.mutate(id);
     }
@@ -160,8 +160,8 @@ const ToolsPage: React.FC = () => {
     <div className="fade-in">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Tools Magazine</h1>
-          <p className="text-surface-grey-dark">Manage your tool inventory</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Narzędzia</h1>
+          <p className="text-surface-grey-dark">Zarządzaj inwentarzem narzędzi</p>
         </div>
         <Button
           color="primary"
@@ -169,7 +169,7 @@ const ToolsPage: React.FC = () => {
           className="bg-dark-green hover:bg-dark-green/80"
         >
           <HiPlus className="w-4 h-4 mr-2" />
-          Add Tool
+          Dodaj narzędzie
         </Button>
       </div>
 
@@ -177,7 +177,7 @@ const ToolsPage: React.FC = () => {
         <div className="relative max-w-md">
           <Input
             icon={HiSearch}
-            placeholder="Search tools..."
+            placeholder="Szukaj narzędzi..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="bg-section-grey"
@@ -188,24 +188,24 @@ const ToolsPage: React.FC = () => {
       <div className="table-wrapper">
         <Table hoverable>
           <Table.Head>
-            <Table.HeadCell className="bg-section-grey-dark text-white">Name</Table.HeadCell>
-            <Table.HeadCell className="bg-section-grey-dark text-white">Factory Number</Table.HeadCell>
-            <Table.HeadCell className="bg-section-grey-dark text-white">Quantity</Table.HeadCell>
-            <Table.HeadCell className="bg-section-grey-dark text-white">Available</Table.HeadCell>
-            <Table.HeadCell className="bg-section-grey-dark text-white">Value</Table.HeadCell>
-            <Table.HeadCell className="bg-section-grey-dark text-white">Actions</Table.HeadCell>
+            <Table.HeadCell className="bg-section-grey-dark text-white">Nazwa</Table.HeadCell>
+            <Table.HeadCell className="bg-section-grey-dark text-white">Numer fabryczny</Table.HeadCell>
+            <Table.HeadCell className="bg-section-grey-dark text-white">Ilość</Table.HeadCell>
+            <Table.HeadCell className="bg-section-grey-dark text-white">Dostępne</Table.HeadCell>
+            <Table.HeadCell className="bg-section-grey-dark text-white">Wartość</Table.HeadCell>
+            <Table.HeadCell className="bg-section-grey-dark text-white">Akcje</Table.HeadCell>
           </Table.Head>
           <Table.Body>
             {isLoading ? (
               <Table.Row>
                 <Table.Cell colSpan={6} className="text-center text-white">
-                  Loading...
+                  Ładowanie...
                 </Table.Cell>
               </Table.Row>
             ) : filteredTools.length === 0 ? (
               <Table.Row>
                 <Table.Cell colSpan={6} className="text-center text-surface-grey-dark">
-                  No tools found
+                  Nie znaleziono narzędzi
                 </Table.Cell>
               </Table.Row>
             ) : (
@@ -215,7 +215,7 @@ const ToolsPage: React.FC = () => {
                   <Table.Cell className="text-white">{tool.factoryNumber || '-'}</Table.Cell>
                   <Table.Cell className="text-white">{tool.quantity}</Table.Cell>
                   <Table.Cell className="text-white">{tool.availableQuantity || 0}</Table.Cell>
-                  <Table.Cell className="text-white">${tool.value.toFixed(2)}</Table.Cell>
+                  <Table.Cell className="text-white">{tool.value.toFixed(2)}zł</Table.Cell>
                   <Table.Cell>
                     <div className="flex gap-2">
                       <Button
@@ -250,14 +250,14 @@ const ToolsPage: React.FC = () => {
       <Modal show={showModal} onClose={handleCloseModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
-            {editingTool ? 'Edit Tool' : 'Add New Tool'}
+            {editingTool ? 'Edytuj narzędzie' : 'Dodaj nowe narzędzie'}
           </span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input
               id="name"
-              label="Name"
+              label="Nazwa"
               {...register('name', { required: VALIDATION.REQUIRED })}
               error={errors.name?.message}
               className="bg-section-grey-light"
@@ -265,7 +265,7 @@ const ToolsPage: React.FC = () => {
 
             <Input
               id="factoryNumber"
-              label="Factory Number (Optional)"
+              label="Numer fabryczny (opcjonalny)"
               {...register('factoryNumber')}
               error={errors.factoryNumber?.message}
               className="bg-section-grey-light"
@@ -273,7 +273,7 @@ const ToolsPage: React.FC = () => {
 
             <Input
               id="quantity"
-              label="Quantity"
+              label="Ilość"
               type="number"
               {...register('quantity', { 
                 required: VALIDATION.REQUIRED,
@@ -285,7 +285,7 @@ const ToolsPage: React.FC = () => {
 
             <Input
               id="value"
-              label="Value ($)"
+              label="Wartość (zł)"
               type="number"
               step="0.01"
               {...register('value', { 
@@ -308,10 +308,10 @@ const ToolsPage: React.FC = () => {
             loading={createMutation.isPending || updateMutation.isPending}
             className="bg-dark-green hover:bg-dark-green/80"
           >
-            {editingTool ? 'Update Tool' : 'Create Tool'}
+            {editingTool ? 'Aktualizuj narzędzie' : 'Utwórz narzędzie'}
           </Button>
           <Button color="gray" onClick={handleCloseModal}>
-            Cancel
+            Anuluj
           </Button>
         </Modal.Footer>
       </Modal>
@@ -320,29 +320,29 @@ const ToolsPage: React.FC = () => {
       <Modal show={showAssignmentModal} onClose={handleCloseAssignmentModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
-            Employees Assigned to "{selectedTool?.name}"
+            Pracownicy przypisani do "{selectedTool?.name}"
           </span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
           {isAssignmentsLoading ? (
-            <div className="text-center text-white py-4">Loading assignments...</div>
+            <div className="text-center text-white py-4">Ładowanie przypisań...</div>
           ) : toolAssignments.length === 0 ? (
             <div className="text-center text-surface-grey-dark py-8">
-              No employees assigned to this tool
+              Brak pracowników przypisanych do tego narzędzia
             </div>
           ) : (
             <div className="table-wrapper">
               <Table hoverable>
                 <Table.Head>
-                  <Table.HeadCell className="bg-section-grey-dark text-white">Employee</Table.HeadCell>
-                  <Table.HeadCell className="bg-section-grey-dark text-white">Assigned Date</Table.HeadCell>
-                  <Table.HeadCell className="bg-section-grey-dark text-white">Quantity</Table.HeadCell>
-                  <Table.HeadCell className="bg-section-grey-dark text-white">Condition</Table.HeadCell>
+                  <Table.HeadCell className="bg-section-grey-dark text-white">Pracownik</Table.HeadCell>
+                  <Table.HeadCell className="bg-section-grey-dark text-white">Data przypisania</Table.HeadCell>
+                  <Table.HeadCell className="bg-section-grey-dark text-white">Ilość</Table.HeadCell>
+                  <Table.HeadCell className="bg-section-grey-dark text-white">Stan</Table.HeadCell>
                 </Table.Head>
                 <Table.Body>
                   {toolAssignments.map((assignment, index) => (
                     <Table.Row key={`${assignment.employeeId}-${assignment.toolId}-${index}`} className="hover:bg-section-grey-light">
-                      <Table.Cell className="text-white">{assignment.employeeName || `Employee ${assignment.employeeId}`}</Table.Cell>
+                      <Table.Cell className="text-white">{assignment.employeeName || `Pracownik ${assignment.employeeId}`}</Table.Cell>
                       <Table.Cell className="text-white">
                         {assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString() : '-'}
                       </Table.Cell>
@@ -357,7 +357,7 @@ const ToolsPage: React.FC = () => {
         </Modal.Body>
         <Modal.Footer className="bg-section-grey border-lighter-border">
           <Button color="gray" onClick={handleCloseAssignmentModal}>
-            Close
+            Zamknij
           </Button>
         </Modal.Footer>
       </Modal>

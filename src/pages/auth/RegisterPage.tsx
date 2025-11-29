@@ -78,7 +78,7 @@ const RegisterPage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-white">GearTrack</h1>
-            <p className="text-surface-grey-dark">Equipment Management System</p>
+            <p className="text-surface-grey-dark">System Zarządzania Sprzętem</p>
           </div>
         </div>
       </div>
@@ -88,7 +88,7 @@ const RegisterPage: React.FC = () => {
           <div className="inline-block mt-1 text-white border-2 rounded-full border-lighter-border">
             <div className="flex justify-content items-center font-mono uppercase font-semibold text-sm md:text-base text-center">
               <div className="z-10 px-7 pt-3 pb-2 rounded-full border-2 border-main shadow-green-shadow transition-shadow">
-                CREATE ACCOUNT
+                UTWÓRZ KONTO
               </div>
             </div>
           </div>
@@ -96,10 +96,10 @@ const RegisterPage: React.FC = () => {
 
         <form onSubmit={handleSubmit(onSubmit)} className="form w-full pt-6">
           <h3 className="sub-heading text-center px-1 font-sans font-semibold">
-            Create your GearTrack Account
+            Utwórz swoje konto GearTrack
           </h3>
           <p className="font-base leading-[22.5px] text-sm sm:text-lg text-center mt-3 mb-12 text-gray-400 max-w-[500px] mx-auto">
-            Join GearTrack to manage your equipment, track assignments, and analyze your operations efficiently.
+            Dołącz do GearTrack, aby zarządzać sprzętem, śledzić przypisania i efektywnie analizować operacje.
           </p>
 
           <div className="mb-8 flex flex-col gap-6 items-center justify-center">
@@ -112,7 +112,7 @@ const RegisterPage: React.FC = () => {
                     message: VALIDATION.EMAIL.INVALID,
                   },
                 })}
-                placeholder="EMAIL ADDRESS"
+                placeholder="ADRES E-MAIL"
                 type="email"
                 className="input-style w-full mx-auto border-none text-white"
                 disabled={isLoading}
@@ -131,7 +131,7 @@ const RegisterPage: React.FC = () => {
                     message: VALIDATION.PASSWORD.MIN_LENGTH,
                   },
                 })}
-                placeholder="PASSWORD"
+                placeholder="HASŁO"
                 type="password"
                 className="input-style w-full mx-auto border-none text-white"
                 disabled={isLoading}
@@ -144,11 +144,11 @@ const RegisterPage: React.FC = () => {
             <div className="w-full max-w-[450px]">
               <input
                 {...register('confirmPassword', {
-                  required: 'Please confirm your password',
+                  required: 'Potwierdź swoje hasło',
                   validate: (value) =>
-                    value === password || 'Passwords do not match',
+                    value === password || 'Hasła nie są identyczne',
                 })}
-                placeholder="CONFIRM PASSWORD"
+                placeholder="POTWIERDŹ HASŁO"
                 type="password"
                 className="input-style w-full mx-auto border-none text-white"
                 disabled={isLoading}
@@ -162,14 +162,14 @@ const RegisterPage: React.FC = () => {
               <div className="flex items-center justify-center gap-x-3">
                 <Checkbox
                   {...register('agreeToTerms', {
-                    required: 'You must agree to the terms and conditions',
+                    required: 'Musisz zaakceptować warunki korzystania',
                   })}
                   id="agreeToTerms"
                   className="cursor-pointer"
                   disabled={isLoading}
                 />
                 <Label htmlFor="agreeToTerms" className="text-main mb-0 cursor-pointer text-sm">
-                  I agree to the Terms and Conditions
+                  Akceptuję Warunki korzystania
                 </Label>
               </div>
               {errors.agreeToTerms && (
@@ -185,10 +185,10 @@ const RegisterPage: React.FC = () => {
                 loading={isLoading}
                 className="w-full max-w-[450px]"
               >
-                {isLoading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
+                {isLoading ? 'TWORZENIE KONTA...' : 'UTWÓRZ KONTO'}
               </Button>
 
-              <div className="text-surface-grey-dark text-sm">or</div>
+              <div className="text-surface-grey-dark text-sm">lub</div>
 
               <Button
                 type="button"
@@ -198,17 +198,17 @@ const RegisterPage: React.FC = () => {
                 className="w-full max-w-[450px] bg-white text-gray-900 hover:bg-gray-100"
               >
                 <FaGoogle className="w-4 h-4 mr-2" />
-                Sign up with Google
+                Zarejestruj się przez Google
               </Button>
 
               <div className="text-center mt-6">
                 <p className="text-surface-grey-dark text-sm">
-                  Already have an account?{' '}
+                  Masz już konto?{' '}
                   <Link 
                     to={ROUTES.LOGIN} 
                     className="text-dark-green hover:text-dark-green/80 transition-colors"
                   >
-                    Sign in here
+                    Zaloguj się tutaj
                   </Link>
                 </p>
               </div>
