@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import Autocomplete, { type AutocompleteOption } from './Autocomplete';
 import { useContractors, findContractorByCode, findContractorByName } from '../../hooks/useBiService';
+import type { ContractorDto } from '../../api/bi-service';
 
 interface ContractorSelectProps {
   value: string;
@@ -28,7 +29,7 @@ const ContractorSelect: React.FC<ContractorSelectProps> = ({
   void placeholder;
   const { data: contractors = [], isLoading, error: apiError } = useContractors();
 
-  const options: AutocompleteOption[] = useMemo(() => {
+  const options: AutocompleteOption<ContractorDto>[] = useMemo(() => {
     return contractors.map(contractor => ({
       value: searchBy === 'code' ? contractor.code : contractor.name,
       label: searchBy === 'code' ? contractor.code : contractor.name,
@@ -38,7 +39,7 @@ const ContractorSelect: React.FC<ContractorSelectProps> = ({
 
   const displayValue = value;
 
-  const handleChange = (selectedValue: string, option?: AutocompleteOption) => {
+  const handleChange = (selectedValue: string, option?: AutocompleteOption<ContractorDto>) => {
     if (option?.data) {
       onCodeChange(option.data.code);
       onNameChange(option.data.name);
