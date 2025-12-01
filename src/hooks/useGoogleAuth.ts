@@ -35,7 +35,6 @@ export const useGoogleAuth = () => {
         throw new Error('Google login failed');
       }
     } catch (error) {
-      console.error('Google login error:', error);
       throw error;
     }
   }, [login, navigate]);
@@ -45,7 +44,7 @@ export const useGoogleAuth = () => {
       window.google.accounts.id.initialize({
         client_id: '445794691525-hs55893o7q75k1ci3h6k27mkm2vciksb.apps.googleusercontent.com',
         callback: (response: any) => {
-          handleGoogleLogin(response.credential).catch(console.error);
+          handleGoogleLogin(response.credential).catch(() => {});
         },
       });
     }

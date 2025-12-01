@@ -29,10 +29,8 @@ const LoginPage: React.FC = () => {
   const from = location.state?.from?.pathname || ROUTES.DASHBOARD;
 
   useEffect(() => {
-    // Initialize Google Sign-In when component mounts
     const initGoogle = () => {
       initializeGoogleSignIn();
-      // Render Google button after a short delay to ensure DOM is ready
       setTimeout(() => {
         renderGoogleButton('google-signin-button');
       }, 100);
@@ -41,7 +39,6 @@ const LoginPage: React.FC = () => {
     if (window.google) {
       initGoogle();
     } else {
-      // Wait for Google script to load
       const checkGoogle = setInterval(() => {
         if (window.google) {
           clearInterval(checkGoogle);
@@ -86,7 +83,6 @@ const LoginPage: React.FC = () => {
     });
   };
 
-  // Google login is now handled by the useGoogleAuth hook
 
   return (
     <section className="bg-background-black bg-cover bg-top relative min-h-screen pt-10 px-5">

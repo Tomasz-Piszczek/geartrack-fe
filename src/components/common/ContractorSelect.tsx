@@ -52,13 +52,10 @@ const ContractorSelect: React.FC<ContractorSelectProps> = ({
         onCodeChange(contractor.code);
         onNameChange(contractor.name);
       } else {
-        // For custom values, only update the field being typed in
         if (searchBy === 'code') {
           onCodeChange(selectedValue);
-          // Don't clear the name field - preserve existing custom name
         } else {
           onNameChange(selectedValue);
-          // Don't clear the code field - preserve existing custom code
         }
       }
     }

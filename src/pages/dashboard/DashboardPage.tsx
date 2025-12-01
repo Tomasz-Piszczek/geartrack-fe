@@ -51,7 +51,6 @@ const DashboardPage: React.FC = () => {
     queryFn: toolsApi.getAll,
   });
 
-  // Form hooks
   const {
     register: registerEmployee,
     handleSubmit: handleSubmitEmployee,
@@ -73,7 +72,6 @@ const DashboardPage: React.FC = () => {
     reset: resetTool,
   } = useForm<ToolFormData>();
 
-  // Mutations
   const createEmployeeMutation = useMutation({
     mutationFn: employeesApi.create,
     onSuccess: () => {
@@ -110,7 +108,6 @@ const DashboardPage: React.FC = () => {
     },
   });
 
-  // Handler functions
   const handleOpenEmployeeModal = () => {
     resetEmployee({ firstName: '', lastName: '', hourlyRate: 0 });
     setShowEmployeeModal(true);

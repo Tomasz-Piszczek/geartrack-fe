@@ -47,13 +47,9 @@ const ToolsPage: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: toolsApi.create,
     onSuccess: () => {
-      console.log('DEBUG: Tool created, about to invalidate queries');
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
-      console.log('DEBUG: Queries invalidated, showing toast');
       toast.success('Tool created successfully');
-      console.log('DEBUG: Toast shown, about to close modal');
       handleCloseModal();
-      console.log('DEBUG: Modal close called');
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to create tool');
@@ -95,7 +91,6 @@ const ToolsPage: React.FC = () => {
   });
 
   const handleOpenModal = (tool?: ToolDto) => {
-    console.log('DEBUG: Opening modal', tool ? 'edit' : 'create');
     setEditingTool(tool || null);
     if (tool) {
       reset({
@@ -113,30 +108,23 @@ const ToolsPage: React.FC = () => {
       });
     }
     setShowModal(true);
-    console.log('DEBUG: Modal opened, showModal=true');
   };
 
   const handleCloseModal = () => {
-    console.log('DEBUG: handleCloseModal called');
     setShowModal(false);
     setEditingTool(null);
     reset();
-    console.log('DEBUG: handleCloseModal completed');
   };
 
   const onSubmit = (data: ToolFormData) => {
-    console.log('DEBUG: Form submitted, about to call mutation');
     if (editingTool) {
-      console.log('DEBUG: Calling update mutation');
       updateMutation.mutate({
         ...editingTool,
         ...data,
       });
     } else {
-      console.log('DEBUG: Calling create mutation');
       createMutation.mutate(data);
     }
-    console.log('DEBUG: Mutation called');
   };
 
   const handleDelete = (id: string) => {
@@ -301,7 +289,6 @@ const ToolsPage: React.FC = () => {
           <Button
             color="primary"
             onClick={() => {
-              console.log('DEBUG: Submit button clicked');
               handleSubmit(onSubmit)();
             }}
             disabled={createMutation.isPending || updateMutation.isPending}

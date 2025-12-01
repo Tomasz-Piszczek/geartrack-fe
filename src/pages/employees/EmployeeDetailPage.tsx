@@ -354,7 +354,7 @@ const EmployeeDetailPage: React.FC = () => {
             
             <div className="flex items-center gap-2 text-surface-grey-dark mb-6">
               <HiCurrencyDollar className="w-5 h-5" />
-              <span className="text-lg">{employee.hourlyRate}zł/godzina</span>
+              <span className="text-lg">{employee.hourlyRate} PLN/h</span>
             </div>
 
           </div>

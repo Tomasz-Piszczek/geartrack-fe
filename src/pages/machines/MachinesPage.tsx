@@ -167,7 +167,7 @@ const MachinesPage: React.FC = () => {
   const handleOpenInspectionModal = (machine: MachineDto) => {
     setInspectingMachine(machine);
     resetInspection({
-      inspectionDate: new Date().toISOString().split('T')[0], // Today's date
+      inspectionDate: new Date().toISOString().split('T')[0],
       notes: '',
     });
     setShowInspectionModal(true);

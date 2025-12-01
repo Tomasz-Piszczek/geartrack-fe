@@ -65,7 +65,6 @@ const RegisterPage: React.FC = () => {
   };
 
   const handleGoogleRegister = () => {
-    // Redirect to Google OAuth endpoint
     window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/oauth2/authorization/google`;
   };
 

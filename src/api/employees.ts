@@ -17,7 +17,6 @@ export const employeesApi = {
   },
 
   getAllNonPaginated: async (): Promise<EmployeeDto[]> => {
-    // Use paginated endpoint with large page size to get all records
     const response = await apiClient.get<PagedResponse<EmployeeDto>>(
       `${API_ENDPOINTS.EMPLOYEES.BASE}?size=1000`
     );

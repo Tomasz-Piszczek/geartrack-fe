@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuote, type QuoteState } from '../context/QuoteContext';
 import Input from '../../../components/common/Input';
+import NumberInput from '../../../components/common/NumberInput';
 import Label from '../../../components/common/Label';
 import ContractorSelect from '../../../components/common/ContractorSelect';
 import ProductSelect from '../../../components/common/ProductSelect';
@@ -43,6 +44,7 @@ const QuoteHeader: React.FC = () => {
               onNameChange={(name) => handleFieldChange('productName', name)}
               searchBy="code"
               showPrice={false}
+              filterQuantity={false}
             />
           </div>
         </div>
@@ -65,6 +67,7 @@ const QuoteHeader: React.FC = () => {
               onNameChange={(name) => handleFieldChange('productName', name)}
               searchBy="name"
               showPrice={false}
+              filterQuantity={false}
             />
           </div>
         </div>
@@ -73,29 +76,19 @@ const QuoteHeader: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <Label htmlFor="minQuantity">Ilość minimalna</Label>
-          <Input
-            id="minQuantity"
-            type="number"
-            min="0"
+          <NumberInput
             value={state.minQuantity}
-            onChange={(e) => {
-              const value = e.target.value === '' ? '' : parseInt(e.target.value) || '';
-              handleFieldChange('minQuantity', value === '' ? 0 : Math.max(0, value));
-            }}
+            onChange={(value) => handleFieldChange('minQuantity', Math.max(0, Math.round(value)))}
+            min={0}
             className="max-w-xs"
           />
         </div>
         <div>
           <Label htmlFor="totalQuantity">Ilość całkowita</Label>
-          <Input
-            id="totalQuantity"
-            type="number"
-            min="0"
+          <NumberInput
             value={state.totalQuantity}
-            onChange={(e) => {
-              const value = e.target.value === '' ? '' : parseInt(e.target.value) || '';
-              handleFieldChange('totalQuantity', value === '' ? 0 : Math.max(0, value));
-            }}
+            onChange={(value) => handleFieldChange('totalQuantity', Math.max(0, Math.round(value)))}
+            min={0}
             className="max-w-xs"
           />
         </div>

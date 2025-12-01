@@ -2,7 +2,6 @@ import axios, { AxiosError, type AxiosResponse, type AxiosRequestConfig } from '
 import { API_BASE_URL, STORAGE_KEYS, ERROR_MESSAGES, API_ENDPOINTS } from '../constants';
 import type { ApiError, AuthResponseDto } from '../types';
 
-// Create axios instance
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
@@ -40,14 +39,12 @@ const refreshToken = async (): Promise<string | null> => {
 
     const { token, refreshToken: newRefreshToken, email, userId } = response.data;
     
-    // Update stored tokens
     localStorage.setItem(STORAGE_KEYS.TOKEN, token);
     localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify({ userId, email, token }));
 
     return token;
   } catch (error) {
-    // Refresh failed, clear all tokens
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
     localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER);
@@ -55,7 +52,6 @@ const refreshToken = async (): Promise<string | null> => {
   }
 };
 
-// Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
@@ -69,7 +65,6 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors and token refresh
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
@@ -79,7 +74,6 @@ apiClient.interceptors.response.use(
     
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // If already refreshing, queue this request
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then((token) => {
@@ -106,7 +100,6 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         } else {
           processQueue(error, null);
-          // Refresh failed, redirect to login
           window.location.href = '/login';
           return Promise.reject(error);
         }

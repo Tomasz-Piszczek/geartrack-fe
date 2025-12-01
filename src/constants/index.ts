@@ -1,4 +1,3 @@
-// API endpoints
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 export const BI_SERVICE_URL = import.meta.env.VITE_BI_SERVICE_URL || 'http://localhost:8080';
 
@@ -34,7 +33,6 @@ export const API_ENDPOINTS = {
   },
 } as const;
 
-// Query keys for React Query
 export const QUERY_KEYS = {
   EMPLOYEES: 'employees',
   MACHINES: 'machines',
@@ -45,14 +43,12 @@ export const QUERY_KEYS = {
   PRODUCTS: 'products',
 } as const;
 
-// Local storage keys
 export const STORAGE_KEYS = {
   TOKEN: 'geartrack_token',
   REFRESH_TOKEN: 'geartrack_refresh_token',
   USER: 'geartrack_user',
 } as const;
 
-// Navigation paths
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
@@ -67,7 +63,6 @@ export const ROUTES = {
   SETTINGS: '/settings',
 } as const;
 
-// Form validation constants
 export const VALIDATION = {
   EMAIL: {
     REQUIRED: 'Email jest wymagany',
@@ -81,7 +76,6 @@ export const VALIDATION = {
   POSITIVE_NUMBER: 'Musi być liczbą dodatnią',
 } as const;
 
-// UI constants
 export const UI = {
   PAGINATION: {
     DEFAULT_PAGE_SIZE: 10,
@@ -91,7 +85,6 @@ export const UI = {
   ANIMATION_DURATION: 300,
 } as const;
 
-// Status constants
 export const STATUS = {
   LOADING: 'loading',
   SUCCESS: 'success',
@@ -99,14 +92,12 @@ export const STATUS = {
   IDLE: 'idle',
 } as const;
 
-// Tool conditions
 export const TOOL_CONDITIONS = [
   'NOWY',
   'DOBRY',
   'SŁABY',
 ] as const;
 
-// Error messages
 export const ERROR_MESSAGES = {
   NETWORK_ERROR: 'Błąd sieci. Sprawdź połączenie i spróbuj ponownie.',
   UNAUTHORIZED: 'Nie masz uprawnień do wykonania tej akcji.',
@@ -116,7 +107,6 @@ export const ERROR_MESSAGES = {
   GENERIC_ERROR: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.',
 } as const;
 
-// Success messages
 export const SUCCESS_MESSAGES = {
   CREATED: 'Element został pomyślnie utworzony',
   UPDATED: 'Element został pomyślnie zaktualizowany',
@@ -125,7 +115,6 @@ export const SUCCESS_MESSAGES = {
   UNASSIGNED: 'Cofnięcie przypisania zostało pomyślnie zakończone',
 } as const;
 
-// Theme constants
 export const THEME = {
   COLORS: {
     PRIMARY: '#7c9357',

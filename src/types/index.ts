@@ -1,4 +1,3 @@
-// Auth types
 export interface LoginDto {
   email: string;
   password: string;
@@ -16,7 +15,6 @@ export interface AuthResponseDto {
   userId: string;
 }
 
-// Employee types
 export interface EmployeeDto {
   uuid?: string;
   firstName: string;
@@ -24,7 +22,6 @@ export interface EmployeeDto {
   hourlyRate: number;
 }
 
-// Machine types
 export interface MachineDto {
   uuid?: string;
   name: string;
@@ -60,7 +57,6 @@ export interface CreateMachineInspectionDto {
   status?: string;
 }
 
-// Tool condition enum
 export const ToolCondition = {
   NEW: 'NOWY',
   GOOD: 'DOBRY', 
@@ -69,7 +65,6 @@ export const ToolCondition = {
 
 export type ToolCondition = typeof ToolCondition[keyof typeof ToolCondition];
 
-// Tool types
 export interface ToolDto {
   uuid?: string;
   name: string;
@@ -92,7 +87,6 @@ export interface AssignToolDto {
   toolFactoryNumber?: string;
 }
 
-// API response types
 export interface ApiResponse<T> {
   data: T;
   message?: string;
@@ -105,7 +99,6 @@ export interface ApiError {
   errorCode?: string;
 }
 
-// UI state types
 export interface User {
   userId: string;
   email: string;
@@ -120,7 +113,6 @@ export interface AuthContextType {
   isLoading: boolean;
 }
 
-// Form types
 export interface FormErrors {
   [key: string]: string | undefined;
 }
@@ -132,7 +124,6 @@ export interface PaginationData {
   totalPages: number;
 }
 
-// Table types
 export interface TableColumn {
   key: string;
   label: string;
@@ -146,7 +137,6 @@ export interface SortConfig {
   direction: 'asc' | 'desc';
 }
 
-// Modal types
 export interface ModalProps {
   show: boolean;
   onClose: () => void;
@@ -154,7 +144,6 @@ export interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
-// Card types
 export interface CardProps {
   title?: string;
   children: React.ReactNode;
@@ -162,7 +151,6 @@ export interface CardProps {
   hoverable?: boolean;
 }
 
-// Navigation types
 export interface NavigationItem {
   label: string;
   path: string;
@@ -170,7 +158,6 @@ export interface NavigationItem {
   children?: NavigationItem[];
 }
 
-// Pagination types
 export interface PagedResponse<T> {
   content: T[];
   page: number;

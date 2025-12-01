@@ -40,7 +40,7 @@ const EmployeesPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const paginationParams: PaginationParams = {
-    page: currentPage - 1, // Backend expects 0-based page
+    page: currentPage - 1,
     size: pageSize,
     sortBy: 'firstName',
     sortDirection: 'asc',
@@ -269,7 +269,7 @@ const EmployeesPage: React.FC = () => {
                 
                 <div className="flex items-center gap-2 text-surface-grey-dark mb-4">
                   <HiCurrencyDollar className="w-4 h-4" />
-                  <span>{employee.hourlyRate}zł/godzina</span>
+                  <span>{employee.hourlyRate} PLN/h</span>
                 </div>
 
                 <div className="flex justify-between items-center w-full">

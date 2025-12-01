@@ -16,7 +16,6 @@ export const machinesApi = {
   },
 
   getAllNonPaginated: async (): Promise<MachineDto[]> => {
-    // Use paginated endpoint with large page size to get all records
     const response = await apiClient.get<PagedResponse<MachineDto>>(
       `${API_ENDPOINTS.MACHINES.BASE}?size=1000`
     );
@@ -51,7 +50,6 @@ export const machinesApi = {
     return response.data;
   },
 
-  // Inspection methods
   getMachineInspectionHistory: async (machineId: string): Promise<MachineInspectionDto[]> => {
     const response = await apiClient.get<MachineInspectionDto[]>(
       API_ENDPOINTS.MACHINES.MACHINE_INSPECTION_HISTORY(machineId)
