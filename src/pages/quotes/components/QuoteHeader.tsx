@@ -1,13 +1,15 @@
 import React from 'react';
-import { useQuote } from '../context/QuoteContext';
+import { useQuote, type QuoteState } from '../context/QuoteContext';
 import Input from '../../../components/common/Input';
 import Label from '../../../components/common/Label';
+import ContractorSelect from '../../../components/common/ContractorSelect';
+import ProductSelect from '../../../components/common/ProductSelect';
 
 const QuoteHeader: React.FC = () => {
   const { state, dispatch } = useQuote();
 
-  const handleFieldChange = (field: string, value: string | number) => {
-    dispatch({ type: 'SET_FIELD', field: field as any, value });
+  const handleFieldChange = (field: keyof QuoteState, value: string | number) => {
+    dispatch({ type: 'SET_FIELD', field, value });
   };
 
   return (
@@ -26,18 +28,21 @@ const QuoteHeader: React.FC = () => {
         <div className="space-y-4">
           <div>
             <Label htmlFor="contractorCode">Kontrahent kod</Label>
-            <Input
-              id="contractorCode"
+            <ContractorSelect
               value={state.contractorCode}
-              onChange={(e) => handleFieldChange('contractorCode', e.target.value)}
+              onCodeChange={(code) => handleFieldChange('contractorCode', code)}
+              onNameChange={(name) => handleFieldChange('contractorName', name)}
+              searchBy="code"
             />
           </div>
           <div>
             <Label htmlFor="productCode">Kod Produktu</Label>
-            <Input
-              id="productCode"
+            <ProductSelect
               value={state.productCode}
-              onChange={(e) => handleFieldChange('productCode', e.target.value)}
+              onCodeChange={(code) => handleFieldChange('productCode', code)}
+              onNameChange={(name) => handleFieldChange('productName', name)}
+              searchBy="code"
+              showPrice={false}
             />
           </div>
         </div>
@@ -45,33 +50,55 @@ const QuoteHeader: React.FC = () => {
         <div className="space-y-4">
           <div>
             <Label htmlFor="contractorName">Nazwa Kontrahenta</Label>
-            <Input
-              id="contractorName"
+            <ContractorSelect
               value={state.contractorName}
-              onChange={(e) => handleFieldChange('contractorName', e.target.value)}
+              onCodeChange={(code) => handleFieldChange('contractorCode', code)}
+              onNameChange={(name) => handleFieldChange('contractorName', name)}
+              searchBy="name"
             />
           </div>
           <div>
             <Label htmlFor="productName">Nazwa Produktu</Label>
-            <Input
-              id="productName"
+            <ProductSelect
               value={state.productName}
-              onChange={(e) => handleFieldChange('productName', e.target.value)}
+              onCodeChange={(code) => handleFieldChange('productCode', code)}
+              onNameChange={(name) => handleFieldChange('productName', name)}
+              searchBy="name"
+              showPrice={false}
             />
           </div>
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="minQuantity">Ilość minimalna</Label>
-        <Input
-          id="minQuantity"
-          type="number"
-          min="0"
-          value={state.minQuantity}
-          onChange={(e) => handleFieldChange('minQuantity', Math.max(0, parseInt(e.target.value) || 0))}
-          className="max-w-xs"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <Label htmlFor="minQuantity">Ilość minimalna</Label>
+          <Input
+            id="minQuantity"
+            type="number"
+            min="0"
+            value={state.minQuantity}
+            onChange={(e) => {
+              const value = e.target.value === '' ? '' : parseInt(e.target.value) || '';
+              handleFieldChange('minQuantity', value === '' ? 0 : Math.max(0, value));
+            }}
+            className="max-w-xs"
+          />
+        </div>
+        <div>
+          <Label htmlFor="totalQuantity">Ilość całkowita</Label>
+          <Input
+            id="totalQuantity"
+            type="number"
+            min="0"
+            value={state.totalQuantity}
+            onChange={(e) => {
+              const value = e.target.value === '' ? '' : parseInt(e.target.value) || '';
+              handleFieldChange('totalQuantity', value === '' ? 0 : Math.max(0, value));
+            }}
+            className="max-w-xs"
+          />
+        </div>
       </div>
     </div>
   );

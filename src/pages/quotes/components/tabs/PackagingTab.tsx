@@ -1,14 +1,15 @@
 import React from 'react';
-import { useQuote } from '../../context/QuoteContext';
+import { useQuote, type TabData } from '../../context/QuoteContext';
 import Input from '../../../../components/common/Input';
 import Label from '../../../../components/common/Label';
+import { formatDecimal } from '../../../../utils/formatting';
 
 const PackagingTab: React.FC = () => {
   const { state, dispatch } = useQuote();
   const data = state.packaging;
 
-  const handleFieldChange = (field: string, value: number) => {
-    dispatch({ type: 'SET_TAB_FIELD', tab: 'packaging', field: field as any, value });
+  const handleFieldChange = (field: keyof TabData, value: number) => {
+    dispatch({ type: 'SET_TAB_FIELD', tab: 'packaging', field, value });
   };
 
   const handleMarginPercentChange = (value: number) => {
@@ -32,8 +33,8 @@ const PackagingTab: React.FC = () => {
               min="0"
               value={data.workTimeHours || ''}
               onChange={(e) => {
-                const value = parseInt(e.target.value);
-                handleFieldChange('workTimeHours', isNaN(value) ? 0 : Math.max(0, value));
+                const value = e.target.value === '' ? '' : parseInt(e.target.value) || '';
+                handleFieldChange('workTimeHours', value === '' ? 0 : Math.max(0, value));
               }}
               placeholder="Godziny"
             />
@@ -44,8 +45,8 @@ const PackagingTab: React.FC = () => {
               max="59"
               value={data.workTimeMinutes || ''}
               onChange={(e) => {
-                const value = parseInt(e.target.value);
-                handleFieldChange('workTimeMinutes', isNaN(value) ? 0 : Math.max(0, Math.min(59, value)));
+                const value = e.target.value === '' ? '' : parseInt(e.target.value) || '';
+                handleFieldChange('workTimeMinutes', value === '' ? 0 : Math.max(0, Math.min(59, value)));
               }}
               placeholder="Minuty"
             />
@@ -58,10 +59,10 @@ const PackagingTab: React.FC = () => {
             type="number"
             min="0"
             step="0.01"
-            value={data.price || ''}
+            value={data.price ? formatDecimal(data.price) : ''}
             onChange={(e) => {
-              const value = parseFloat(e.target.value);
-              handleFieldChange('price', isNaN(value) ? 0 : Math.max(0, parseFloat(value.toFixed(2))));
+              const value = e.target.value === '' ? '' : parseFloat(e.target.value) || '';
+              handleFieldChange('price', value === '' ? 0 : Math.max(0, value));
             }}
           />
         </div>
@@ -74,10 +75,10 @@ const PackagingTab: React.FC = () => {
             type="number"
             min="0"
             step="0.01"
-            value={data.marginPercent || ''}
+            value={data.marginPercent ? formatDecimal(data.marginPercent) : ''}
             onChange={(e) => {
-              const value = parseFloat(e.target.value);
-              handleMarginPercentChange(isNaN(value) ? 0 : Math.max(0, parseFloat(value.toFixed(2))));
+              const value = e.target.value === '' ? '' : parseFloat(e.target.value) || '';
+              handleMarginPercentChange(value === '' ? 0 : Math.max(0, value));
             }}
           />
         </div>
@@ -88,10 +89,10 @@ const PackagingTab: React.FC = () => {
             type="number"
             min="0"
             step="0.01"
-            value={data.marginPln || ''}
+            value={data.marginPln ? formatDecimal(data.marginPln) : ''}
             onChange={(e) => {
-              const value = parseFloat(e.target.value);
-              handleMarginPlnChange(isNaN(value) ? 0 : Math.max(0, parseFloat(value.toFixed(2))));
+              const value = e.target.value === '' ? '' : parseFloat(e.target.value) || '';
+              handleMarginPlnChange(value === '' ? 0 : Math.max(0, value));
             }}
           />
         </div>
@@ -102,11 +103,11 @@ const PackagingTab: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <span className="text-gray-300">Koszt/h: </span>
-            <span className="text-white font-medium">{data.costPerHour.toFixed(2)} PLN</span>
+            <span className="text-white font-medium">{formatDecimal(data.costPerHour)} PLN</span>
           </div>
           <div>
             <span className="text-gray-300">Suma: </span>
-            <span className="text-white font-medium">{data.total.toFixed(2)} PLN</span>
+            <span className="text-white font-medium">{formatDecimal(data.total)} PLN</span>
           </div>
         </div>
       </div>

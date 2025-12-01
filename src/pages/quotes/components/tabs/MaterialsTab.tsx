@@ -4,58 +4,65 @@ import type { Material } from '../../context/QuoteContext';
 import Button from '../../../../components/common/Button';
 import Input from '../../../../components/common/Input';
 import Label from '../../../../components/common/Label';
-import Select from '../../../../components/common/Select';
-
-const mockMaterials = [
-  { name: 'Stal nierdzewna', price: 15.50 },
-  { name: 'Aluminium', price: 12.30 },
-  { name: 'Plastik ABS', price: 8.90 },
-  { name: 'Miedź', price: 25.40 },
-  { name: 'Drewno bukowe', price: 18.75 },
-];
+import ProductSelect from '../../../../components/common/ProductSelect';
+import { useProducts } from '../../../../hooks/useBiService';
+import type { ProductDto } from '../../../../api/bi-service';
+import { formatDecimal } from '../../../../utils/formatting';
 
 const MaterialsTab: React.FC = () => {
   const { state, dispatch } = useQuote();
+  const { isLoading: productsLoading } = useProducts();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedMaterial, setSelectedMaterial] = useState('');
-  const [customName, setCustomName] = useState('');
-  const [customPrice, setCustomPrice] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<ProductDto | null>(null);
+  const [selectedProductCode, setSelectedProductCode] = useState('');
+  const [customProductName, setCustomProductName] = useState('');
   const [quantity, setQuantity] = useState('');
   const [marginPercent, setMarginPercent] = useState('');
   const [pricePerUnit, setPricePerUnit] = useState('');
 
   const handleAddMaterial = () => {
-    let materialName = '';
-    let materialPrice = 0;
+    const requestedQuantity = parseInt(quantity) || 1;
+    let materialName: string;
+    let materialPrice: number;
+    let maxQuantity: number;
 
-    if (selectedMaterial === 'custom') {
-      materialName = customName;
-      materialPrice = parseFloat(customPrice) || 0;
+    if (selectedProduct) {
+      materialName = selectedProduct.name;
+      materialPrice = selectedProduct.price;
+      maxQuantity = selectedProduct.quantity;
+      
+      if (requestedQuantity > maxQuantity) {
+        alert(`Maximum available quantity is ${maxQuantity}`);
+        return;
+      }
     } else {
-      const material = mockMaterials.find(m => m.name === selectedMaterial);
-      materialName = material?.name || '';
-      materialPrice = material?.price || 0;
+      materialName = customProductName || selectedProductCode || 'Custom Product';
+      materialPrice = parseFloat(pricePerUnit) || 0;
     }
 
-    const finalPricePerUnit = pricePerUnit ? parseFloat(pricePerUnit) || 0 : materialPrice * (1 + (parseFloat(marginPercent) || 0) / 100);
+    const finalPricePerUnit = parseFloat(pricePerUnit) || 0;
+    const marginPercentValue = parseFloat(marginPercent) || 0;
+    const calculatedMarginPln = materialPrice > 0 && marginPercentValue > 0 
+      ? (materialPrice * marginPercentValue) / 100 
+      : finalPricePerUnit - materialPrice;
 
     const newMaterial: Material = {
       id: Date.now().toString(),
       name: materialName,
       purchasePrice: materialPrice,
-      marginPercent: pricePerUnit ? ((finalPricePerUnit - materialPrice) / materialPrice) * 100 : parseFloat(marginPercent) || 0,
-      marginPln: finalPricePerUnit - materialPrice,
+      marginPercent: materialPrice > 0 ? ((finalPricePerUnit - materialPrice) / materialPrice) * 100 : marginPercentValue,
+      marginPln: calculatedMarginPln,
       pricePerUnit: finalPricePerUnit,
-      totalPrice: finalPricePerUnit * (parseInt(quantity) || 1),
-      quantity: parseInt(quantity) || 1,
+      totalPrice: finalPricePerUnit * requestedQuantity,
+      quantity: requestedQuantity,
     };
 
     dispatch({ type: 'ADD_MATERIAL', material: newMaterial });
     
     setShowAddForm(false);
-    setSelectedMaterial('');
-    setCustomName('');
-    setCustomPrice('');
+    setSelectedProduct(null);
+    setSelectedProductCode('');
+    setCustomProductName('');
     setQuantity('');
     setMarginPercent('');
     setPricePerUnit('');
@@ -76,25 +83,36 @@ const MaterialsTab: React.FC = () => {
   const handleMarginPercentChange = (value: string) => {
     setMarginPercent(value);
     
-    const basePrice = selectedMaterial === 'custom' ? parseFloat(customPrice) || 0 : mockMaterials.find(m => m.name === selectedMaterial)?.price || 0;
-    if (value && basePrice > 0) {
-      const margin = parseFloat(value) || 0;
-      const calculatedPricePerUnit = basePrice * (1 + margin / 100);
-      setPricePerUnit(calculatedPricePerUnit.toFixed(2));
-    } else {
-      setPricePerUnit('');
+    if (selectedProduct) {
+      const basePrice = selectedProduct.price;
+      if (value && basePrice > 0) {
+        const margin = parseFloat(value) || 0;
+        const calculatedPricePerUnit = basePrice * (1 + margin / 100);
+        setPricePerUnit(formatDecimal(calculatedPricePerUnit));
+      }
     }
   };
 
   const handlePricePerUnitChange = (value: string) => {
     setPricePerUnit(value);
     
-    const basePrice = selectedMaterial === 'custom' ? parseFloat(customPrice) || 0 : mockMaterials.find(m => m.name === selectedMaterial)?.price || 0;
-    if (value && basePrice > 0) {
-      const pricePerUnitValue = parseFloat(value) || 0;
-      const calculatedMargin = ((pricePerUnitValue - basePrice) / basePrice) * 100;
-      setMarginPercent(calculatedMargin.toFixed(2));
+    if (selectedProduct) {
+      const basePrice = selectedProduct.price;
+      if (value && basePrice > 0) {
+        const pricePerUnitValue = parseFloat(value) || 0;
+        const calculatedMargin = ((pricePerUnitValue - basePrice) / basePrice) * 100;
+        setMarginPercent(formatDecimal(calculatedMargin));
+      }
+    }
+  };
+
+  const handleProductSelect = (product: ProductDto | null) => {
+    setSelectedProduct(product);
+    
+    if (product) {
+      setPricePerUnit(product.price.toString());
     } else {
+      setPricePerUnit('');
       setMarginPercent('');
     }
   };
@@ -113,85 +131,33 @@ const MaterialsTab: React.FC = () => {
           <h5 className="text-white font-medium">Dodaj nowy surowiec</h5>
           
           <div>
-            <Label htmlFor="materialSelect">Wybierz surowiec</Label>
-            <Select
-              value={selectedMaterial}
-              onChange={(e) => {
-                setSelectedMaterial(e.target.value);
-                // Recalculate when material changes
-                if (e.target.value && e.target.value !== 'custom') {
-                  const material = mockMaterials.find(m => m.name === e.target.value);
-                  if (material && marginPercent) {
-                    const margin = parseFloat(marginPercent) || 0;
-                    const calculatedPricePerUnit = material.price * (1 + margin / 100);
-                    setPricePerUnit(calculatedPricePerUnit.toFixed(2));
-                  } else if (material && pricePerUnit) {
-                    const pricePerUnitValue = parseFloat(pricePerUnit) || 0;
-                    const calculatedMargin = ((pricePerUnitValue - material.price) / material.price) * 100;
-                    setMarginPercent(calculatedMargin.toFixed(2));
-                  }
-                }
-              }}
-            >
-              <option value="">Wybierz z listy</option>
-              {mockMaterials.map((material) => (
-                <option key={material.name} value={material.name}>
-                  {material.name} - {material.price.toFixed(2)} PLN
-                </option>
-              ))}
-              <option value="custom">Własny surowiec</option>
-            </Select>
+            <Label htmlFor="productSelect">Wybierz produkt</Label>
+            <ProductSelect
+              value={customProductName}
+              onCodeChange={setSelectedProductCode}
+              onNameChange={setCustomProductName}
+              onProductSelect={handleProductSelect}
+              searchBy="name"
+              showPrice={true}
+              loading={productsLoading}
+            />
           </div>
 
-          {selectedMaterial === 'custom' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="customName">Nazwa</Label>
-                <Input
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  placeholder="Nazwa surowca"
-                />
-              </div>
-              <div>
-                <Label htmlFor="customPrice">Cena zakupu</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={customPrice}
-                  onChange={(e) => {
-                    setCustomPrice(e.target.value);
-                    // Recalculate based on existing margin or price per unit
-                    if (marginPercent && e.target.value) {
-                      const basePrice = parseFloat(e.target.value) || 0;
-                      const margin = parseFloat(marginPercent) || 0;
-                      const calculatedPricePerUnit = basePrice * (1 + margin / 100);
-                      setPricePerUnit(calculatedPricePerUnit.toFixed(2));
-                    } else if (pricePerUnit && e.target.value) {
-                      const basePrice = parseFloat(e.target.value) || 0;
-                      const pricePerUnitValue = parseFloat(pricePerUnit) || 0;
-                      if (basePrice > 0) {
-                        const calculatedMargin = ((pricePerUnitValue - basePrice) / basePrice) * 100;
-                        setMarginPercent(calculatedMargin.toFixed(2));
-                      }
-                    }
-                  }}
-                />
-              </div>
-            </div>
-          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="quantity">Ilość</Label>
+              <Label htmlFor="quantity">
+                Ilość
+                {selectedProduct && (
+                  <span className="text-gray-400 text-xs"> (max: {selectedProduct.quantity})</span>
+                )}
+              </Label>
               <Input
                 type="number"
-                min="1"
+                max={selectedProduct ? selectedProduct.quantity : undefined}
                 value={quantity}
                 onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  setQuantity(isNaN(value) || value < 1 ? '' : value.toString());
+                  setQuantity(e.target.value);
                 }}
               />
             </div>
@@ -199,17 +165,17 @@ const MaterialsTab: React.FC = () => {
               <Label htmlFor="margin">Marża %</Label>
               <Input
                 type="number"
-                min="0"
                 step="0.01"
                 value={marginPercent}
                 onChange={(e) => handleMarginPercentChange(e.target.value)}
               />
             </div>
             <div>
-              <Label htmlFor="pricePerUnit">Cena za szt</Label>
+              <Label htmlFor="pricePerUnit">
+                Cena za {selectedProduct ? selectedProduct.unitOfMeasure : 'szt'}
+              </Label>
               <Input
                 type="number"
-                min="0"
                 step="0.01"
                 value={pricePerUnit}
                 onChange={(e) => handlePricePerUnitChange(e.target.value)}
@@ -220,8 +186,7 @@ const MaterialsTab: React.FC = () => {
           <div className="flex gap-2">
             <Button
               onClick={handleAddMaterial}
-              disabled={!selectedMaterial || (selectedMaterial === 'custom' && (!customName || !customPrice)) || !quantity || (!marginPercent && !pricePerUnit)}
-              className="bg-[rgb(223,255,169)] hover:bg-[rgb(200,240,150)] text-black disabled:bg-gray-400 disabled:text-gray-600"
+              className="bg-[rgb(223,255,169)] hover:bg-[rgb(200,240,150)] text-black"
             >
               Dodaj
             </Button>
@@ -258,11 +223,10 @@ const MaterialsTab: React.FC = () => {
                   <td className="px-4 py-3">
                     <Input
                       type="number"
-                      min="1"
-                      value={material.quantity === 0 ? '' : material.quantity}
+                      value={material.quantity}
                       onChange={(e) => {
-                        const value = e.target.value === '' ? 1 : parseInt(e.target.value);
-                        handleUpdateMaterial(material.id, 'quantity', isNaN(value) || value < 1 ? 1 : value);
+                        const value = e.target.value === '' ? '' : parseInt(e.target.value) || '';
+                        handleUpdateMaterial(material.id, 'quantity', value === '' ? 0 : value);
                       }}
                       className="w-20"
                     />
@@ -270,12 +234,11 @@ const MaterialsTab: React.FC = () => {
                   <td className="px-4 py-3">
                     <Input
                       type="number"
-                      min="0"
                       step="0.01"
-                      value={material.marginPercent === 0 ? '' : material.marginPercent}
+                      value={formatDecimal(material.marginPercent)}
                       onChange={(e) => {
-                        const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                        handleUpdateMaterial(material.id, 'marginPercent', isNaN(value) ? 0 : Math.max(0, parseFloat(value.toFixed(2))));
+                        const value = e.target.value === '' ? '' : parseFloat(e.target.value) || '';
+                        handleUpdateMaterial(material.id, 'marginPercent', value === '' ? 0 : value);
                       }}
                       className="w-20"
                     />
@@ -284,12 +247,11 @@ const MaterialsTab: React.FC = () => {
                   <td className="px-4 py-3">
                     <Input
                       type="number"
-                      min="0"
                       step="0.01"
-                      value={material.pricePerUnit === 0 ? '' : material.pricePerUnit}
+                      value={formatDecimal(material.pricePerUnit)}
                       onChange={(e) => {
-                        const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                        handleUpdateMaterial(material.id, 'pricePerUnit', isNaN(value) ? 0 : Math.max(0, parseFloat(value.toFixed(2))));
+                        const value = e.target.value === '' ? '' : parseFloat(e.target.value) || '';
+                        handleUpdateMaterial(material.id, 'pricePerUnit', value === '' ? 0 : value);
                       }}
                       className="w-24"
                     />
@@ -314,6 +276,22 @@ const MaterialsTab: React.FC = () => {
       {state.materials.length === 0 && !showAddForm && (
         <div className="text-center py-8 text-gray-400">
           Brak dodanych surowców. Kliknij "Dodaj" aby dodać pierwszy surowiec.
+        </div>
+      )}
+
+      {state.materials.length > 0 && (
+        <div className="border-t pt-4">
+          <h4 className="text-lg font-medium text-white mb-4">Koszt Surowców</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <span className="text-gray-300">Marża: </span>
+              <span className="text-white font-medium">{state.materials.reduce((sum, m) => sum + (m.marginPln * m.quantity), 0).toFixed(2)} PLN</span>
+            </div>
+            <div>
+              <span className="text-gray-300">Suma: </span>
+              <span className="text-white font-medium">{state.materials.reduce((sum, m) => sum + m.totalPrice, 0).toFixed(2)} PLN</span>
+            </div>
+          </div>
         </div>
       )}
     </div>

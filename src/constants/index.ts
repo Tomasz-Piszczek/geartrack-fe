@@ -1,5 +1,6 @@
 // API endpoints
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+export const BI_SERVICE_URL = import.meta.env.VITE_BI_SERVICE_URL || 'http://localhost:8080';
 
 export const API_ENDPOINTS = {
   AUTH: {
@@ -26,6 +27,10 @@ export const API_ENDPOINTS = {
     UNASSIGN: '/api/tools/unassign',
     EMPLOYEES: (toolId: string) => `/api/tools/${toolId}/employees`,
   },
+  BI: {
+    CONTRACTORS: '/api/contractors',
+    PRODUCTS: '/api/products',
+  },
 } as const;
 
 // Query keys for React Query
@@ -35,6 +40,8 @@ export const QUERY_KEYS = {
   TOOLS: 'tools',
   USER: 'user',
   PAYROLL: 'payroll',
+  CONTRACTORS: 'contractors',
+  PRODUCTS: 'products',
 } as const;
 
 // Local storage keys

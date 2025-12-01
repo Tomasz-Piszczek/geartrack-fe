@@ -28,6 +28,7 @@ export interface QuoteState {
   productCode: string;
   productName: string;
   minQuantity: number;
+  totalQuantity: number;
   activeTab: 'production' | 'cutting' | 'packaging' | 'materials';
   production: TabData;
   cutting: TabData;
@@ -36,7 +37,7 @@ export interface QuoteState {
 }
 
 type QuoteAction =
-  | { type: 'SET_FIELD'; field: keyof QuoteState; value: any }
+  | { type: 'SET_FIELD'; field: keyof QuoteState; value: string | number }
   | { type: 'SET_TAB_FIELD'; tab: 'production' | 'cutting' | 'packaging'; field: keyof TabData; value: number }
   | { type: 'ADD_MATERIAL'; material: Material }
   | { type: 'UPDATE_MATERIAL'; materialId: string; updates: Partial<Material> }
@@ -60,6 +61,7 @@ const initialState: QuoteState = {
   productCode: '',
   productName: '',
   minQuantity: 1,
+  totalQuantity: 1,
   activeTab: 'production',
   production: { ...initialTabData },
   cutting: { ...initialTabData },
@@ -110,22 +112,25 @@ function quoteReducer(state: QuoteState, action: QuoteAction): QuoteState {
     case 'SET_FIELD':
       return { ...state, [action.field]: action.value };
 
-    case 'SET_TAB_FIELD':
+    case 'SET_TAB_FIELD': {
       const updatedTab = { ...state[action.tab], [action.field]: action.value };
       const calculatedTab = calculateTabTotal(updatedTab);
       return { ...state, [action.tab]: calculatedTab };
+    }
 
-    case 'ADD_MATERIAL':
+    case 'ADD_MATERIAL': {
       const calculatedMaterial = calculateMaterialTotal(action.material);
       return { ...state, materials: [...state.materials, calculatedMaterial] };
+    }
 
-    case 'UPDATE_MATERIAL':
+    case 'UPDATE_MATERIAL': {
       const updatedMaterials = state.materials.map((material) =>
         material.id === action.materialId
           ? calculateMaterialTotal({ ...material, ...action.updates }, action.updates.pricePerUnit ? 'pricePerUnit' : undefined)
           : material
       );
       return { ...state, materials: updatedMaterials };
+    }
 
     case 'REMOVE_MATERIAL':
       return {
@@ -145,13 +150,26 @@ interface QuoteContextType {
   state: QuoteState;
   dispatch: React.Dispatch<QuoteAction>;
   getSummary: () => {
-    quantity: number;
+    minQuantity: number;
+    totalQuantity: number;
     totalMaterialPurchase: number;
     totalMaterialMargin: number;
     totalMaterialValue: number;
+    totalMaterialValueForMinQty: number;
     productionCost: number;
     productionMargin: number;
     totalProductionValue: number;
+    totalProductionValueForMinQty: number;
+    packagingCost: number;
+    packagingMargin: number;
+    totalPackagingValue: number;
+    totalPackagingValueForMinQty: number;
+    cuttingCost: number;
+    cuttingMargin: number;
+    totalCuttingValue: number;
+    pricePerUnit: number;
+    priceForMinQty: number;
+    priceForTotalQty: number;
   };
 }
 
@@ -164,19 +182,47 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     const totalMaterialPurchase = state.materials.reduce((sum, m) => sum + m.purchasePrice * m.quantity, 0);
     const totalMaterialMargin = state.materials.reduce((sum, m) => sum + m.marginPln * m.quantity, 0);
     const totalMaterialValue = totalMaterialPurchase + totalMaterialMargin;
+    const totalMaterialValueForMinQty = totalMaterialValue * state.minQuantity;
     
-    const productionCost = state.production.price + state.cutting.price + state.packaging.price;
-    const productionMargin = state.production.marginPln + state.cutting.marginPln + state.packaging.marginPln;
+    const productionCost = state.production.price;
+    const productionMargin = state.production.marginPln;
     const totalProductionValue = productionCost + productionMargin;
+    const totalProductionValueForMinQty = totalProductionValue * state.minQuantity;
+    
+    const packagingCost = state.packaging.price;
+    const packagingMargin = state.packaging.marginPln;
+    const totalPackagingValue = packagingCost + packagingMargin;
+    const totalPackagingValueForMinQty = totalPackagingValue * state.minQuantity;
+    
+    const cuttingCost = state.cutting.price;
+    const cuttingMargin = state.cutting.marginPln;
+    const totalCuttingValue = cuttingCost + cuttingMargin;
+
+    const pricePerUnit = totalMaterialValue + totalProductionValue + totalPackagingValue + totalCuttingValue;
+    const priceForMinQty = totalMaterialValueForMinQty + totalProductionValueForMinQty + totalPackagingValueForMinQty + totalCuttingValue;
+    const priceForTotalQty = pricePerUnit * state.totalQuantity;
 
     return {
-      quantity: state.minQuantity,
+      minQuantity: state.minQuantity,
+      totalQuantity: state.totalQuantity,
       totalMaterialPurchase,
       totalMaterialMargin,
       totalMaterialValue,
+      totalMaterialValueForMinQty,
       productionCost,
       productionMargin,
       totalProductionValue,
+      totalProductionValueForMinQty,
+      packagingCost,
+      packagingMargin,
+      totalPackagingValue,
+      totalPackagingValueForMinQty,
+      cuttingCost,
+      cuttingMargin,
+      totalCuttingValue,
+      pricePerUnit,
+      priceForMinQty,
+      priceForTotalQty,
     };
   };
 
@@ -187,6 +233,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useQuote(): QuoteContextType {
   const context = useContext(QuoteContext);
   if (!context) {

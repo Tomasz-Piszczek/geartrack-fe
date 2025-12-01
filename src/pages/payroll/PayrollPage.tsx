@@ -174,7 +174,7 @@ const PayrollPage: React.FC = () => {
                         type="number"
                         step="0.5"
                         value={record.hoursWorked || ''}
-                        onChange={(e) => updateRecord(index, 'hoursWorked', Number(e.target.value) || 0)}
+                        onChange={(e) => updateRecord(index, 'hoursWorked', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
                         className="bg-section-grey-light w-24"
                       />
                     </td>
@@ -183,7 +183,7 @@ const PayrollPage: React.FC = () => {
                         type="number"
                         step="0.01"
                         value={record.bonus || ''}
-                        onChange={(e) => updateRecord(index, 'bonus', Number(e.target.value) || 0)}
+                        onChange={(e) => updateRecord(index, 'bonus', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
                         className="bg-section-grey-light w-24"
                       />
                     </td>
@@ -192,7 +192,7 @@ const PayrollPage: React.FC = () => {
                         type="number"
                         step="0.01"
                         value={record.sickLeavePay || ''}
-                        onChange={(e) => updateRecord(index, 'sickLeavePay', Number(e.target.value) || 0)}
+                        onChange={(e) => updateRecord(index, 'sickLeavePay', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
                         className="bg-section-grey-light w-24"
                       />
                     </td>
@@ -207,7 +207,7 @@ const PayrollPage: React.FC = () => {
                           type="number"
                           step="0.01"
                           value={record.deductions || ''}
-                          onChange={(e) => updateRecord(index, 'deductions', Number(e.target.value) || 0)}
+                          onChange={(e) => updateRecord(index, 'deductions', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
                           className="bg-section-grey-light w-24"
                         />
                         {hoveredIndex === index && (
@@ -222,7 +222,7 @@ const PayrollPage: React.FC = () => {
                         type="number"
                         step="0.01"
                         value={record.bankTransfer || ''}
-                        onChange={(e) => updateRecord(index, 'bankTransfer', Number(e.target.value) || 0)}
+                        onChange={(e) => updateRecord(index, 'bankTransfer', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
                         className="bg-section-grey-light w-24"
                       />
                     </td>
