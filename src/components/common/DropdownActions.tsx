@@ -40,7 +40,7 @@ const DropdownActions: React.FC<DropdownActionsProps> = ({ actions, className = 
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 text-surface-grey-dark hover:text-white hover:bg-section-grey-light rounded-lg transition-colors"
-        title="Actions"
+        title="Akcje"
       >
         <HiDotsVertical className="w-4 h-4" />
       </button>

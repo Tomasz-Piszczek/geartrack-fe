@@ -221,7 +221,7 @@ const MachinesPage: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    const confirmMessage = 'Are you sure you want to delete this machine?\n\nWarning: This will remove the machine assignment from the employee and delete all inspection history. This action cannot be undone.';
+    const confirmMessage = 'Czy na pewno chcesz usunąć tę maszynę?\n\nUwaga: To usunie przypisanie maszyny od pracownika i usunie całą historię inspekcji. Tej akcji nie można cofnąć.';
     if (window.confirm(confirmMessage)) {
       deleteMutation.mutate(id);
     }
@@ -231,8 +231,8 @@ const MachinesPage: React.FC = () => {
     <div className="fade-in">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Machines</h1>
-          <p className="text-surface-grey-dark">Manage your machine inventory</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Maszyny</h1>
+          <p className="text-surface-grey-dark">Zarządzaj inwentarzem maszyn</p>
         </div>
         <Button
           color="primary"
@@ -240,7 +240,7 @@ const MachinesPage: React.FC = () => {
           className="bg-dark-green hover:bg-dark-green/80"
         >
           <HiPlus className="w-4 h-4 mr-2" />
-          Add Machine
+          Dodaj maszynę
         </Button>
       </div>
 
@@ -248,7 +248,7 @@ const MachinesPage: React.FC = () => {
         <div className="relative max-w-md">
           <Input
             icon={HiSearch}
-            placeholder="Search machines..."
+            placeholder="Szukaj maszyn..."
             value={searchTerm}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
             className="bg-section-grey"
@@ -260,24 +260,24 @@ const MachinesPage: React.FC = () => {
         <Table hoverable>
           <Table.Head>
             <Table.Row>
-              <Table.HeadCell className="bg-section-grey-dark text-white">Name</Table.HeadCell>
-              <Table.HeadCell className="bg-section-grey-dark text-white">Factory Number</Table.HeadCell>
-              <Table.HeadCell className="bg-section-grey-dark text-white">Assigned To</Table.HeadCell>
-              <Table.HeadCell className="bg-section-grey-dark text-white">Next Inspection</Table.HeadCell>
-              <Table.HeadCell className="bg-section-grey-dark text-white">Actions</Table.HeadCell>
+              <Table.HeadCell className="bg-section-grey-dark text-white">Nazwa</Table.HeadCell>
+              <Table.HeadCell className="bg-section-grey-dark text-white">Numer fabryczny</Table.HeadCell>
+              <Table.HeadCell className="bg-section-grey-dark text-white">Przypisana do</Table.HeadCell>
+              <Table.HeadCell className="bg-section-grey-dark text-white">Następna inspekcja</Table.HeadCell>
+              <Table.HeadCell className="bg-section-grey-dark text-white">Akcje</Table.HeadCell>
             </Table.Row>
           </Table.Head>
           <Table.Body>
             {isLoading ? (
               <Table.Row>
                 <Table.Cell colSpan={5} className="text-center text-white">
-                  Loading...
+                  Ładowanie...
                 </Table.Cell>
               </Table.Row>
             ) : filteredMachines.length === 0 ? (
               <Table.Row>
                 <Table.Cell colSpan={5} className="text-center text-surface-grey-dark">
-                  No machines found
+                  Nie znaleziono maszyn
                 </Table.Cell>
               </Table.Row>
             ) : (
@@ -286,12 +286,12 @@ const MachinesPage: React.FC = () => {
                   <Table.Cell className="text-white">{machine.name}</Table.Cell>
                   <Table.Cell className="text-white">{machine.factoryNumber}</Table.Cell>
                   <Table.Cell className="text-white">
-                    {machine.employeeName || 'Unassigned'}
+                    {machine.employeeName || 'Nieprzypisana'}
                   </Table.Cell>
                   <Table.Cell className="text-white">
                     {machine.nextInspectionDate ? 
                       new Date(machine.nextInspectionDate).toLocaleDateString() : 
-                      'Not scheduled'
+                      'Nie zaplanowano'
                     }
                   </Table.Cell>
                   <Table.Cell>
@@ -303,7 +303,7 @@ const MachinesPage: React.FC = () => {
                           e.stopPropagation();
                           handleOpenInspectionModal(machine);
                         }}
-                        title="Add Inspection"
+                        title="Dodaj inspekcję"
                       >
                         <HiDocumentText className="w-4 h-4" />
                       </Button>
@@ -314,7 +314,7 @@ const MachinesPage: React.FC = () => {
                           e.stopPropagation();
                           handleOpenAssignModal(machine);
                         }}
-                        title="Assign Employee"
+                        title="Przypisz pracownika"
                       >
                         <HiUserAdd className="w-4 h-4" />
                       </Button>
@@ -325,7 +325,7 @@ const MachinesPage: React.FC = () => {
                           e.stopPropagation();
                           handleOpenModal(machine);
                         }}
-                        title="Edit Machine"
+                        title="Edytuj maszynę"
                       >
                         <HiPencil className="w-4 h-4" />
                       </Button>
@@ -336,7 +336,7 @@ const MachinesPage: React.FC = () => {
                           e.stopPropagation();
                           handleDelete(machine.uuid!);
                         }}
-                        title="Delete Machine"
+                        title="Usuń maszynę"
                       >
                         <HiTrash className="w-4 h-4" />
                       </Button>
@@ -353,14 +353,14 @@ const MachinesPage: React.FC = () => {
       <Modal show={showModal} onClose={handleCloseModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
-            {editingMachine ? 'Edit Machine' : 'Add New Machine'}
+            {editingMachine ? 'Edytuj maszynę' : 'Dodaj nową maszynę'}
           </span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input
               id="name"
-              label="Name"
+              label="Nazwa"
               {...register('name', { required: VALIDATION.REQUIRED })}
               error={errors.name?.message}
               className="bg-section-grey-light"
@@ -368,7 +368,7 @@ const MachinesPage: React.FC = () => {
 
             <Input
               id="factoryNumber"
-              label="Factory Number"
+              label="Numer fabryczny"
               {...register('factoryNumber', { required: VALIDATION.REQUIRED })}
               error={errors.factoryNumber?.message}
               className="bg-section-grey-light"
@@ -385,14 +385,14 @@ const MachinesPage: React.FC = () => {
             {createMutation.isPending || updateMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <div className="spinner w-4 h-4"></div>
-                {editingMachine ? 'Updating...' : 'Creating...'}
+                {editingMachine ? 'Aktualizowanie...' : 'Tworzenie...'}
               </div>
             ) : (
-              editingMachine ? 'Update Machine' : 'Create Machine'
+              editingMachine ? 'Aktualizuj maszynę' : 'Utwórz maszynę'
             )}
           </Button>
           <Button color="gray" onClick={handleCloseModal}>
-            Cancel
+            Anuluj
           </Button>
         </Modal.Footer>
       </Modal>
@@ -401,18 +401,18 @@ const MachinesPage: React.FC = () => {
       <Modal show={showAssignModal} onClose={handleCloseAssignModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
-            Assign Machine: {assigningMachine?.name}
+            Przypisz maszynę: {assigningMachine?.name}
           </span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
           <Select
             id="employee"
-            label="Select Employee"
+            label="Wybierz pracownika"
             value={selectedEmployeeId}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedEmployeeId(e.target.value)}
             className="bg-section-grey-light"
           >
-            <option value="">Select an employee</option>
+            <option value="">Wybierz pracownika</option>
             {employees.map((employee) => (
               <option key={employee.uuid} value={employee.uuid}>
                 {employee.firstName} {employee.lastName}
@@ -430,14 +430,14 @@ const MachinesPage: React.FC = () => {
             {assignMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <div className="spinner w-4 h-4"></div>
-                Assigning...
+                Przypisywanie...
               </div>
             ) : (
-              'Assign Machine'
+              'Przypisz maszynę'
             )}
           </Button>
           <Button color="gray" onClick={handleCloseAssignModal}>
-            Cancel
+            Anuluj
           </Button>
         </Modal.Footer>
       </Modal>
@@ -446,14 +446,14 @@ const MachinesPage: React.FC = () => {
       <Modal show={showInspectionModal} onClose={handleCloseInspectionModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
-            Add Inspection for: {inspectingMachine?.name}
+            Dodaj inspekcję dla: {inspectingMachine?.name}
           </span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
           <form onSubmit={handleInspectionSubmit(onInspectionSubmit)} className="space-y-4">
             <Input
               id="inspectionDate"
-              label="Inspection Date"
+              label="Data inspekcji"
               type="date"
               {...registerInspection('inspectionDate', { required: VALIDATION.REQUIRED })}
               error={inspectionErrors.inspectionDate?.message}
@@ -462,14 +462,14 @@ const MachinesPage: React.FC = () => {
 
             <div>
               <label htmlFor="notes" className="block text-sm font-medium text-white mb-2">
-                Notes
+                Notatki
               </label>
               <textarea
                 id="notes"
                 rows={4}
                 {...registerInspection('notes')}
                 className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green resize-none"
-                placeholder="Any additional notes or findings..."
+                placeholder="Dodatkowe notatki lub uwagi..."
               />
               {inspectionErrors.notes && (
                 <p className="mt-1 text-sm text-red-400">{inspectionErrors.notes.message}</p>
@@ -487,14 +487,14 @@ const MachinesPage: React.FC = () => {
             {inspectionMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <div className="spinner w-4 h-4"></div>
-                Adding...
+                Dodawanie...
               </div>
             ) : (
-              'Add Inspection'
+              'Dodaj inspekcję'
             )}
           </Button>
           <Button color="gray" onClick={handleCloseInspectionModal}>
-            Cancel
+            Anuluj
           </Button>
         </Modal.Footer>
       </Modal>
@@ -503,31 +503,31 @@ const MachinesPage: React.FC = () => {
       <Modal show={showInspectionHistoryModal} onClose={handleCloseInspectionHistoryModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
-            Inspection History - {viewingMachine?.name}
+            Historia inspekcji - {viewingMachine?.name}
           </span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
           {isLoadingInspections ? (
-            <div className="text-center text-white py-4">Loading inspection history...</div>
+            <div className="text-center text-white py-4">Ładowanie historii inspekcji...</div>
           ) : inspectionHistory.length === 0 ? (
             <div className="text-center text-surface-grey-dark py-8">
               <HiDocumentText className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg">No inspections found</p>
-              <p className="text-sm text-surface-grey">This machine has no inspection history yet</p>
+              <p className="text-lg">Nie znaleziono inspekcji</p>
+              <p className="text-sm text-surface-grey">Ta maszyna nie ma jeszcze historii inspekcji</p>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="bg-section-grey-light p-4 rounded-lg">
-                  <h4 className="text-white font-medium mb-2">Total Inspections</h4>
+                  <h4 className="text-white font-medium mb-2">Łączne inspekcje</h4>
                   <p className="text-2xl font-bold text-dark-green">{inspectionHistory.length}</p>
                 </div>
                 <div className="bg-section-grey-light p-4 rounded-lg">
-                  <h4 className="text-white font-medium mb-2">Last Inspection</h4>
+                  <h4 className="text-white font-medium mb-2">Ostatnia inspekcja</h4>
                   <p className="text-white">
                     {inspectionHistory.length > 0 
                       ? new Date(inspectionHistory[0].inspectionDate).toLocaleDateString() 
-                      : 'Never'
+                      : 'Nigdy'
                     }
                   </p>
                 </div>
@@ -536,9 +536,9 @@ const MachinesPage: React.FC = () => {
               <div className="table-wrapper max-h-96 overflow-y-auto">
                 <Table hoverable>
                   <Table.Head>
-                    <Table.HeadCell className="bg-section-grey-dark text-white">Date</Table.HeadCell>
+                    <Table.HeadCell className="bg-section-grey-dark text-white">Data</Table.HeadCell>
                     <Table.HeadCell className="bg-section-grey-dark text-white">Status</Table.HeadCell>
-                    <Table.HeadCell className="bg-section-grey-dark text-white">Notes</Table.HeadCell>
+                    <Table.HeadCell className="bg-section-grey-dark text-white">Notatki</Table.HeadCell>
                   </Table.Head>
                   <Table.Body>
                     {inspectionHistory
@@ -554,7 +554,7 @@ const MachinesPage: React.FC = () => {
                             inspection.status === 'SCHEDULED' ? 'bg-blue-900 text-blue-300' :
                             'bg-gray-900 text-gray-300'
                           }`}>
-                            {inspection.status || 'Unknown'}
+                            {inspection.status || 'Nieznany'}
                           </span>
                         </Table.Cell>
                         <Table.Cell className="text-white max-w-xs truncate">
@@ -570,7 +570,7 @@ const MachinesPage: React.FC = () => {
         </Modal.Body>
         <Modal.Footer className="bg-section-grey border-lighter-border">
           <Button color="gray" onClick={handleCloseInspectionHistoryModal}>
-            Close
+            Zamknij
           </Button>
         </Modal.Footer>
       </Modal>

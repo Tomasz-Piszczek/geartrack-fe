@@ -5,7 +5,9 @@ import {
   HiCog, 
   HiUsers, 
   HiDesktopComputer,
-  HiAdjustments
+  HiDocumentText,
+  HiAdjustments,
+  HiCurrencyDollar
 } from 'react-icons/hi';
 import { ROUTES } from '../../constants';
 import Brand from './Brand';
@@ -17,27 +19,37 @@ const MainSidebar: React.FC = () => {
   const navigationItems = [
     {
       path: ROUTES.DASHBOARD,
-      label: 'Dashboard',
+      label: 'Pulpit',
       icon: HiHome,
     },
     {
       path: ROUTES.TOOLS,
-      label: 'Tools Magazine',
+      label: 'Narzędzia',
       icon: HiCog,
     },
     {
       path: ROUTES.MACHINES,
-      label: 'Machines',
+      label: 'Maszyny',
       icon: HiDesktopComputer,
     },
     {
       path: ROUTES.EMPLOYEES,
-      label: 'Employees',
+      label: 'Pracownicy',
       icon: HiUsers,
     },
     {
+      path: ROUTES.PAYROLL,
+      label: 'Wypłaty',
+      icon: HiCurrencyDollar,
+    },
+    {
+      path: ROUTES.QUOTES,
+      label: 'Wyceny',
+      icon: HiDocumentText,
+    },
+    {
       path: ROUTES.SETTINGS,
-      label: 'Settings',
+      label: 'Ustawienia',
       icon: HiAdjustments,
     },
   ];
@@ -60,7 +72,7 @@ const MainSidebar: React.FC = () => {
             <Brand />
           </div>
           
-          <div className="mt-8 pb-2 text-xs text-surface-grey-dark">GENERAL</div>
+          <div className="mt-8 pb-2 text-xs text-surface-grey-dark">OGÓLNE</div>
           
           <div className="space-y-2">
             {navigationItems.map((item) => (
