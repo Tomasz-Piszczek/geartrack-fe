@@ -36,7 +36,7 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
   const { data: products = [], isLoading, error: apiError } = useProducts();
   const loading = isLoading || externalLoading;
 
-  const options: AutocompleteOption[] = useMemo(() => {
+  const options: AutocompleteOption<ProductDto>[] = useMemo(() => {
     return products.map(product => {
       let label = searchBy === 'code' ? product.code : product.name;
       
@@ -84,7 +84,7 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
     }
   }, [value, products, searchBy]);
 
-  const handleChange = (selectedValue: string, option?: AutocompleteOption) => {
+  const handleChange = (selectedValue: string, option?: AutocompleteOption<ProductDto>) => {
     if (option?.data) {
       onCodeChange(option.data.code);
       onNameChange(option.data.name);
