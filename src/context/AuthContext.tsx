@@ -39,7 +39,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
   }, []);
 
-  const login = (token: string, email: string, userId: string) => {
+  const login = (token: string, refreshToken: string, email: string, userId: string) => {
     const userData: User = {
       userId,
       email,
@@ -48,12 +48,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     setUser(userData);
     localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER);
   };
 

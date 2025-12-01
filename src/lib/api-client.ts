@@ -1,6 +1,6 @@
-import axios, { AxiosError, type AxiosResponse } from 'axios';
-import { API_BASE_URL, STORAGE_KEYS, ERROR_MESSAGES } from '../constants';
-import type { ApiError } from '../types';
+import axios, { AxiosError, type AxiosResponse, type AxiosRequestConfig } from 'axios';
+import { API_BASE_URL, STORAGE_KEYS, ERROR_MESSAGES, API_ENDPOINTS } from '../constants';
+import type { ApiError, AuthResponseDto } from '../types';
 
 // Create axios instance
 const apiClient = axios.create({
@@ -10,6 +10,50 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value: any) => void;
+  reject: (error: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token);
+    }
+  });
+  
+  failedQueue = [];
+};
+
+const refreshToken = async (): Promise<string | null> => {
+  const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+  if (!refreshToken) return null;
+
+  try {
+    const response = await axios.post<AuthResponseDto>(`${API_BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`, {
+      refreshToken
+    });
+
+    const { token, refreshToken: newRefreshToken, email, userId } = response.data;
+    
+    // Update stored tokens
+    localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify({ userId, email, token }));
+
+    return token;
+  } catch (error) {
+    // Refresh failed, clear all tokens
+    localStorage.removeItem(STORAGE_KEYS.TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.USER);
+    return null;
+  }
+};
 
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
@@ -25,22 +69,62 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
+// Response interceptor to handle errors and token refresh
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
   },
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
+    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // If already refreshing, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+          }
+          return apiClient(originalRequest);
+        }).catch((err) => {
+          return Promise.reject(err);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const newToken = await refreshToken();
+        
+        if (newToken) {
+          processQueue(null, newToken);
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          }
+          return apiClient(originalRequest);
+        } else {
+          processQueue(error, null);
+          // Refresh failed, redirect to login
+          window.location.href = '/login';
+          return Promise.reject(error);
+        }
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     const apiError: ApiError = {
       message: ERROR_MESSAGES.GENERIC_ERROR,
       status: error.response?.status,
     };
 
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
-      localStorage.removeItem(STORAGE_KEYS.TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.USER);
-      window.location.href = '/login';
       apiError.message = ERROR_MESSAGES.UNAUTHORIZED;
     } else if (error.response?.status === 403) {
       apiError.message = ERROR_MESSAGES.FORBIDDEN;

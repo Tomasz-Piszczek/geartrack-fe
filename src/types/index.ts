@@ -11,6 +11,7 @@ export interface RegisterDto {
 
 export interface AuthResponseDto {
   token: string;
+  refreshToken: string;
   email: string;
   userId: string;
 }
@@ -113,7 +114,7 @@ export interface User {
 
 export interface AuthContextType {
   user: User | null;
-  login: (token: string, email: string, userId: string) => void;
+  login: (token: string, refreshToken: string, email: string, userId: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;

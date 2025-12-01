@@ -66,7 +66,7 @@ const LoginPage: React.FC = () => {
   const loginMutation = useMutation({
     mutationFn: (credentials: LoginDto) => authApi.login(credentials),
     onSuccess: (response) => {
-      login(response.token, response.email, response.userId);
+      login(response.token, response.refreshToken, response.email, response.userId);
       toast.success('Login successful!');
       navigate(from, { replace: true });
     },

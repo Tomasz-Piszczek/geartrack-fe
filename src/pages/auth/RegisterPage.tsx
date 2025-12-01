@@ -44,7 +44,7 @@ const RegisterPage: React.FC = () => {
   const registerMutation = useMutation({
     mutationFn: (credentials: RegisterDto) => authApi.register(credentials),
     onSuccess: (response) => {
-      login(response.token, response.email, response.userId);
+      login(response.token, response.refreshToken, response.email, response.userId);
       toast.success('Registration successful! Welcome to GearTrack!');
       navigate(ROUTES.DASHBOARD, { replace: true });
     },

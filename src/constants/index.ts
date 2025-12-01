@@ -7,6 +7,7 @@ export const API_ENDPOINTS = {
     LOGIN: '/api/auth/login',
     REGISTER: '/api/auth/register',
     OAUTH2_SUCCESS: '/api/auth/oauth2/success',
+    REFRESH: '/api/auth/refresh',
   },
   EMPLOYEES: {
     BASE: '/api/employees',
@@ -47,6 +48,7 @@ export const QUERY_KEYS = {
 // Local storage keys
 export const STORAGE_KEYS = {
   TOKEN: 'geartrack_token',
+  REFRESH_TOKEN: 'geartrack_refresh_token',
   USER: 'geartrack_user',
 } as const;
 
