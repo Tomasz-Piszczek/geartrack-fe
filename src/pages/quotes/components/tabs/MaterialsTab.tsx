@@ -100,7 +100,10 @@ const MaterialsTab: React.FC = () => {
   };
 
   const handleRemoveMaterial = (materialId: string) => {
-    dispatch({ type: 'REMOVE_MATERIAL', materialId });
+    const material = state.materials.find(m => m.id === materialId);
+    if (material && window.confirm(`Czy na pewno chcesz usunąć surowiec "${material.name}"?`)) {
+      dispatch({ type: 'REMOVE_MATERIAL', materialId });
+    }
   };
 
   const handleMarginPercentChange = (value: string) => {

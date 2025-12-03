@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useReducer, type ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
+import type { CreateQuoteDto, UpdateQuoteDto, QuoteDetailsDto } from '../../../api/quotes';
 
 export interface Material {
   id: string;
+  uuid?: string;
   name: string;
   purchasePrice: number;
   marginPercent: number;
@@ -14,6 +16,7 @@ export interface Material {
 
 export interface ProductionActivity {
   id: string;
+  uuid?: string;
   name: string;
   workTimeHours: number;
   workTimeMinutes: number;
@@ -40,14 +43,15 @@ export interface QuoteState {
 
 type QuoteAction =
   | { type: 'SET_FIELD'; field: keyof QuoteState; value: string | number }
-  | { type: 'ADD_PRODUCTION_ACTIVITY'; activity: Omit<ProductionActivity, 'id' | 'costPerHour' | 'marginPln' | 'total'> }
+  | { type: 'ADD_PRODUCTION_ACTIVITY'; activity: Omit<ProductionActivity, 'id' | 'costPerHour' | 'total'> }
   | { type: 'UPDATE_PRODUCTION_ACTIVITY'; activityId: string; updates: Partial<ProductionActivity> }
   | { type: 'UPDATE_PRODUCTION_ACTIVITY_COST_PER_HOUR'; activityId: string; costPerHour: number }
   | { type: 'REMOVE_PRODUCTION_ACTIVITY'; activityId: string }
   | { type: 'ADD_MATERIAL'; material: Material }
   | { type: 'UPDATE_MATERIAL'; materialId: string; updates: Partial<Material> }
   | { type: 'REMOVE_MATERIAL'; materialId: string }
-  | { type: 'SET_ACTIVE_TAB'; tab: QuoteState['activeTab'] };
+  | { type: 'SET_ACTIVE_TAB'; tab: QuoteState['activeTab'] }
+  | { type: 'LOAD_QUOTE'; quote: QuoteDetailsDto };
 
 const initialState: QuoteState = {
   documentNumber: '',
@@ -132,7 +136,6 @@ function quoteReducer(state: QuoteState, action: QuoteAction): QuoteState {
         ...action.activity,
         id: Date.now().toString(),
         costPerHour: 0,
-        marginPln: 0,
         total: 0,
       };
       const calculatedActivity = calculateActivityTotal(newActivity);
@@ -193,6 +196,55 @@ function quoteReducer(state: QuoteState, action: QuoteAction): QuoteState {
     case 'SET_ACTIVE_TAB':
       return { ...state, activeTab: action.tab };
 
+    case 'LOAD_QUOTE': {
+      const quote = action.quote;
+      const materials = quote.materials.map(material => {
+        const marginPercent = material.purchasePrice > 0 ? (material.marginPln / material.purchasePrice) * 100 : 0;
+        return {
+          id: material.uuid || Date.now().toString(),
+          uuid: material.uuid,
+          name: material.name,
+          purchasePrice: material.purchasePrice,
+          marginPercent,
+          marginPln: material.marginPln,
+          pricePerUnit: material.purchasePrice + material.marginPln,
+          totalPrice: (material.purchasePrice + material.marginPln) * material.quantity,
+          quantity: material.quantity,
+          ignoreMinQuantity: material.ignoreMinQuantity,
+        };
+      });
+      
+      const productionActivities = quote.productionActivities.map(activity => {
+        const marginPercent = activity.price > 0 ? (activity.marginPln / activity.price) * 100 : 0;
+        return {
+          id: activity.uuid || Date.now().toString(),
+          uuid: activity.uuid,
+          name: activity.name,
+          workTimeHours: activity.workTimeHours,
+          workTimeMinutes: activity.workTimeMinutes,
+          price: activity.price,
+          marginPercent,
+          marginPln: activity.marginPln,
+          costPerHour: (activity.workTimeHours + activity.workTimeMinutes / 60) > 0 ? activity.price / (activity.workTimeHours + activity.workTimeMinutes / 60) : 0,
+          total: activity.price + activity.marginPln,
+          ignoreMinQuantity: activity.ignoreMinQuantity,
+        };
+      });
+      
+      return {
+        ...state,
+        documentNumber: quote.documentNumber,
+        contractorCode: quote.contractorCode,
+        contractorName: quote.contractorName,
+        productCode: quote.productCode,
+        productName: quote.productName,
+        minQuantity: quote.minQuantity,
+        totalQuantity: quote.totalQuantity,
+        materials,
+        productionActivities,
+      };
+    }
+
     default:
       return state;
   }
@@ -239,19 +291,43 @@ interface QuoteContextType {
     priceForMinQty: number;
     priceForTotalQty: number;
   };
+  prepareForSubmit: () => CreateQuoteDto | UpdateQuoteDto;
+  isSubmitting?: boolean;
+  isEditMode?: boolean;
 }
 
 const QuoteContext = createContext<QuoteContextType | undefined>(undefined);
 
-export function QuoteProvider({ children }: { children: ReactNode }) {
+interface QuoteProviderProps {
+  children: ReactNode;
+  initialDocumentNumber?: string;
+  initialQuote?: QuoteDetailsDto;
+  onSubmit?: (data: CreateQuoteDto | UpdateQuoteDto) => void;
+  isSubmitting?: boolean;
+  isEditMode?: boolean;
+}
+
+export function QuoteProvider({ children, initialDocumentNumber, initialQuote, isSubmitting = false, isEditMode = false }: QuoteProviderProps) {
   const [state, dispatch] = useReducer(quoteReducer, initialState);
+  
+  useEffect(() => {
+    if (initialDocumentNumber) {
+      dispatch({ type: 'SET_FIELD', field: 'documentNumber', value: initialDocumentNumber });
+    }
+  }, [initialDocumentNumber]);
+  
+  useEffect(() => {
+    if (initialQuote) {
+      dispatch({ type: 'LOAD_QUOTE', quote: initialQuote });
+    }
+  }, [initialQuote]);
 
   const getSummary = () => {
     const batchesForTotalQty = Math.ceil(state.totalQuantity / state.minQuantity);
     
     const materials = state.materials.map(material => {
-      const purchasePrice = material.purchasePrice * material.quantity;
-      const margin = material.marginPln * material.quantity;
+      // const purchasePrice = material.purchasePrice * material.quantity;
+      // const margin = material.marginPln * material.quantity;
       const pricePerUnit = material.pricePerUnit * material.quantity;
       
       const totalForMinQty = material.ignoreMinQuantity 
@@ -336,8 +412,52 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     };
   };
 
+  const prepareForSubmit = (): CreateQuoteDto | UpdateQuoteDto => {
+    const materials = state.materials.map(material => ({
+      uuid: material.uuid,
+      name: material.name,
+      purchasePrice: material.purchasePrice,
+      marginPercent: material.marginPercent,
+      marginPln: material.marginPln,
+      quantity: material.quantity,
+      ignoreMinQuantity: material.ignoreMinQuantity,
+    }));
+    
+    const productionActivities = state.productionActivities.map(activity => ({
+      uuid: activity.uuid,
+      name: activity.name,
+      workTimeHours: activity.workTimeHours,
+      workTimeMinutes: activity.workTimeMinutes,
+      price: activity.price,
+      marginPercent: activity.marginPercent,
+      marginPln: activity.marginPln,
+      ignoreMinQuantity: activity.ignoreMinQuantity,
+    }));
+    
+    const baseData = {
+      documentNumber: state.documentNumber,
+      contractorCode: state.contractorCode,
+      contractorName: state.contractorName,
+      productCode: state.productCode,
+      productName: state.productName,
+      minQuantity: state.minQuantity,
+      totalQuantity: state.totalQuantity,
+      materials,
+      productionActivities,
+    };
+    
+    if (isEditMode && initialQuote) {
+      return {
+        ...baseData,
+        uuid: initialQuote.uuid,
+      } as UpdateQuoteDto;
+    }
+    
+    return baseData as CreateQuoteDto;
+  };
+
   return (
-    <QuoteContext.Provider value={{ state, dispatch, getSummary }}>
+    <QuoteContext.Provider value={{ state, dispatch, getSummary, prepareForSubmit, isSubmitting, isEditMode }}>
       {children}
     </QuoteContext.Provider>
   );

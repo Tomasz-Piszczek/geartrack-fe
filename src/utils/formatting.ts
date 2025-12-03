@@ -29,3 +29,16 @@ export const parseNumberInput = (value: string): number => {
   const parsed = parseFloat(value);
   return isNaN(parsed) ? 0 : Math.max(0, parsed);
 };
+
+export const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return '';
+  
+  const date = new Date(dateString);
+  const epochDate = new Date('1970-01-01T00:00:00.000Z');
+  
+  if (date.getTime() === epochDate.getTime()) {
+    return '';
+  }
+  
+  return date.toLocaleDateString('pl-PL');
+};

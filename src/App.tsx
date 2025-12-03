@@ -12,7 +12,9 @@ import MachinesPage from './pages/machines/MachinesPage';
 import EmployeesPage from './pages/employees/EmployeesPage';
 import EmployeeDetailPage from './pages/employees/EmployeeDetailPage';
 import PayrollPage from './pages/payroll/PayrollPage';
-import QuotesPage from './pages/quotes/QuotesPage';
+import QuotesListPage from './pages/quotes/QuotesListPage';
+import QuoteCreatePage from './pages/quotes/QuoteCreatePage';
+import QuoteEditPage from './pages/quotes/QuoteEditPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import ToastContainer from './components/common/ToastContainer';
 import { ROUTES } from './constants';
@@ -91,7 +93,27 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MainLayout>
-                      <QuotesPage />
+                      <QuotesListPage />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quotes/new"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <QuoteCreatePage />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quotes/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <QuoteEditPage />
                     </MainLayout>
                   </ProtectedRoute>
                 }

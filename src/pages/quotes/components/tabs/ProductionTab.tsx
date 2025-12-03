@@ -46,8 +46,8 @@ const ProductionTab: React.FC = () => {
         workTimeHours: newActivity.workTimeHours,
         workTimeMinutes: newActivity.workTimeMinutes,
         price: newActivity.price,
-        costPerHour: newActivity.costPerHour,
         marginPercent: newActivity.marginPercent,
+        marginPln: 0,
         ignoreMinQuantity: newActivity.ignoreMinQuantity,
       },
     });
@@ -65,10 +65,13 @@ const ProductionTab: React.FC = () => {
   };
 
   const handleRemoveActivity = (activityId: string) => {
-    dispatch({
-      type: 'REMOVE_PRODUCTION_ACTIVITY',
-      activityId,
-    });
+    const activity = state.productionActivities.find(a => a.id === activityId);
+    if (activity && window.confirm(`Czy na pewno chcesz usunąć etap produkcji "${activity.name}"?`)) {
+      dispatch({
+        type: 'REMOVE_PRODUCTION_ACTIVITY',
+        activityId,
+      });
+    }
   };
 
   const handleMarginPlnChange = (activityId: string, marginPln: number) => {
