@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HiAdjustments, HiCog, HiUser, HiLockClosed, HiPlus, HiTrash, HiPencil } from 'react-icons/hi';
+import { HiAdjustments, HiCog, HiUser, HiLockClosed, HiPlus, HiTrash } from 'react-icons/hi';
 import Card from '../../components/common/Card';
 import Modal from '../../components/common/Modal';
 import Button from '../../components/common/Button';
@@ -7,7 +7,6 @@ import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import { useAuth } from '../../context/AuthContext';
 import { organizationsApi } from '../../api/organizations';
-import { usersApi } from '../../api/users';
 import type { UserDto, AssignUserRequest } from '../../types';
 
 const SettingsPage: React.FC = () => {
@@ -150,7 +149,7 @@ const SettingsPage: React.FC = () => {
                         setSelectedUser(orgUser);
                         setShowDeleteUserModal(true);
                       }}
-                      variant="secondary"
+                      color="gray"
                       size="sm"
                       disabled={orgUser.userId === user.userId}
                     >
@@ -209,8 +208,11 @@ const SettingsPage: React.FC = () => {
       <Modal 
         show={showAddUserModal} 
         onClose={() => setShowAddUserModal(false)}
-        title="Dodaj użytkownika"
       >
+        <Modal.Header>
+          Dodaj użytkownika
+        </Modal.Header>
+        <Modal.Body>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-surface-grey-light mb-2">
@@ -240,7 +242,7 @@ const SettingsPage: React.FC = () => {
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <Button 
-              variant="secondary"
+              color="gray"
               onClick={() => setShowAddUserModal(false)}
               disabled={isLoading}
             >
@@ -255,21 +257,25 @@ const SettingsPage: React.FC = () => {
             </Button>
           </div>
         </div>
+        </Modal.Body>
       </Modal>
 
       {/* Delete User Modal */}
       <Modal 
         show={showDeleteUserModal} 
         onClose={() => setShowDeleteUserModal(false)}
-        title="Usuń użytkownika"
       >
+        <Modal.Header>
+          Usuń użytkownika
+        </Modal.Header>
+        <Modal.Body>
         <div className="space-y-4">
           <p className="text-surface-grey-light">
             Czy na pewno chcesz usunąć użytkownika <strong>{selectedUser?.email}</strong> z organizacji?
           </p>
           <div className="flex justify-end gap-3 pt-4">
             <Button 
-              variant="secondary"
+              color="gray"
               onClick={() => setShowDeleteUserModal(false)}
               disabled={isLoading}
             >
@@ -284,6 +290,7 @@ const SettingsPage: React.FC = () => {
             </Button>
           </div>
         </div>
+        </Modal.Body>
       </Modal>
     </div>
   );

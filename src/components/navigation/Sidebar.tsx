@@ -14,7 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const MainSidebar: React.FC = () => {
   const location = useLocation();
-  const { isUserOrSuperUser, user, isAdmin } = useAuth();
+  const { isUserOrSuperUser } = useAuth();
   const active = 'border-r-[4px] border-r-main bg-gradient-hover';
 
   const allNavigationItems = [
