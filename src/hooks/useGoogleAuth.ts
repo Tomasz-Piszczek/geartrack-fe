@@ -25,9 +25,9 @@ export const useGoogleAuth = () => {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.token && data.email && data.userId) {
-          login(data.token, data.email, data.userId);
-          navigate(ROUTES.DASHBOARD, { replace: true });
+        if (data.token && data.refreshToken && data.email && data.userId) {
+          login(data.token, data.refreshToken, data.email, data.userId);
+          navigate(ROUTES.QUOTES, { replace: true });
         } else {
           throw new Error('Invalid response data');
         }
@@ -35,7 +35,6 @@ export const useGoogleAuth = () => {
         throw new Error('Google login failed');
       }
     } catch (error) {
-      console.error('Google login error:', error);
       throw error;
     }
   }, [login, navigate]);
@@ -45,7 +44,7 @@ export const useGoogleAuth = () => {
       window.google.accounts.id.initialize({
         client_id: '445794691525-hs55893o7q75k1ci3h6k27mkm2vciksb.apps.googleusercontent.com',
         callback: (response: any) => {
-          handleGoogleLogin(response.credential).catch(console.error);
+          handleGoogleLogin(response.credential).catch(() => {});
         },
       });
     }

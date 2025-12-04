@@ -58,3 +58,9 @@ jobs:
           aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }}/ --delete
           echo "Deployment complete!"
           echo "Your app is available at: http://${{ secrets.S3_BUCKET_NAME }}.s3-website.eu-central-1.amazonaws.com"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"

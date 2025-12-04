@@ -1,8 +1,6 @@
 import React from 'react';
 import { useQuote } from '../context/QuoteContext';
 import ProductionTab from './tabs/ProductionTab';
-import CuttingTab from './tabs/CuttingTab';
-import PackagingTab from './tabs/PackagingTab';
 import MaterialsTab from './tabs/MaterialsTab';
 
 const QuoteTabs: React.FC = () => {
@@ -10,8 +8,6 @@ const QuoteTabs: React.FC = () => {
 
   const tabs = [
     { id: 'production', label: 'Produkcja' },
-    { id: 'cutting', label: 'Wycinanie' },
-    { id: 'packaging', label: 'Pakowanie' },
     { id: 'materials', label: 'Surowce' },
   ] as const;
 
@@ -19,12 +15,10 @@ const QuoteTabs: React.FC = () => {
     switch (state.activeTab) {
       case 'production':
         return <ProductionTab />;
-      case 'cutting':
-        return <CuttingTab />;
-      case 'packaging':
-        return <PackagingTab />;
       case 'materials':
         return <MaterialsTab />;
+      default:
+        return <ProductionTab />;
     }
   };
 

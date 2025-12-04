@@ -27,7 +27,6 @@ export interface PageResponse<T> {
   empty: boolean;
 }
 
-// Create axios instance for BI service
 const biServiceClient = axios.create({
   baseURL: BI_SERVICE_URL,
   timeout: 10000,
@@ -36,7 +35,6 @@ const biServiceClient = axios.create({
   },
 });
 
-// Request interceptor to add auth token
 biServiceClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
@@ -50,7 +48,6 @@ biServiceClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
 biServiceClient.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
@@ -62,7 +59,6 @@ biServiceClient.interceptors.response.use(
     };
 
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
       localStorage.removeItem(STORAGE_KEYS.TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER);
       window.location.href = '/login';
@@ -83,22 +79,17 @@ biServiceClient.interceptors.response.use(
   }
 );
 
-// API functions
 export const biServiceApi = {
-  // Get all contractors (without pagination for client-side filtering)
   getContractors: async (): Promise<ContractorDto[]> => {
-    // Fetch with large page size to get all contractors
     const response = await biServiceClient.get<PageResponse<ContractorDto>>(
       `${API_ENDPOINTS.BI.CONTRACTORS}?size=10000`
     );
     return response.data.content;
   },
 
-  // Get all products (without pagination for client-side filtering)
-  getProducts: async (): Promise<ProductDto[]> => {
-    // Fetch with large page size to get all products
+  getProducts: async (filterQuantity: boolean = true): Promise<ProductDto[]> => {
     const response = await biServiceClient.get<PageResponse<ProductDto>>(
-      `${API_ENDPOINTS.BI.PRODUCTS}?size=10000`
+      `${API_ENDPOINTS.BI.PRODUCTS}?size=10000&filterQuantity=${filterQuantity}`
     );
     return response.data.content;
   },

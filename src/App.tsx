@@ -6,13 +6,14 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './layouts/MainLayout';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
-import DashboardPage from './pages/dashboard/DashboardPage';
 import ToolsPage from './pages/tools/ToolsPage';
 import MachinesPage from './pages/machines/MachinesPage';
 import EmployeesPage from './pages/employees/EmployeesPage';
 import EmployeeDetailPage from './pages/employees/EmployeeDetailPage';
 import PayrollPage from './pages/payroll/PayrollPage';
-import QuotesPage from './pages/quotes/QuotesPage';
+import QuotesListPage from './pages/quotes/QuotesListPage';
+import QuoteCreatePage from './pages/quotes/QuoteCreatePage';
+import QuoteEditPage from './pages/quotes/QuoteEditPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import ToastContainer from './components/common/ToastContainer';
 import { ROUTES } from './constants';
@@ -26,16 +27,6 @@ function App() {
             <Routes>
               <Route path={ROUTES.LOGIN} element={<LoginPage />} />
               <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
-              <Route
-                path={ROUTES.DASHBOARD}
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <DashboardPage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
               <Route
                 path={ROUTES.TOOLS}
                 element={
@@ -91,7 +82,27 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MainLayout>
-                      <QuotesPage />
+                      <QuotesListPage />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quotes/new"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <QuoteCreatePage />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quotes/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <QuoteEditPage />
                     </MainLayout>
                   </ProtectedRoute>
                 }
@@ -106,7 +117,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
+              <Route path="/" element={<Navigate to={ROUTES.QUOTES} replace />} />
             </Routes>
             <ToastContainer />
           </div>
