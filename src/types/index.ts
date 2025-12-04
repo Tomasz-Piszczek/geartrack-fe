@@ -103,6 +103,11 @@ export interface User {
   userId: string;
   email: string;
   token: string;
+  role: 'ADMIN' | 'USER' | 'SUPER_USER';
+  organization?: {
+    id: string;
+    organizationName: string;
+  };
 }
 
 export interface AuthContextType {
@@ -111,6 +116,9 @@ export interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
+  hasRole: (role: 'ADMIN' | 'USER' | 'SUPER_USER') => boolean;
+  isAdmin: () => boolean;
+  isUserOrSuperUser: () => boolean;
 }
 
 export interface FormErrors {
@@ -175,4 +183,35 @@ export interface PaginationParams {
   sortBy?: string;
   sortDirection?: 'asc' | 'desc';
   search?: string;
+}
+
+export interface OrganizationDto {
+  id: string;
+  organizationName: string;
+  createdAt: string;
+  updatedAt: string;
+  users?: UserDto[];
+}
+
+export interface UserDto {
+  userId: string;
+  email: string;
+  role: 'ADMIN' | 'USER' | 'SUPER_USER';
+  emailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+  organization?: {
+    id: string;
+    organizationName: string;
+  };
+}
+
+export interface CreateOrganizationRequest {
+  organizationName: string;
+}
+
+export interface AssignUserRequest {
+  userEmail: string;
+  organizationId: string;
+  role?: 'ADMIN' | 'USER' | 'SUPER_USER';
 }

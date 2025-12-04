@@ -36,7 +36,7 @@ const Modal: React.FC<ModalProps> & {
         <div className={`relative bg-section-grey rounded-lg shadow ${className}`}>
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg p-1.5 ml-auto inline-flex items-center"
+            className="absolute top-3 right-3 text-black hover:bg-gray-700  rounded-lg p-1.5 ml-auto inline-flex items-center"
           >
             <HiX className="w-5 h-5" />
           </button>
@@ -50,7 +50,7 @@ const Modal: React.FC<ModalProps> & {
 const ModalHeader: React.FC<ModalHeaderProps> = ({ children, className = '' }) => {
   return (
     <div className={`flex items-start justify-between p-4 border-b border-lighter-border rounded-t ${className}`}>
-      <h3 className="text-xl font-semibold text-white">
+      <h3 className="text-xl font-semibold text-black">
         {children}
       </h3>
     </div>

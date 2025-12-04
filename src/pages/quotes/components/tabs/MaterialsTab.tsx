@@ -37,7 +37,7 @@ const MaterialsTab: React.FC = () => {
       maxQuantity = selectedProduct.quantity;
       
       if (requestedQuantity > maxQuantity) {
-        alert(`Maximum available quantity is ${maxQuantity}`);
+        alert(`Maksymalna dostępna ilośc to ${maxQuantity}`);
         return;
       }
     } else {

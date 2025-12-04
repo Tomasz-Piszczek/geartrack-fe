@@ -40,11 +40,11 @@
   }
 
   .toast-success-style {
-    @apply py-0 pr-0 rounded-2xl bg-green-500 small-text text-power-grey w-fit flex items-center font-sans text-white border-[1px] border-[#FFFFFF10] max-w-[600px] !important;
+    @apply py-0 pr-0 rounded-2xl bg-green-500 small-text text-power-grey w-fit flex items-center font-sans text-black border-[1px] border-[#FFFFFF10] max-w-[600px] !important;
   }
 
   .toast-yellow-style {
-    @apply py-0 pr-0 rounded-2xl bg-yellow-400 small-text text-power-grey w-fit flex items-center font-sans text-white border-[1px] border-yellow-500 max-w-[600px] !important;
+    @apply py-0 pr-0 rounded-2xl bg-yellow-400 small-text text-power-grey w-fit flex items-center font-sans text-black border-[1px] border-yellow-500 max-w-[600px] !important;
   }
 
   .toast-error-style {

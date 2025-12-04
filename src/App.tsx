@@ -6,7 +6,6 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './layouts/MainLayout';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
-import DashboardPage from './pages/dashboard/DashboardPage';
 import ToolsPage from './pages/tools/ToolsPage';
 import MachinesPage from './pages/machines/MachinesPage';
 import EmployeesPage from './pages/employees/EmployeesPage';
@@ -28,16 +27,6 @@ function App() {
             <Routes>
               <Route path={ROUTES.LOGIN} element={<LoginPage />} />
               <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
-              <Route
-                path={ROUTES.DASHBOARD}
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <DashboardPage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
               <Route
                 path={ROUTES.TOOLS}
                 element={
@@ -128,7 +117,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
+              <Route path="/" element={<Navigate to={ROUTES.QUOTES} replace />} />
             </Routes>
             <ToastContainer />
           </div>

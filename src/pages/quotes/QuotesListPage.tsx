@@ -62,12 +62,15 @@ const QuotesListPage: React.FC = () => {
       ),
     },
     {
-      key: 'quantities',
-      label: 'Ilości',
+      key: 'totalPrice',
+      label: 'Koszt',
       render: (quote: any) => (
         <div className="text-white">
-          <div>Min: {quote.minQuantity}</div>
-          <div>Całość: {quote.totalQuantity}</div>
+          {quote.totalPrice ? (
+            <span className="font-medium">{quote.totalPrice.toFixed(2)} PLN</span>
+          ) : (
+            <span className="text-gray-400">-</span>
+          )}
         </div>
       ),
     },

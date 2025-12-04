@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
-  HiHome, 
   HiCog, 
   HiUsers, 
   HiDesktopComputer,
@@ -11,17 +10,14 @@ import {
 } from 'react-icons/hi';
 import { ROUTES } from '../../constants';
 import Brand from './Brand';
+import { useAuth } from '../../context/AuthContext';
 
 const MainSidebar: React.FC = () => {
   const location = useLocation();
+  const { isUserOrSuperUser, user, isAdmin } = useAuth();
   const active = 'border-r-[4px] border-r-main bg-gradient-hover';
 
-  const navigationItems = [
-    {
-      path: ROUTES.DASHBOARD,
-      label: 'Pulpit',
-      icon: HiHome,
-    },
+  const allNavigationItems = [
     {
       path: ROUTES.TOOLS,
       label: 'Narzędzia',
@@ -53,6 +49,12 @@ const MainSidebar: React.FC = () => {
       icon: HiAdjustments,
     },
   ];
+
+  // Filter navigation items based on user role
+  // USER and SUPER_USER can only see Wyceny (Quotes) section
+  const navigationItems = isUserOrSuperUser() 
+    ? allNavigationItems.filter(item => item.path === ROUTES.QUOTES)
+    : allNavigationItems;
 
   const sidebarItemStyle = `
     .custom-sidebar-item:hover img {

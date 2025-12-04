@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { User, AuthContextType } from '../types';
+import type { User, AuthContextType, UserDto } from '../types';
 import { STORAGE_KEYS } from '../constants';
+import { usersApi } from '../api/users';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -28,13 +29,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const userData = JSON.parse(userStr);
         setUser(userData);
+        
+        // Fetch updated user data from API to get role and organization info
+        usersApi.getCurrentUser()
+          .then((fullUserData: UserDto) => {
+            const updatedUser: User = {
+              ...userData,
+              role: fullUserData.role,
+              organization: fullUserData.organization,
+            };
+            setUser(updatedUser);
+            localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+          })
+          .catch((error) => {
+            console.warn('Failed to fetch user data:', error);
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
       } catch (error) {
         localStorage.removeItem(STORAGE_KEYS.TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER);
+        setIsLoading(false);
       }
+    } else {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   }, []);
 
   const login = (token: string, refreshToken: string, email: string, userId: string) => {
@@ -42,12 +62,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       userId,
       email,
       token,
+      role: 'USER', // Default role, will be updated from API
     };
     
     setUser(userData);
     localStorage.setItem(STORAGE_KEYS.TOKEN, token);
     localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+    
+    // Fetch full user data from API
+    usersApi.getCurrentUser()
+      .then((fullUserData: UserDto) => {
+        const updatedUser: User = {
+          ...userData,
+          role: fullUserData.role,
+          organization: fullUserData.organization,
+        };
+        setUser(updatedUser);
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+      })
+      .catch((error) => {
+        console.warn('Failed to fetch user data after login:', error);
+      });
   };
 
   const logout = () => {
@@ -57,12 +93,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem(STORAGE_KEYS.USER);
   };
 
+  const hasRole = (role: 'ADMIN' | 'USER' | 'SUPER_USER'): boolean => {
+    return user?.role === role;
+  };
+
+  const isAdmin = (): boolean => {
+    return hasRole('ADMIN');
+  };
+
+  const isUserOrSuperUser = (): boolean => {
+    return hasRole('USER') || hasRole('SUPER_USER');
+  };
+
   const value: AuthContextType = {
     user,
     login,
     logout,
     isAuthenticated: !!user,
     isLoading,
+    hasRole,
+    isAdmin,
+    isUserOrSuperUser,
   };
 
   return (

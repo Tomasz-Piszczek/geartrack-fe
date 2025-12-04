@@ -4,6 +4,7 @@ module.exports = {
   theme: {
     colors: {
       main: 'rgba(223, 255, 169, 1)',
+      'main-dark': 'rgba(195, 228, 148, 1)',
       'main-lighter': 'rgb(231, 254, 191)',
       'olive-notification': '#1d1e19',
       'green-notification': '#3C4135',

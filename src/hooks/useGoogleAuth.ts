@@ -27,7 +27,7 @@ export const useGoogleAuth = () => {
         const data = await response.json();
         if (data.token && data.refreshToken && data.email && data.userId) {
           login(data.token, data.refreshToken, data.email, data.userId);
-          navigate(ROUTES.DASHBOARD, { replace: true });
+          navigate(ROUTES.QUOTES, { replace: true });
         } else {
           throw new Error('Invalid response data');
         }

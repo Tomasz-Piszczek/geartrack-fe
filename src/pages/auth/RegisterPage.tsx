@@ -46,7 +46,7 @@ const RegisterPage: React.FC = () => {
     onSuccess: (response) => {
       login(response.token, response.refreshToken, response.email, response.userId);
       toast.success('Registration successful! Welcome to GearTrack!');
-      navigate(ROUTES.DASHBOARD, { replace: true });
+      navigate(ROUTES.QUOTES, { replace: true });
     },
     onError: (error: any) => {
       toast.error(error.message || 'Registration failed. Please try again.');
@@ -76,7 +76,6 @@ const RegisterPage: React.FC = () => {
             <HiCog className="w-12 h-12 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">GearTrack</h1>
             <p className="text-surface-grey-dark">System Zarządzania Sprzętem</p>
           </div>
         </div>

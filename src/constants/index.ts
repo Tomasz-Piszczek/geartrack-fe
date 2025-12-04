@@ -31,6 +31,18 @@ export const API_ENDPOINTS = {
     CONTRACTORS: '/api/contractors',
     PRODUCTS: '/api/products',
   },
+  ORGANIZATIONS: {
+    BASE: '/api/organizations',
+    BY_ID: (id: string) => `/api/organizations/${id}`,
+    ASSIGN_USER: '/api/organizations/assign-user',
+    REMOVE_USER: (userEmail: string) => `/api/organizations/remove-user/${userEmail}`,
+  },
+  USERS: {
+    BASE: '/api/users',
+    BY_ID: (id: string) => `/api/users/${id}`,
+    ME: '/api/users/me',
+    UPDATE_ROLE: (id: string) => `/api/users/${id}/role`,
+  },
 } as const;
 
 export const QUERY_KEYS = {
@@ -41,6 +53,8 @@ export const QUERY_KEYS = {
   PAYROLL: 'payroll',
   CONTRACTORS: 'contractors',
   PRODUCTS: 'products',
+  ORGANIZATIONS: 'organizations',
+  USERS: 'users',
 } as const;
 
 export const STORAGE_KEYS = {
@@ -53,7 +67,6 @@ export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
-  DASHBOARD: '/dashboard',
   TOOLS: '/tools',
   MACHINES: '/machines',
   EMPLOYEES: '/employees',

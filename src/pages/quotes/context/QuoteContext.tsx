@@ -434,6 +434,8 @@ export function QuoteProvider({ children, initialDocumentNumber, initialQuote, i
       ignoreMinQuantity: activity.ignoreMinQuantity,
     }));
     
+    const summary = getSummary();
+    
     const baseData = {
       documentNumber: state.documentNumber,
       contractorCode: state.contractorCode,
@@ -442,6 +444,7 @@ export function QuoteProvider({ children, initialDocumentNumber, initialQuote, i
       productName: state.productName,
       minQuantity: state.minQuantity,
       totalQuantity: state.totalQuantity,
+      totalPrice: summary.priceForTotalQty,
       materials,
       productionActivities,
     };

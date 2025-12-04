@@ -29,6 +29,7 @@ export interface CreateQuoteDto {
   productName: string;
   minQuantity: number;
   totalQuantity: number;
+  totalPrice?: number;
   materials: QuoteMaterialDto[];
   productionActivities: QuoteProductionActivityDto[];
 }
@@ -46,6 +47,7 @@ export interface QuoteListDto {
   productName: string;
   minQuantity: number;
   totalQuantity: number;
+  totalPrice?: number;
   createdAt: string;
   updatedAt: string;
 }
