@@ -219,7 +219,6 @@ const EmployeesPage: React.FC = () => {
         <Button
           color="primary"
           onClick={() => handleOpenModal()}
-          className="bg-dark-green hover:bg-dark-green/80"
         >
           <HiPlus className="w-4 h-4 mr-2" />
           Dodaj pracownika
@@ -280,7 +279,6 @@ const EmployeesPage: React.FC = () => {
                       e.stopPropagation();
                       handleOpenAssignToolModal(employee);
                     }}
-                    className="bg-dark-green hover:bg-dark-green/80"
                   >
                     <HiCog className="w-4 h-4 mr-1" />
                     Przypisz narzędzie
@@ -370,7 +368,6 @@ const EmployeesPage: React.FC = () => {
             color="primary"
             onClick={handleSubmit(onSubmit)}
             disabled={createMutation.isPending || updateMutation.isPending}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             {createMutation.isPending || updateMutation.isPending ? (
               <div className="flex items-center gap-2">
@@ -451,7 +448,6 @@ const EmployeesPage: React.FC = () => {
             color="primary"
             onClick={handleSubmitTool(onSubmitToolAssignment)}
             disabled={assignToolMutation.isPending}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             {assignToolMutation.isPending ? (
               <div className="flex items-center gap-2">

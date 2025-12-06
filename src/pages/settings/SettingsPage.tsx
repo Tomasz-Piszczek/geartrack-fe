@@ -124,8 +124,8 @@ const SettingsPage: React.FC = () => {
               <p className="text-surface-grey-dark">Zarządzaj użytkownikami w Twojej organizacji</p>
             </div>
             <Button 
+              color="primary"
               onClick={() => setShowAddUserModal(true)}
-              className="bg-main hover:bg-main-dark text-black"
             >
               <HiPlus className="w-4 h-4 mr-2" />
               Dodaj użytkownika
@@ -249,9 +249,9 @@ const SettingsPage: React.FC = () => {
               Anuluj
             </Button>
             <Button 
+              color="primary"
               onClick={handleAddUser}
               disabled={!newUserEmail || isLoading}
-              className="bg-main hover:bg-main-dark text-black"
             >
               {isLoading ? 'Dodawanie...' : 'Dodaj użytkownika'}
             </Button>

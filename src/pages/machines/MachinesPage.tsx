@@ -237,7 +237,6 @@ const MachinesPage: React.FC = () => {
         <Button
           color="primary"
           onClick={() => handleOpenModal()}
-          className="bg-dark-green hover:bg-dark-green/80"
         >
           <HiPlus className="w-4 h-4 mr-2" />
           Dodaj maszynę
@@ -298,7 +297,7 @@ const MachinesPage: React.FC = () => {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        color="success"
+                        color="primary"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleOpenInspectionModal(machine);
@@ -309,7 +308,7 @@ const MachinesPage: React.FC = () => {
                       </Button>
                       <Button
                         size="sm"
-                        color="info"
+                        color="primary"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleOpenAssignModal(machine);
@@ -380,7 +379,6 @@ const MachinesPage: React.FC = () => {
             color="primary"
             onClick={handleSubmit(onSubmit)}
             disabled={createMutation.isPending || updateMutation.isPending}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             {createMutation.isPending || updateMutation.isPending ? (
               <div className="flex items-center gap-2">
@@ -425,7 +423,6 @@ const MachinesPage: React.FC = () => {
             color="primary"
             onClick={handleAssign}
             disabled={assignMutation.isPending || !selectedEmployeeId}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             {assignMutation.isPending ? (
               <div className="flex items-center gap-2">
@@ -482,7 +479,6 @@ const MachinesPage: React.FC = () => {
             color="primary"
             onClick={handleInspectionSubmit(onInspectionSubmit)}
             disabled={inspectionMutation.isPending}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             {inspectionMutation.isPending ? (
               <div className="flex items-center gap-2">
