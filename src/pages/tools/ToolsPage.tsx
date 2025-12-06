@@ -154,7 +154,6 @@ const ToolsPage: React.FC = () => {
         <Button
           color="primary"
           onClick={() => handleOpenModal()}
-          className="bg-dark-green hover:bg-dark-green/80"
         >
           <HiPlus className="w-4 h-4 mr-2" />
           Dodaj narzędzie
@@ -293,7 +292,6 @@ const ToolsPage: React.FC = () => {
             }}
             disabled={createMutation.isPending || updateMutation.isPending}
             loading={createMutation.isPending || updateMutation.isPending}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             {editingTool ? 'Aktualizuj narzędzie' : 'Utwórz narzędzie'}
           </Button>

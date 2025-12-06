@@ -277,7 +277,6 @@ const ProductionTab: React.FC = () => {
           <Button
             color="primary"
             onClick={() => setShowNewActivityForm(true)}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             <HiPlus className="w-4 h-4 mr-2" />
             Dodaj etap

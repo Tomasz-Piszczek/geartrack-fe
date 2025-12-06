@@ -380,7 +380,6 @@ const EmployeeDetailPage: React.FC = () => {
               <Button
                 color="primary"
                 onClick={handleOpenAssignToolModal}
-                className="bg-dark-green hover:bg-dark-green/80"
               >
                 <HiPlus className="w-4 h-4 mr-2" />
                 Przypisz narzędzie
@@ -548,7 +547,6 @@ const EmployeeDetailPage: React.FC = () => {
             color="primary"
             onClick={handleSubmitTool(onSubmitToolAssignment)}
             disabled={assignToolMutation.isPending}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             {assignToolMutation.isPending ? (
               <div className="flex items-center gap-2">

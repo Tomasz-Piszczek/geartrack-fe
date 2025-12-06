@@ -110,7 +110,6 @@ const PayrollPage: React.FC = () => {
           color="primary"
           onClick={handleSave}
           disabled={saveMutation.isPending}
-          className="bg-dark-green hover:bg-dark-green/80"
         >
           <HiSave className="w-4 h-4 mr-2" />
           {saveMutation.isPending ? 'Zapisywanie...' : 'Zapisz'}
@@ -269,7 +268,6 @@ const PayrollPage: React.FC = () => {
           <Button
             color="primary"
             onClick={saveNote}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             Zapisz notatkę
           </Button>
