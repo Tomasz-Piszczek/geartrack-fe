@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(node:*)",
-      "Bash(npm:*)"
+      "Bash(npm:*)",
+      "Bash(npx eslint:*)",
+      "Bash(rm:*)",
+      "Bash(npx tsc:*)",
+      "Bash(tsc:*)",
+      "Bash(vite build)"
     ],
     "deny": []
   }

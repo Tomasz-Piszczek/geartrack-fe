@@ -47,7 +47,7 @@ const QuoteCreatePage: React.FC = () => {
       await quotesApi.createQuote(data);
       toast.success('Wycena została utworzona pomyślnie');
       navigate('/quotes');
-    } catch (error) {
+    } catch {
       toast.error('Wystąpił błąd podczas tworzenia wyceny');
     } finally {
       setIsSubmitting(false);

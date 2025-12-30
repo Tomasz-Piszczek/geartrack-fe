@@ -53,6 +53,7 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
           parts.push(`Data zakupu ${formatDate(product.purchaseDate)}`);
         }
         
+        parts.push(`Ilość ${product.quantity} ${product.unitOfMeasure}`);
         parts.push(`Kod ${product.code}`);
         
         if (parts.length > 0) {

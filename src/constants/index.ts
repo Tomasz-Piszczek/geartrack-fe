@@ -4,7 +4,6 @@ export const BI_SERVICE_URL = import.meta.env.VITE_BI_SERVICE_URL || 'http://loc
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/api/auth/login',
-    REGISTER: '/api/auth/register',
     OAUTH2_SUCCESS: '/api/auth/oauth2/success',
     REFRESH: '/api/auth/refresh',
   },
@@ -53,6 +52,7 @@ export const QUERY_KEYS = {
   PAYROLL: 'payroll',
   CONTRACTORS: 'contractors',
   PRODUCTS: 'products',
+  PRODUCT_GROUPS: 'product-groups',
   ORGANIZATIONS: 'organizations',
   USERS: 'users',
 } as const;
@@ -66,7 +66,6 @@ export const STORAGE_KEYS = {
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
-  REGISTER: '/register',
   TOOLS: '/tools',
   MACHINES: '/machines',
   EMPLOYEES: '/employees',

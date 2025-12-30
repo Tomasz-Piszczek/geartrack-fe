@@ -7,6 +7,13 @@ export interface ContractorDto {
   name: string;
 }
 
+export interface ProductGroupDto {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+}
+
 export interface ProductDto {
   code: string;
   name: string;
@@ -14,6 +21,7 @@ export interface ProductDto {
   purchaseDate: string;
   quantity: number;
   price: number;
+  group?: ProductGroupDto;
 }
 
 export interface PageResponse<T> {
@@ -81,17 +89,33 @@ biServiceClient.interceptors.response.use(
 
 export const biServiceApi = {
   getContractors: async (): Promise<ContractorDto[]> => {
-    const response = await biServiceClient.get<PageResponse<ContractorDto>>(
-      `${API_ENDPOINTS.BI.CONTRACTORS}?size=10000`
+    const response = await biServiceClient.get<ContractorDto[]>(
+      API_ENDPOINTS.BI.CONTRACTORS
     );
-    return response.data.content;
+    return response.data;
   },
 
-  getProducts: async (filterQuantity: boolean = true): Promise<ProductDto[]> => {
-    const response = await biServiceClient.get<PageResponse<ProductDto>>(
-      `${API_ENDPOINTS.BI.PRODUCTS}?size=10000&filterQuantity=${filterQuantity}`
+  getProducts: async (filterQuantity: boolean = true, groupId?: number): Promise<ProductDto[]> => {
+    const params = new URLSearchParams({
+      filterQuantity: filterQuantity.toString()
+    });
+    
+    if (groupId) {
+      params.append('groupId', groupId.toString());
+    }
+    
+    const queryString = params.toString();
+    const url = queryString ? `${API_ENDPOINTS.BI.PRODUCTS}?${queryString}` : API_ENDPOINTS.BI.PRODUCTS;
+    
+    const response = await biServiceClient.get<ProductDto[]>(url);
+    return response.data;
+  },
+
+  getProductGroups: async (): Promise<ProductGroupDto[]> => {
+    const response = await biServiceClient.get<ProductGroupDto[]>(
+      `${API_ENDPOINTS.BI.PRODUCTS}/groups`
     );
-    return response.data.content;
+    return response.data;
   },
 };
 

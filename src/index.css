@@ -32,7 +32,13 @@
   }
 
   .input-style {
-    @apply py-[3px] px-6 rounded-2xl bg-[#343434] small-text text-power-grey w-full flex items-center h-[52px] focus:outline-none focus:ring-2 focus:ring-dark-green placeholder-gray-400;
+    @apply py-[3px] px-6 rounded-2xl small-text w-full flex items-center h-[52px] focus:outline-none focus:ring-2 focus:ring-dark-green border border-lighter-border;
+    background-color: #343434;
+    color: #ffffff;
+  }
+  
+  .input-style::placeholder {
+    color: #4a4a4a;
   }
 
   .toast-style {
@@ -59,7 +65,7 @@
   }
 
   .grey-linear {
-    background: linear-gradient(180deg, #2a2a2a 0%, #1f1f1f 100%);
+    background: linear-gradient(180deg, #343434 0%, #1f1f1f 100%);
   }
 
   .form {
@@ -136,6 +142,16 @@ button:hover {
 }
 
 /* Custom input styles */
+input, textarea, select {
+  border: 1px solid #FFFFFF10;
+  background-color: #343434;
+  color: #ffffff;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #4a4a4a;
+}
+
 input:focus, textarea:focus, select:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(124, 147, 87, 0.5);
@@ -164,15 +180,15 @@ input[type=number] {
 }
 
 .table-wrapper table thead {
-  background: #2a2a2a;
+  background: #343434;
 }
 
 .table-wrapper table tbody tr {
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid #343434;
 }
 
 .table-wrapper table tbody tr:hover {
-  background: #2a2a2a;
+  background: #343434;
 }
 
 /* Custom modal styles */
@@ -191,13 +207,13 @@ input[type=number] {
 .card {
   background: #232323;
   border-radius: 12px;
-  border: 1px solid #2a2a2a;
+  border: 1px solid #343434;
   padding: 24px;
   transition: all 0.3s ease;
 }
 
 .card:hover {
-  background: #2a2a2a;
+  background: #343434;
   transform: translateY(-2px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }

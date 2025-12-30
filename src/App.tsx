@@ -5,7 +5,6 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './layouts/MainLayout';
 import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
 import ToolsPage from './pages/tools/ToolsPage';
 import MachinesPage from './pages/machines/MachinesPage';
 import EmployeesPage from './pages/employees/EmployeesPage';
@@ -26,7 +25,6 @@ function App() {
           <div className="min-h-screen bg-background-black">
             <Routes>
               <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-              <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
               <Route
                 path={ROUTES.TOOLS}
                 element={

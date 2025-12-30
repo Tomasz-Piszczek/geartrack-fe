@@ -1,6 +1,8 @@
 import apiClient from '../lib/api-client';
+import type { PayrollDeductionDto } from './payrollDeductions';
 
 export interface PayrollRecordDto {
+  payrollRecordId?: string;
   employeeId: string;
   employeeName: string;
   hourlyRate: number;
@@ -11,6 +13,7 @@ export interface PayrollRecordDto {
   deductionsNote: string | null;
   bankTransfer: number;
   cashAmount: number;
+  payrollDeductions?: PayrollDeductionDto[];
 }
 
 export const payrollApi = {

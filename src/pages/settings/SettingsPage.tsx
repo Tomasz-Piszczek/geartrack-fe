@@ -23,7 +23,7 @@ const SettingsPage: React.FC = () => {
     if (isAdmin() && user?.organization?.id) {
       fetchOrganizationUsers();
     }
-  }, [user?.organization?.id, isAdmin]);
+  }, [user?.organization?.id, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchOrganizationUsers = async () => {
     if (!user?.organization?.id) return;

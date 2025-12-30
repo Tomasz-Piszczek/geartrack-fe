@@ -21,6 +21,7 @@ import { toolsApi } from '../../api/tools';
 import { QUERY_KEYS, ROUTES } from '../../constants';
 import { ToolCondition } from '../../types';
 import { toast } from '../../lib/toast';
+import { useAuth } from '../../context/AuthContext';
 
 interface AssignToolFormData {
   toolId: string;
@@ -36,9 +37,10 @@ interface RemoveToolFormData {
 const EmployeeDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [showAssignToolModal, setShowAssignToolModal] = useState(false);
   const [showRemoveToolModal, setShowRemoveToolModal] = useState(false);
-  const [selectedToolForRemoval, setSelectedToolForRemoval] = useState<any>(null);
+  const [selectedToolForRemoval, setSelectedToolForRemoval] = useState<typeof employeeTools[0] | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
 
@@ -83,7 +85,7 @@ const EmployeeDetailPage: React.FC = () => {
       toast.success('Tool assigned successfully');
       handleCloseAssignToolModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to assign tool');
     },
   });
@@ -97,7 +99,7 @@ const EmployeeDetailPage: React.FC = () => {
       toast.success('Tool removed successfully');
       handleCloseRemoveToolModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to remove tool');
     },
   });
@@ -123,7 +125,7 @@ const EmployeeDetailPage: React.FC = () => {
     resetTool();
   };
 
-  const handleOpenRemoveToolModal = (toolAssignment: any) => {
+  const handleOpenRemoveToolModal = (toolAssignment: typeof employeeTools[0]) => {
     setSelectedToolForRemoval(toolAssignment);
     resetRemove({
       quantity: 1,
@@ -352,10 +354,12 @@ const EmployeeDetailPage: React.FC = () => {
               {employee.firstName} {employee.lastName}
             </h2>
             
-            <div className="flex items-center gap-2 text-surface-grey-dark mb-6">
-              <HiCurrencyDollar className="w-5 h-5" />
-              <span className="text-lg">{employee.hourlyRate} PLN/h</span>
-            </div>
+            {isAdmin() && (
+              <div className="flex items-center gap-2 text-surface-grey-dark mb-6">
+                <HiCurrencyDollar className="w-5 h-5" />
+                <span className="text-lg">{employee.hourlyRate} PLN/h</span>
+              </div>
+            )}
 
           </div>
         </Card>
@@ -449,7 +453,7 @@ const EmployeeDetailPage: React.FC = () => {
                         </div>
                         <div>
                           <p className="text-surface-grey">Przypisano</p>
-                          <p className="text-white font-medium">{formatDate(assignment.assignedAt)}</p>
+                          <p className="text-white font-medium">{formatDate(assignment.assignedAt || '')}</p>
                         </div>
                       </div>
                     </div>

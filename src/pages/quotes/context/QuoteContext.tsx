@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
 import type { CreateQuoteDto, UpdateQuoteDto, QuoteDetailsDto } from '../../../api/quotes';
 

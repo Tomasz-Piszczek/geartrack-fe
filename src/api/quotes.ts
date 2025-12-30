@@ -50,6 +50,8 @@ export interface QuoteListDto {
   totalPrice?: number;
   createdAt: string;
   updatedAt: string;
+  createdBy?: string;
+  createdByEmail?: string;
 }
 
 export interface QuoteDetailsDto extends QuoteListDto {
@@ -85,7 +87,7 @@ export const quotesApi = {
     return response.data;
   },
 
-  getQuotes: async (page: number = 0, size: number = 20, search?: string): Promise<QuotePaginationResponse> => {
+  getQuotes: async (page: number = 0, size: number = 20, search?: string, createdBy?: string): Promise<QuotePaginationResponse> => {
     const params = new URLSearchParams({
       page: page.toString(),
       size: size.toString(),
@@ -93,6 +95,10 @@ export const quotesApi = {
     
     if (search) {
       params.append('search', search);
+    }
+    
+    if (createdBy) {
+      params.append('createdBy', createdBy);
     }
 
     const response = await apiClient.get(`/api/quotes?${params.toString()}`);

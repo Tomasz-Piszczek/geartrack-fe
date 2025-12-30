@@ -73,7 +73,7 @@ const MachinesPage: React.FC = () => {
       toast.success('Machine created successfully');
       handleCloseModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to create machine');
     },
   });
@@ -85,7 +85,7 @@ const MachinesPage: React.FC = () => {
       toast.success('Machine updated successfully');
       handleCloseModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to update machine');
     },
   });
@@ -96,7 +96,7 @@ const MachinesPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
       toast.success('Machine deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete machine');
     },
   });
@@ -108,7 +108,7 @@ const MachinesPage: React.FC = () => {
       toast.success('Machine assigned successfully');
       handleCloseAssignModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to assign machine');
     },
   });
@@ -120,7 +120,7 @@ const MachinesPage: React.FC = () => {
       toast.success('Inspection added successfully');
       handleCloseInspectionModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to add inspection');
     },
   });

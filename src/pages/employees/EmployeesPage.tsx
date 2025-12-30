@@ -15,6 +15,7 @@ import { ToolCondition as ToolConditionValues } from '../../types';
 import { QUERY_KEYS, VALIDATION } from '../../constants';
 import { toast } from '../../lib/toast';
 import Modal from '../../components/common/Modal';
+import { useAuth } from '../../context/AuthContext';
 
 interface EmployeeFormData {
   firstName: string;
@@ -30,6 +31,7 @@ interface AssignToolFormData {
 
 const EmployeesPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [showAssignToolModal, setShowAssignToolModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeDto | null>(null);
@@ -82,7 +84,7 @@ const EmployeesPage: React.FC = () => {
       toast.success('Employee created successfully');
       handleCloseModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to create employee');
     },
   });
@@ -94,7 +96,7 @@ const EmployeesPage: React.FC = () => {
       toast.success('Employee updated successfully');
       handleCloseModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to update employee');
     },
   });
@@ -105,7 +107,7 @@ const EmployeesPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES] });
       toast.success('Employee deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete employee');
     },
   });
@@ -118,7 +120,7 @@ const EmployeesPage: React.FC = () => {
       toast.success('Tool assigned successfully');
       handleCloseAssignToolModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to assign tool');
     },
   });
@@ -206,7 +208,7 @@ const EmployeesPage: React.FC = () => {
   };
 
   const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
   return (
@@ -266,10 +268,12 @@ const EmployeesPage: React.FC = () => {
                   {employee.firstName} {employee.lastName}
                 </h3>
                 
-                <div className="flex items-center gap-2 text-surface-grey-dark mb-4">
-                  <HiCurrencyDollar className="w-4 h-4" />
-                  <span>{employee.hourlyRate} PLN/h</span>
-                </div>
+                {isAdmin() && (
+                  <div className="flex items-center gap-2 text-surface-grey-dark mb-4">
+                    <HiCurrencyDollar className="w-4 h-4" />
+                    <span>{employee.hourlyRate} PLN/h</span>
+                  </div>
+                )}
 
                 <div className="flex justify-between items-center w-full">
                   <Button
@@ -349,18 +353,20 @@ const EmployeesPage: React.FC = () => {
               className="bg-section-grey-light"
             />
 
-            <Input
-              id="hourlyRate"
-              label="Stawka godzinowa (zł)"
-              type="number"
-              step="0.01"
-              {...register('hourlyRate', { 
-                required: VALIDATION.REQUIRED,
-                min: { value: 0, message: VALIDATION.POSITIVE_NUMBER }
-              })}
-              error={errors.hourlyRate?.message}
-              className="bg-section-grey-light"
-            />
+            {isAdmin() && (
+              <Input
+                id="hourlyRate"
+                label="Stawka godzinowa (zł)"
+                type="number"
+                step="0.01"
+                {...register('hourlyRate', { 
+                  required: VALIDATION.REQUIRED,
+                  min: { value: 0, message: VALIDATION.POSITIVE_NUMBER }
+                })}
+                error={errors.hourlyRate?.message}
+                className="bg-section-grey-light"
+              />
+            )}
           </form>
         </Modal.Body>
         <Modal.Footer className="bg-section-grey border-lighter-border">

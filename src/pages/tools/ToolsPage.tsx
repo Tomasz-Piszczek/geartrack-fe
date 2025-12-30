@@ -51,7 +51,7 @@ const ToolsPage: React.FC = () => {
       toast.success('Tool created successfully');
       handleCloseModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to create tool');
     },
   });
@@ -63,7 +63,7 @@ const ToolsPage: React.FC = () => {
       toast.success('Tool updated successfully');
       handleCloseModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to update tool');
     },
   });
@@ -75,7 +75,7 @@ const ToolsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES] });
       toast.success('Tool deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete tool');
     },
   });
