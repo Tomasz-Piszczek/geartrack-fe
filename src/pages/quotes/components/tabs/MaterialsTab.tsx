@@ -205,6 +205,7 @@ const MaterialsTab: React.FC = () => {
               showPrice={true}
               loading={productsLoading}
               filterQuantity={true}
+              groupId={selectedGroupId}
             />
           </div>
 

@@ -149,7 +149,6 @@ const ToolsPage: React.FC = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Narzędzia</h1>
-          <p className="text-surface-grey-dark">Zarządzaj inwentarzem narzędzi</p>
         </div>
         <Button
           color="primary"

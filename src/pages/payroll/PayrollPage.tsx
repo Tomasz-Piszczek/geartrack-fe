@@ -247,7 +247,6 @@ const PayrollPage: React.FC = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Wypłaty</h1>
-          <p className="text-surface-grey-dark">Zarządzaj wypłatami pracowników</p>
         </div>
       </div>
 
@@ -258,7 +257,7 @@ const PayrollPage: React.FC = () => {
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
             className="p-3 border border-lighter-border rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-green"
-            style={{backgroundColor: '#343434', color: '#000000'}}
+            style={{backgroundColor: '#343434', color: '#FFFFFF'}}
           >
             {years.map(year => (
               <option key={year} value={year}>{year}</option>
@@ -271,7 +270,7 @@ const PayrollPage: React.FC = () => {
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
             className="p-3 border border-lighter-border rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-green"
-            style={{backgroundColor: '#343434', color: '#000000'}}
+            style={{backgroundColor: '#343434', color: '#FFFFFF'}}
           >
             {months.map(month => (
               <option key={month.value} value={month.value}>{month.label}</option>
@@ -471,7 +470,7 @@ const PayrollPage: React.FC = () => {
                 placeholder="Wprowadź notatkę..."
                 rows={3}
                 className="w-full p-3 border border-lighter-border rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-green resize-none"
-                style={{backgroundColor: '#343434', color: '#000000'}}
+                style={{backgroundColor: '#343434', color: '#FFFFFF'}}
               />
             </div>
             <div>
@@ -531,7 +530,7 @@ const PayrollPage: React.FC = () => {
                 placeholder="Wprowadź notatkę..."
                 rows={3}
                 className="w-full p-3 border border-lighter-border rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-green resize-none"
-                style={{backgroundColor: '#343434', color: '#000000'}}
+                style={{backgroundColor: '#343434', color: '#FFFFFF'}}
               />
             </div>
             <div>

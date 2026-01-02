@@ -26,19 +26,16 @@ export const payrollDeductionsApi = {
 
   getEmployeeDeductions: async (
     employeeId: string,
-    params: PaginationParams & { category?: string }
-  ): Promise<PagedResponse<PayrollDeductionDto>> => {
-    const searchParams = new URLSearchParams({
-      page: (params.page ?? 0).toString(),
-      size: (params.size ?? 10).toString(),
-    });
+    category?: string
+  ): Promise<PayrollDeductionDto[]> => {
+    const searchParams = new URLSearchParams();
 
-    if (params.category) {
-      searchParams.append('category', params.category);
+    if (category) {
+      searchParams.append('category', category);
     }
 
     const response = await apiClient.get(
-      `/api/payroll-deductions/employee/${employeeId}?${searchParams}`
+      `/api/payroll-deductions/employee/${employeeId}${searchParams.toString() ? '?' + searchParams.toString() : ''}`
     );
     return response.data;
   },

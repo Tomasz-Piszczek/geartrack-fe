@@ -17,6 +17,7 @@ interface ProductSelectProps {
   showPrice?: boolean;
   loading?: boolean;
   filterQuantity?: boolean;
+  groupId?: number;
 }
 
 const ProductSelect: React.FC<ProductSelectProps> = ({
@@ -33,9 +34,10 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
   showPrice = true,
   loading: externalLoading = false,
   filterQuantity = true,
+  groupId,
 }) => {
   void placeholder;
-  const { data: products = [], isLoading, error: apiError } = useProducts(filterQuantity);
+  const { data: products = [], isLoading, error: apiError } = useProducts(filterQuantity, groupId);
   const loading = isLoading || externalLoading;
 
   const options: AutocompleteOption<ProductDto>[] = useMemo(() => {
