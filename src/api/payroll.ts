@@ -1,5 +1,11 @@
 import apiClient from '../lib/api-client';
-import type { PayrollDeductionDto } from './payrollDeductions';
+
+export interface PayrollDeductionDto {
+  id?: string;
+  category: string;
+  note: string;
+  amount: number;
+}
 
 export interface PayrollRecordDto {
   payrollRecordId?: string;
@@ -21,8 +27,17 @@ export const payrollApi = {
     const response = await apiClient.get(`/api/payroll/${year}/${month}`);
     return response.data;
   },
-  
+
   savePayrollRecords: async (records: PayrollRecordDto[], year: number, month: number): Promise<void> => {
     await apiClient.post(`/api/payroll/${year}/${month}`, records);
+  },
+
+  getCategories: async (): Promise<string[]> => {
+    const response = await apiClient.get('/api/payroll/categories');
+    return response.data;
+  },
+
+  deleteCategory: async (category: string): Promise<void> => {
+    await apiClient.delete(`/api/payroll/categories/${encodeURIComponent(category)}`);
   },
 };

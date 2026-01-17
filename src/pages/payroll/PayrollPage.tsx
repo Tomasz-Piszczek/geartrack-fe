@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { HiSave } from 'react-icons/hi';
-import { Plus, ChevronDown, X } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { payrollApi, type PayrollRecordDto } from '../../api/payroll';
-import { payrollDeductionsApi, type PayrollDeductionDto } from '../../api/payrollDeductions';
+import React, {useEffect, useState} from 'react';
+import {HiSave} from 'react-icons/hi';
+import {ChevronDown, Plus, X, Trash2} from 'lucide-react';
+import {useMutation, useQuery} from '@tanstack/react-query';
+import {payrollApi, type PayrollDeductionDto, type PayrollRecordDto} from '../../api/payroll';
+
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
 import Autocomplete from '../../components/common/Autocomplete';
-import { toast } from '../../lib/toast';
+import {toast} from '../../lib/toast';
 
 const PayrollPage: React.FC = () => {
   const currentDate = new Date();
-  const queryClient = useQueryClient();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
   const [payrollData, setPayrollData] = useState<PayrollRecordDto[]>([]);
   const [showDeductionModal, setShowDeductionModal] = useState(false);
   const [showEditDeductionModal, setShowEditDeductionModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<PayrollRecordDto | null>(null);
   const [selectedDeduction, setSelectedDeduction] = useState<PayrollDeductionDto | null>(null);
   const [deductionForm, setDeductionForm] = useState({
@@ -59,9 +59,9 @@ const PayrollPage: React.FC = () => {
     queryFn: () => payrollApi.getPayrollRecords(selectedYear, selectedMonth),
   });
 
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [], refetch: refetchCategories } = useQuery({
     queryKey: ['payroll-categories'],
-    queryFn: () => payrollDeductionsApi.getCategories(),
+    queryFn: () => payrollApi.getCategories(),
   });
 
   const saveMutation = useMutation({
@@ -69,58 +69,25 @@ const PayrollPage: React.FC = () => {
     onSuccess: () => {
       toast.success('Wypłaty zostały zapisane');
       refetch();
+      refetchCategories();
     },
     onError: () => {
       toast.error('Błąd podczas zapisywania wypłat');
     },
   });
 
-  const createDeductionMutation = useMutation({
-    mutationFn: payrollDeductionsApi.create,
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (category: string) => payrollApi.deleteCategory(category),
     onSuccess: () => {
-      toast.success('Obciążenie zostało dodane');
-      queryClient.invalidateQueries({ queryKey: ['payroll'] });
-      queryClient.invalidateQueries({ queryKey: ['payroll-categories'] });
+      toast.success('Kategoria została usunięta');
       refetch();
-      closeDeductionModal();
+      refetchCategories();
     },
     onError: () => {
-      toast.error('Błąd podczas dodawania obciążenia');
+      toast.error('Błąd podczas usuwania kategorii');
     },
   });
 
-  const deleteDeductionMutation = useMutation({
-    mutationFn: payrollDeductionsApi.delete,
-    onSuccess: () => {
-      toast.success('Obciążenie zostało usunięte');
-      queryClient.invalidateQueries({ queryKey: ['payroll'] });
-      refetch();
-    },
-    onError: () => {
-      toast.error('Błąd podczas usuwania obciążenia');
-    },
-  });
-
-  const updateDeductionMutation = useMutation({
-    mutationFn: (data: { 
-      id: string; 
-      updateData: { 
-        category: string; 
-        note: string; 
-        amount: number; 
-      };
-    }) => payrollDeductionsApi.update(data.id, data.updateData),
-    onSuccess: () => {
-      toast.success('Obciążenie zostało zaktualizowane');
-      queryClient.invalidateQueries({ queryKey: ['payroll'] });
-      queryClient.invalidateQueries({ queryKey: ['payroll-categories'] });
-      refetch();
-      closeEditDeductionModal();
-    },
-    onError: () => {
-      toast.error('Błąd podczas aktualizacji obciążenia');
-    },
-  });
 
   useEffect(() => {
     if (records) {
@@ -145,8 +112,7 @@ const PayrollPage: React.FC = () => {
   const updateRecord = (index: number, field: keyof PayrollRecordDto, value: number | string) => {
     const updated = [...payrollData];
     updated[index] = { ...updated[index], [field]: value };
-    const deductionsTotal = updated[index].payrollDeductions?.reduce((sum, deduction) => sum + deduction.amount, 0) || 0;
-    updated[index].deductions = deductionsTotal;
+    updated[index].deductions = updated[index].payrollDeductions?.reduce((sum, deduction) => sum + deduction.amount, 0) || 0;
     updated[index].cashAmount = calculateCashAmount(updated[index]);
     setPayrollData(updated);
   };
@@ -176,19 +142,51 @@ const PayrollPage: React.FC = () => {
   };
 
   const handleCreateDeduction = () => {
-    if (!selectedRecord || !selectedRecord.payrollRecordId) return;
-    
-    createDeductionMutation.mutate({
-      payrollRecordId: selectedRecord.payrollRecordId,
+    if (!selectedRecord) return;
+
+    const newDeduction: PayrollDeductionDto = {
+      id: Date.now().toString(), // Temporary ID
       category: deductionForm.category,
       note: deductionForm.note,
       amount: deductionForm.amount
+    };
+
+    const updatedData = payrollData.map(record => {
+      if (record.employeeId === selectedRecord.employeeId) {
+        const updatedDeductions = [...(record.payrollDeductions || []), newDeduction];
+        const deductionsTotal = updatedDeductions.reduce((sum, d) => sum + d.amount, 0);
+        return {
+          ...record,
+          payrollDeductions: updatedDeductions,
+          deductions: deductionsTotal,
+          cashAmount: calculateCashAmount({...record, deductions: deductionsTotal})
+        };
+      }
+      return record;
     });
+
+    setPayrollData(updatedData);
+    saveMutation.mutate(updatedData);
+    toast.success('Obciążenie zostało dodane');
+    closeDeductionModal();
   };
 
   const handleDeleteDeduction = (deductionId: string) => {
     if (window.confirm('Czy na pewno chcesz usunąć to obciążenie?')) {
-      deleteDeductionMutation.mutate(deductionId);
+      const updatedData = payrollData.map(record => {
+        const updatedDeductions = (record.payrollDeductions || []).filter(d => d.id !== deductionId);
+        const deductionsTotal = updatedDeductions.reduce((sum, d) => sum + d.amount, 0);
+        return {
+          ...record,
+          payrollDeductions: updatedDeductions,
+          deductions: deductionsTotal,
+          cashAmount: calculateCashAmount({...record, deductions: deductionsTotal})
+        };
+      });
+
+      setPayrollData(updatedData);
+      saveMutation.mutate(updatedData);
+      toast.success('Obciążenie zostało usunięte');
     }
   };
 
@@ -222,15 +220,40 @@ const PayrollPage: React.FC = () => {
 
   const handleUpdateDeduction = () => {
     if (!selectedDeduction) return;
-    
-    updateDeductionMutation.mutate({
-      id: selectedDeduction.id!,
-      updateData: {
-        category: editDeductionForm.category,
-        note: editDeductionForm.note,
-        amount: editDeductionForm.amount
-      }
+
+    // Update deduction in local state
+    const updatedData = payrollData.map(record => {
+      const updatedDeductions = (record.payrollDeductions || []).map(d =>
+        d.id === selectedDeduction.id ? {
+          ...d,
+          category: editDeductionForm.category,
+          note: editDeductionForm.note,
+          amount: editDeductionForm.amount
+        } : d
+      );
+      const deductionsTotal = updatedDeductions.reduce((sum, d) => sum + d.amount, 0);
+      return {
+        ...record,
+        payrollDeductions: updatedDeductions,
+        deductions: deductionsTotal,
+        cashAmount: calculateCashAmount({...record, deductions: deductionsTotal})
+      };
     });
+
+    setPayrollData(updatedData);
+    saveMutation.mutate(updatedData);
+    toast.success('Obciążenie zostało zaktualizowane');
+    closeEditDeductionModal();
+  };
+
+  const handleDeleteCategory = (category: string) => {
+    if (window.confirm(
+      `Czy na pewno chcesz usunąć kategorię "${category}"?\n\n` +
+      `To spowoduje usunięcie wszystkich obciążeń z tą kategorią`
+    )) {
+      deleteCategoryMutation.mutate(category);
+      setShowCategoryModal(false);
+    }
   };
 
   const totalCash = payrollData.reduce((sum, record) => sum + record.cashAmount, 0);
@@ -250,7 +273,7 @@ const PayrollPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="mb-6 flex gap-4">
+      <div className="mb-6 flex gap-4 items-end">
         <div>
           <label className="block text-sm font-medium text-white mb-2">Rok</label>
           <select
@@ -277,6 +300,12 @@ const PayrollPage: React.FC = () => {
             ))}
           </select>
         </div>
+        <Button
+          color="gray"
+          onClick={() => setShowCategoryModal(true)}
+        >
+          Kategorie Obciążeń
+        </Button>
       </div>
 
       {isLoading ? (
@@ -493,9 +522,8 @@ const PayrollPage: React.FC = () => {
           <Button
             color="primary"
             onClick={handleCreateDeduction}
-            disabled={createDeductionMutation.isPending}
           >
-            {createDeductionMutation.isPending ? 'Dodawanie...' : 'Dodaj obciążenie'}
+            Dodaj obciążenie
           </Button>
           <Button color="gray" onClick={closeDeductionModal}>
             Anuluj
@@ -553,12 +581,46 @@ const PayrollPage: React.FC = () => {
           <Button
             color="primary"
             onClick={handleUpdateDeduction}
-            disabled={updateDeductionMutation.isPending}
           >
-            {updateDeductionMutation.isPending ? 'Aktualizowanie...' : 'Zaktualizuj obciążenie'}
+            Zaktualizuj obciążenie
           </Button>
           <Button color="gray" onClick={closeEditDeductionModal}>
             Anuluj
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showCategoryModal} onClose={() => setShowCategoryModal(false)}>
+        <Modal.Header className="bg-section-grey border-lighter-border">
+          <span className="text-white">Kategorie Obciążeń</span>
+        </Modal.Header>
+        <Modal.Body className="bg-section-grey">
+          {categories.length === 0 ? (
+            <p className="text-gray-400 text-center py-4">Brak kategorii</p>
+          ) : (
+            <div className="space-y-2">
+              {categories.map((category) => (
+                <div
+                  key={category}
+                  className="flex items-center justify-between p-3 rounded-lg border border-lighter-border hover:bg-section-grey-light transition-colors"
+                  style={{backgroundColor: '#343434'}}
+                >
+                  <span className="text-white font-medium">{category}</span>
+                  <button
+                    onClick={() => handleDeleteCategory(category)}
+                    className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-500/10"
+                    disabled={deleteCategoryMutation.isPending}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="bg-section-grey border-lighter-border">
+          <Button color="gray" onClick={() => setShowCategoryModal(false)}>
+            Zamknij
           </Button>
         </Modal.Footer>
       </Modal>

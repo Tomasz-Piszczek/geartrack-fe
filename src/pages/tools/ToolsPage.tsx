@@ -325,8 +325,8 @@ const ToolsPage: React.FC = () => {
                 </Table.Head>
                 <Table.Body>
                   {toolAssignments.map((assignment, index) => (
-                    <Table.Row key={`${assignment.employeeId}-${assignment.toolId}-${index}`} className="hover:bg-section-grey-light">
-                      <Table.Cell className="text-white">{assignment.employeeName || `Pracownik ${assignment.employeeId}`}</Table.Cell>
+                    <Table.Row key={`${assignment.uuid}-${index}`} className="hover:bg-section-grey-light">
+                      <Table.Cell className="text-white">{assignment.employeeName || 'Unknown Employee'}</Table.Cell>
                       <Table.Cell className="text-white">
                         {assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString() : '-'}
                       </Table.Cell>

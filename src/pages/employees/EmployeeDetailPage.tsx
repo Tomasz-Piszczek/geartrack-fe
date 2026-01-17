@@ -20,7 +20,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { employeesApi } from '../../api/employees';
 import { toolsApi } from '../../api/tools';
-import { payrollDeductionsApi, type PayrollDeductionDto } from '../../api/payrollDeductions';
+import { type PayrollDeductionDto } from '../../api/payroll';
 import { QUERY_KEYS, ROUTES, VALIDATION } from '../../constants';
 import { ToolCondition } from '../../types';
 import { toast } from '../../lib/toast';
@@ -73,11 +73,14 @@ const EmployeeDetailPage: React.FC = () => {
     enabled: !!id,
   });
 
-  const { data: employeeDeductions = [], isLoading: isLoadingDeductions } = useQuery({
-    queryKey: ['payroll-deductions', id],
-    queryFn: () => payrollDeductionsApi.getEmployeeDeductions(id!),
-    enabled: !!id && isAdmin(),
-  });
+  // Temporarily disabled - payrollDeductionsApi was removed
+  // const { data: employeeDeductions = [], isLoading: isLoadingDeductions } = useQuery({
+  //   queryKey: ['payroll-deductions', id],
+  //   queryFn: () => payrollDeductionsApi.getEmployeeDeductions(id!),
+  //   enabled: !!id && isAdmin(),
+  // });
+  const employeeDeductions: PayrollDeductionDto[] = [];
+  const isLoadingDeductions = false;
 
   const {
     register: registerTool,
@@ -101,7 +104,8 @@ const EmployeeDetailPage: React.FC = () => {
   } = useForm<EmployeeFormData>();
 
   const assignToolMutation = useMutation({
-    mutationFn: toolsApi.assign,
+    mutationFn: ({ toolId, employeeId, assignment }: { toolId: string; employeeId: string; assignment: any }) => 
+      toolsApi.assign(toolId, employeeId, assignment),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
@@ -115,7 +119,8 @@ const EmployeeDetailPage: React.FC = () => {
   });
 
   const unassignToolMutation = useMutation({
-    mutationFn: toolsApi.unassign,
+    mutationFn: ({ toolId, employeeId }: { toolId: string; employeeId: string }) => 
+      toolsApi.unassign(toolId, employeeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
@@ -207,22 +212,22 @@ const EmployeeDetailPage: React.FC = () => {
   const onSubmitToolAssignment = (data: AssignToolFormData) => {
     if (employee) {
       assignToolMutation.mutate({
-        employeeId: employee.uuid!,
         toolId: data.toolId,
-        quantity: data.quantity,
-        condition: data.condition,
-        assignedAt: data.assignedAt,
+        employeeId: employee.uuid!,
+        assignment: {
+          quantity: data.quantity,
+          condition: data.condition,
+          assignedAt: data.assignedAt,
+        }
       });
     }
   };
 
-  const onSubmitToolRemoval = (data: RemoveToolFormData) => {
+  const onSubmitToolRemoval = (_data: RemoveToolFormData) => {
     if (selectedToolForRemoval) {
       unassignToolMutation.mutate({
+        toolId: selectedToolForRemoval.uuid!,
         employeeId: employee!.uuid!,
-        toolId: selectedToolForRemoval.toolId,
-        quantity: data.quantity,
-        condition: selectedToolForRemoval.condition,
       });
     }
   };
@@ -536,7 +541,7 @@ const EmployeeDetailPage: React.FC = () => {
           ) : (
             <div className="space-y-4">
               {filteredEmployeeTools.map((assignment) => (
-                <Card key={`${assignment.toolId}-${assignment.assignedAt}`} className="hover:shadow-lg transition-all">
+                <Card key={`${assignment.uuid}-${assignment.assignedAt}`} className="hover:shadow-lg transition-all">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-4">

@@ -30,8 +30,6 @@ export interface MachineDto {
 }
 
 export interface AssignMachineDto {
-  machineId: string;
-  employeeId: string;
 }
 
 export interface MachineInspectionDto {
@@ -47,7 +45,6 @@ export interface MachineInspectionDto {
 }
 
 export interface CreateMachineInspectionDto {
-  machineId: string;
   inspectionDate: string;
   notes?: string;
   status?: string;
@@ -72,8 +69,6 @@ export interface ToolDto {
 
 export interface AssignToolDto {
   uuid?: string;
-  employeeId: string;
-  toolId: string;
   quantity: number;
   condition: ToolCondition;
   assignedAt?: string;

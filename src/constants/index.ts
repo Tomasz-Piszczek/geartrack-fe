@@ -14,16 +14,16 @@ export const API_ENDPOINTS = {
   MACHINES: {
     BASE: '/api/machines',
     BY_ID: (id: string) => `/api/machines/${id}`,
-    ASSIGN: '/api/machines/assign',
-    INSPECTIONS: '/api/machine-inspections',
+    ASSIGN: (machineId: string, employeeId: string) => `/api/machines/assign/${machineId}/${employeeId}`,
+    INSPECTIONS: (machineId: string) => `/api/machine-inspections/${machineId}`,
     MACHINE_INSPECTIONS: (machineId: string) => `/api/machine-inspections/machine/${machineId}`,
     MACHINE_INSPECTION_HISTORY: (machineId: string) => `/api/machine-inspections/machine/${machineId}/history`,
   },
   TOOLS: {
     BASE: '/api/tools',
     BY_ID: (id: string) => `/api/tools/${id}`,
-    ASSIGN: '/api/tools/assign',
-    UNASSIGN: '/api/tools/unassign',
+    ASSIGN: (toolId: string, employeeId: string) => `/api/tools/assign/${toolId}/${employeeId}`,
+    UNASSIGN: (toolId: string, employeeId: string) => `/api/tools/unassign/${toolId}/${employeeId}`,
     EMPLOYEES: (toolId: string) => `/api/tools/${toolId}/employees`,
   },
   BI: {
