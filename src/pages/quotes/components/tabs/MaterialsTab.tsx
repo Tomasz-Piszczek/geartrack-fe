@@ -181,7 +181,16 @@ const MaterialsTab: React.FC = () => {
             <select
               id="productGroupSelect"
               value={selectedGroupId || ''}
-              onChange={(e) => setSelectedGroupId(e.target.value ? parseInt(e.target.value) : undefined)}
+              onChange={(e) => {
+                setSelectedGroupId(e.target.value ? parseInt(e.target.value) : undefined);
+                setSelectedProduct(null);
+                setSelectedProductCode('');
+                setCustomProductName('');
+                setPurchasePrice('');
+                setMarginPercent('');
+                setMarginPln('');
+                setPricePerUnit('');
+              }}
               className="block w-full px-3 py-2 border border-gray-600 bg-background-dark text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               disabled={groupsLoading}
             >

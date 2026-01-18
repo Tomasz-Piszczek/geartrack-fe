@@ -20,7 +20,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { employeesApi } from '../../api/employees';
 import { toolsApi } from '../../api/tools';
-import { type PayrollDeductionDto } from '../../api/payroll';
+import { payrollApi, type PayrollDeductionDto } from '../../api/payroll';
 import { QUERY_KEYS, ROUTES, VALIDATION } from '../../constants';
 import { ToolCondition } from '../../types';
 import { toast } from '../../lib/toast';
@@ -73,14 +73,11 @@ const EmployeeDetailPage: React.FC = () => {
     enabled: !!id,
   });
 
-  // Temporarily disabled - payrollDeductionsApi was removed
-  // const { data: employeeDeductions = [], isLoading: isLoadingDeductions } = useQuery({
-  //   queryKey: ['payroll-deductions', id],
-  //   queryFn: () => payrollDeductionsApi.getEmployeeDeductions(id!),
-  //   enabled: !!id && isAdmin(),
-  // });
-  const employeeDeductions: PayrollDeductionDto[] = [];
-  const isLoadingDeductions = false;
+  const { data: employeeDeductions = [], isLoading: isLoadingDeductions } = useQuery({
+    queryKey: ['payroll-deductions', id],
+    queryFn: () => payrollApi.getEmployeeDeductions(id!),
+    enabled: !!id && isAdmin(),
+  });
 
   const {
     register: registerTool,
