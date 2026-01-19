@@ -35,6 +35,13 @@ export interface PageResponse<T> {
   empty: boolean;
 }
 
+export interface EmployeeHoursDto {
+  employeeName: string;
+  year: number;
+  month: number;
+  hours: number;
+}
+
 const biServiceClient = axios.create({
   baseURL: BI_SERVICE_URL,
   timeout: 10000,
@@ -114,6 +121,20 @@ export const biServiceApi = {
   getProductGroups: async (): Promise<ProductGroupDto[]> => {
     const response = await biServiceClient.get<ProductGroupDto[]>(
       `${API_ENDPOINTS.BI.PRODUCTS}/groups`
+    );
+    return response.data;
+  },
+
+  getEmployeeHours: async (employeeNames: string[], year: number, month: number): Promise<EmployeeHoursDto[]> => {
+    const response = await biServiceClient.post<EmployeeHoursDto[]>(
+      API_ENDPOINTS.BI.EMPLOYEE_HOURS,
+      employeeNames,
+      {
+        params: {
+          year,
+          month,
+        },
+      }
     );
     return response.data;
   },

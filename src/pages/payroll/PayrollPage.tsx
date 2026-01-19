@@ -3,6 +3,7 @@ import {HiSave} from 'react-icons/hi';
 import {ChevronDown, Plus, X, Trash2} from 'lucide-react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {payrollApi, type PayrollDeductionDto, type PayrollRecordDto} from '../../api/payroll';
+import { biServiceApi } from '../../api/bi-service';
 
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
@@ -90,23 +91,56 @@ const PayrollPage: React.FC = () => {
 
 
   useEffect(() => {
-    if (records) {
+    const fetchHoursFromBiAnalytics = async () => {
+      if (!records) return;
+
+      const employeeNamesToFetch = records
+        .filter(record => (!record.hoursWorked || record.hoursWorked === 0) && record.employeeName)
+        .map(record => record.employeeName);
+
+      let hoursMap: Record<string, number> = {};
+
+      if (employeeNamesToFetch.length > 0) {
+        try {
+          const hoursDataList = await biServiceApi.getEmployeeHours(employeeNamesToFetch, selectedYear, selectedMonth);
+          hoursMap = hoursDataList.reduce((acc, hoursData) => {
+            acc[hoursData.employeeName] = hoursData.hours;
+            return acc;
+          }, {} as Record<string, number>);
+        } catch (error) {
+          console.error('Failed to fetch hours for employees:', error);
+        }
+      }
+
       const updatedRecords = records.map(record => {
         const deductionsTotal = record.payrollDeductions?.reduce((sum, deduction) => sum + deduction.amount, 0) || 0;
+        const hoursWorked = hoursMap[record.employeeName] || record.hoursWorked || 0;
+
         return {
           ...record,
+          hoursWorked,
           deductions: deductionsTotal,
-          cashAmount: calculateCashAmount(record)
+          cashAmount: calculateCashAmount({ ...record, hoursWorked })
         };
       });
+
       setPayrollData(updatedRecords);
-    }
-  }, [records]);
+    };
+
+    fetchHoursFromBiAnalytics();
+  }, [records, selectedYear, selectedMonth]);
 
   const calculateCashAmount = (record: PayrollRecordDto): number => {
     const deductionsTotal = record.payrollDeductions?.reduce((sum, deduction) => sum + deduction.amount, 0) || 0;
     const total = (record.hoursWorked * record.hourlyRate) + record.bonus + record.sickLeavePay - deductionsTotal - record.bankTransfer;
     return Math.max(0, total);
+  };
+
+  const formatHoursToHHMM = (hours: number): string => {
+    const totalMinutes = Math.round(hours * 60);
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    return `${hrs}h:${mins.toString().padStart(2, '0')}m`;
   };
 
   const updateRecord = (index: number, field: keyof PayrollRecordDto, value: number | string) => {
@@ -334,14 +368,19 @@ const PayrollPage: React.FC = () => {
                     <td className="px-4 py-3 text-white text-center">{record.employeeName}</td>
                     <td className="px-4 py-3 text-white text-center">{record.hourlyRate}</td>
                     <td className="px-4 py-3 text-center">
-                      <Input
-                        type="number"
-                        step="0.5"
-                        value={record.hoursWorked || ''}
-                        onChange={(e) => updateRecord(index, 'hoursWorked', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
-                        className="w-24 mx-auto"
-                        style={{backgroundColor: '#343434'}}
-                      />
+                      <div className="flex flex-col items-center gap-1">
+                        <Input
+                          type="number"
+                          step="0.5"
+                          value={record.hoursWorked || ''}
+                          onChange={(e) => updateRecord(index, 'hoursWorked', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
+                          className="w-24 mx-auto"
+                          style={{backgroundColor: '#343434'}}
+                        />
+                        {record.hoursWorked > 0 && (
+                          <span className="text-xs text-gray-400">{formatHoursToHHMM(record.hoursWorked)}</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <Input

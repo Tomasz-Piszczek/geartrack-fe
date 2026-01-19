@@ -29,6 +29,7 @@ export const API_ENDPOINTS = {
   BI: {
     CONTRACTORS: '/api/contractors',
     PRODUCTS: '/api/products',
+    EMPLOYEE_HOURS: '/api/employees/hours',
   },
   ORGANIZATIONS: {
     BASE: '/api/organizations',
