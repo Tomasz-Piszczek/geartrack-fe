@@ -137,13 +137,6 @@ const PayrollPage: React.FC = () => {
     return Math.max(0, total);
   };
 
-  const formatHoursToHHMM = (hours: number): string => {
-    const totalMinutes = Math.round(hours * 60);
-    const hrs = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    return `${hrs}:${mins.toString().padStart(2, '0')}`;
-  };
-
   const parseTimeToDecimal = (timeString: string): number => {
     if (!timeString || timeString.trim() === '') return 0;
 

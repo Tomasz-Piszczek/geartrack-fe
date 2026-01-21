@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HiPlus, HiTrash } from 'react-icons/hi';
+import { HiPlus } from 'react-icons/hi';
 import { X } from 'lucide-react';
 import { useQuote, type ProductionActivity } from '../../context/QuoteContext';
 import NumberInput from '../../../../components/common/NumberInput';
