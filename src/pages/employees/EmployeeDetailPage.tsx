@@ -659,6 +659,11 @@ const EmployeeDetailPage: React.FC = () => {
                               <p className="text-surface-grey text-sm">
                                 Kategoria: {deduction.category}
                               </p>
+                              {deduction.createdAt && (
+                                <p className="text-surface-grey text-xs mt-1">
+                                  Data utworzenia: {new Date(deduction.createdAt).toLocaleDateString('pl-PL')}
+                                </p>
+                              )}
                             </div>
                             <div className="text-right">
                               <span className="text-red-400 font-bold text-lg">

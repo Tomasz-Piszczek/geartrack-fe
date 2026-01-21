@@ -55,8 +55,8 @@ export interface QuoteListDto {
 }
 
 export interface QuoteDetailsDto extends QuoteListDto {
-  materials: QuoteMaterialDto[];
-  productionActivities: QuoteProductionActivityDto[];
+  materials?: QuoteMaterialDto[];
+  productionActivities?: QuoteProductionActivityDto[];
 }
 
 export interface NextQuoteNumberDto {

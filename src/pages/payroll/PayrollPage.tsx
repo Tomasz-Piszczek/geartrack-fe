@@ -34,6 +34,7 @@ const PayrollPage: React.FC = () => {
   const [expandedDeductions, setExpandedDeductions] = useState<Record<string, boolean>>({});
   const [hoveredDeduction, setHoveredDeduction] = useState<string | null>(null);
   const [hoveredSummary, setHoveredSummary] = useState<string | null>(null);
+  const [editingHours, setEditingHours] = useState<Record<string, string>>({});
 
   const months = [
     { value: 1, label: 'Styczeń' },
@@ -140,7 +141,35 @@ const PayrollPage: React.FC = () => {
     const totalMinutes = Math.round(hours * 60);
     const hrs = Math.floor(totalMinutes / 60);
     const mins = totalMinutes % 60;
-    return `${hrs}h:${mins.toString().padStart(2, '0')}m`;
+    return `${hrs}:${mins.toString().padStart(2, '0')}`;
+  };
+
+  const parseTimeToDecimal = (timeString: string): number => {
+    if (!timeString || timeString.trim() === '') return 0;
+
+    const parts = timeString.split(':');
+
+    // If just a number without colon, treat it as hours
+    if (parts.length === 1) {
+      const hours = parseInt(parts[0], 10) || 0;
+      return hours;
+    }
+
+    // If HH:MM format
+    if (parts.length === 2) {
+      const hours = parseInt(parts[0], 10) || 0;
+      const minutes = parseInt(parts[1], 10) || 0;
+      return hours + (minutes / 60);
+    }
+
+    return 0;
+  };
+
+  const formatDecimalToTime = (decimal: number): string => {
+    const totalMinutes = Math.round(decimal * 60);
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    return `${hrs}:${mins.toString().padStart(2, '0')}`;
   };
 
   const updateRecord = (index: number, field: keyof PayrollRecordDto, value: number | string) => {
@@ -366,21 +395,41 @@ const PayrollPage: React.FC = () => {
                 {payrollData.map((record, index) => (
                   <tr key={record.employeeId} className="border-b border-lighter-border hover:bg-section-grey-light/50">
                     <td className="px-4 py-3 text-white text-center">{record.employeeName}</td>
-                    <td className="px-4 py-3 text-white text-center">{record.hourlyRate}</td>
                     <td className="px-4 py-3 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <Input
-                          type="number"
-                          step="0.5"
-                          value={record.hoursWorked || ''}
-                          onChange={(e) => updateRecord(index, 'hoursWorked', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
-                          className="w-24 mx-auto"
-                          style={{backgroundColor: '#343434'}}
-                        />
-                        {record.hoursWorked > 0 && (
-                          <span className="text-xs text-gray-400">{formatHoursToHHMM(record.hoursWorked)}</span>
-                        )}
-                      </div>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={record.hourlyRate || ''}
+                        onChange={(e) => updateRecord(index, 'hourlyRate', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
+                        className="w-24 mx-auto"
+                        style={{backgroundColor: '#343434'}}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Input
+                        type="text"
+                        value={editingHours[record.employeeId] !== undefined
+                          ? editingHours[record.employeeId]
+                          : (record.hoursWorked > 0 ? formatDecimalToTime(record.hoursWorked) : '')}
+                        onChange={(e) => {
+                          setEditingHours(prev => ({
+                            ...prev,
+                            [record.employeeId]: e.target.value
+                          }));
+                        }}
+                        onBlur={(e) => {
+                          const decimal = parseTimeToDecimal(e.target.value);
+                          updateRecord(index, 'hoursWorked', decimal);
+                          setEditingHours(prev => {
+                            const newState = {...prev};
+                            delete newState[record.employeeId];
+                            return newState;
+                          });
+                        }}
+                        placeholder="0:00"
+                        className="w-24 mx-auto"
+                        style={{backgroundColor: '#343434'}}
+                      />
                     </td>
                     <td className="px-4 py-3 text-center">
                       <Input

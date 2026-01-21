@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { HiPlus, HiTrash } from 'react-icons/hi';
+import { X } from 'lucide-react';
 import { useQuote, type ProductionActivity } from '../../context/QuoteContext';
 import NumberInput from '../../../../components/common/NumberInput';
 import Label from '../../../../components/common/Label';
@@ -115,7 +116,7 @@ const ProductionTab: React.FC = () => {
 
     return (
       <div className="space-y-6 p-4 border border-gray-600 rounded-lg bg-section-grey-dark">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between mb-4">
           <div className="flex-1 mr-4">
             <Label htmlFor={`activity-name-${activity?.id || 'new'}`}>Nazwa</Label>
             <input
@@ -127,25 +128,25 @@ const ProductionTab: React.FC = () => {
               placeholder="Nazwa czynności"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id={`ignore-min-qty-${activity?.id || 'new'}`}
-              checked={formData.ignoreMinQuantity}
-              onChange={(e) => updateField('ignoreMinQuantity', e.target.checked)}
-            />
-            <Label htmlFor={`ignore-min-qty-${activity?.id || 'new'}`} className="text-sm">
-              Ignoruj ilość minimalną
-            </Label>
-            {!isNew && state.productionActivities.length > 1 && (
-              <Button
-                size="sm"
-                color="failure"
-                onClick={() => handleRemoveActivity(activity!.id)}
-              >
-                <HiTrash className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
+          {!isNew && (
+            <Button
+              size="sm"
+              color="failure"
+              onClick={() => handleRemoveActivity(activity!.id)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id={`ignore-min-qty-${activity?.id || 'new'}`}
+            checked={formData.ignoreMinQuantity}
+            onChange={(e) => updateField('ignoreMinQuantity', e.target.checked)}
+          />
+          <Label htmlFor={`ignore-min-qty-${activity?.id || 'new'}`} className="text-sm">
+            Ignoruj ilość minimalną
+          </Label>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

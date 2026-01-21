@@ -5,6 +5,7 @@ export interface PayrollDeductionDto {
   category: string;
   note: string;
   amount: number;
+  createdAt?: string;
 }
 
 export interface PayrollRecordDto {
@@ -39,5 +40,10 @@ export const payrollApi = {
 
   deleteCategory: async (category: string): Promise<void> => {
     await apiClient.delete(`/api/payroll/categories/${encodeURIComponent(category)}`);
+  },
+
+  getEmployeeDeductions: async (employeeId: string): Promise<PayrollDeductionDto[]> => {
+    const response = await apiClient.get(`/api/payroll/employees/${employeeId}/deductions`);
+    return response.data;
   },
 };
