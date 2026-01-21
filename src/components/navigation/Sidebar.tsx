@@ -51,9 +51,9 @@ const MainSidebar: React.FC = () => {
   ];
 
   // Filter navigation items based on user role
-  // USER and SUPER_USER can only see Wyceny (Quotes) section
+  // USER and SUPER_USER cannot see Wypłaty (Payroll) and Maszyny (Machines)
   const navigationItems = isUserOrSuperUser() 
-    ? allNavigationItems.filter(item => item.path === ROUTES.QUOTES)
+    ? allNavigationItems.filter(item => item.path !== ROUTES.PAYROLL && item.path !== ROUTES.MACHINES)
     : allNavigationItems;
 
   const sidebarItemStyle = `

@@ -12,12 +12,22 @@ export const useContractors = () => {
   });
 };
 
-export const useProducts = (filterQuantity: boolean = true) => {
+export const useProducts = (filterQuantity: boolean = true, groupId?: number) => {
   return useQuery({
-    queryKey: [QUERY_KEYS.PRODUCTS, filterQuantity],
-    queryFn: () => biServiceApi.getProducts(filterQuantity),
+    queryKey: [QUERY_KEYS.PRODUCTS, filterQuantity, groupId],
+    queryFn: () => biServiceApi.getProducts(filterQuantity, groupId),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    retry: 2,
+  });
+};
+
+export const useProductGroups = () => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.PRODUCT_GROUPS],
+    queryFn: biServiceApi.getProductGroups,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 20 * 60 * 1000,
     retry: 2,
   });
 };

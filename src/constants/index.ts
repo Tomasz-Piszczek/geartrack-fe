@@ -4,7 +4,6 @@ export const BI_SERVICE_URL = import.meta.env.VITE_BI_SERVICE_URL || 'http://loc
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/api/auth/login',
-    REGISTER: '/api/auth/register',
     OAUTH2_SUCCESS: '/api/auth/oauth2/success',
     REFRESH: '/api/auth/refresh',
   },
@@ -15,21 +14,22 @@ export const API_ENDPOINTS = {
   MACHINES: {
     BASE: '/api/machines',
     BY_ID: (id: string) => `/api/machines/${id}`,
-    ASSIGN: '/api/machines/assign',
-    INSPECTIONS: '/api/machine-inspections',
+    ASSIGN: (machineId: string, employeeId: string) => `/api/machines/assign/${machineId}/${employeeId}`,
+    INSPECTIONS: (machineId: string) => `/api/machine-inspections/${machineId}`,
     MACHINE_INSPECTIONS: (machineId: string) => `/api/machine-inspections/machine/${machineId}`,
     MACHINE_INSPECTION_HISTORY: (machineId: string) => `/api/machine-inspections/machine/${machineId}/history`,
   },
   TOOLS: {
     BASE: '/api/tools',
     BY_ID: (id: string) => `/api/tools/${id}`,
-    ASSIGN: '/api/tools/assign',
-    UNASSIGN: '/api/tools/unassign',
+    ASSIGN: (toolId: string, employeeId: string) => `/api/tools/assign/${toolId}/${employeeId}`,
+    UNASSIGN: (toolId: string, employeeId: string) => `/api/tools/unassign/${toolId}/${employeeId}`,
     EMPLOYEES: (toolId: string) => `/api/tools/${toolId}/employees`,
   },
   BI: {
     CONTRACTORS: '/api/contractors',
     PRODUCTS: '/api/products',
+    EMPLOYEE_HOURS: '/api/employees/hours',
   },
   ORGANIZATIONS: {
     BASE: '/api/organizations',
@@ -53,6 +53,7 @@ export const QUERY_KEYS = {
   PAYROLL: 'payroll',
   CONTRACTORS: 'contractors',
   PRODUCTS: 'products',
+  PRODUCT_GROUPS: 'product-groups',
   ORGANIZATIONS: 'organizations',
   USERS: 'users',
 } as const;
@@ -66,7 +67,6 @@ export const STORAGE_KEYS = {
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
-  REGISTER: '/register',
   TOOLS: '/tools',
   MACHINES: '/machines',
   EMPLOYEES: '/employees',

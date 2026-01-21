@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { quotesApi } from '../../api/quotes';
+import { usersApi } from '../../api/users';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Table from '../../components/common/Table';
@@ -11,11 +12,17 @@ import { formatDate } from '../../utils/formatting';
 const QuotesListPage: React.FC = () => {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
+  const [createdBy, setCreatedBy] = useState('');
   const navigate = useNavigate();
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['quotes', page, search],
-    queryFn: () => quotesApi.getQuotes(page, 20, search || undefined),
+    queryKey: ['quotes', page, search, createdBy],
+    queryFn: () => quotesApi.getQuotes(page, 20, search || undefined, createdBy || undefined),
+  });
+
+  const { data: users } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => usersApi.getAllUsers(),
   });
 
   const handleSearch = (e: React.FormEvent) => {
@@ -39,12 +46,12 @@ const QuotesListPage: React.FC = () => {
     {
       key: 'documentNumber',
       label: 'Numer dokumentu',
-      render: (quote: any) => quote.documentNumber,
+      render: (quote: { documentNumber: string }) => quote.documentNumber,
     },
     {
       key: 'contractorName',
       label: 'Kontrahent',
-      render: (quote: any) => (
+      render: (quote: { contractorName: string; contractorCode: string }) => (
         <div>
           <div className="font-medium text-white">{quote.contractorName}</div>
           <div className="text-sm text-gray-400">{quote.contractorCode}</div>
@@ -54,7 +61,7 @@ const QuotesListPage: React.FC = () => {
     {
       key: 'productName',
       label: 'Produkt',
-      render: (quote: any) => (
+      render: (quote: { productName: string; productCode: string }) => (
         <div>
           <div className="font-medium text-white">{quote.productName}</div>
           <div className="text-sm text-gray-400">{quote.productCode}</div>
@@ -64,7 +71,7 @@ const QuotesListPage: React.FC = () => {
     {
       key: 'totalPrice',
       label: 'Koszt',
-      render: (quote: any) => (
+      render: (quote: { totalPrice?: number }) => (
         <div className="text-white">
           {quote.totalPrice ? (
             <span className="font-medium">{quote.totalPrice.toFixed(2)} PLN</span>
@@ -77,14 +84,21 @@ const QuotesListPage: React.FC = () => {
     {
       key: 'createdAt',
       label: 'Data utworzenia',
-      render: (quote: any) => (
+      render: (quote: { createdAt: string }) => (
         <span className="text-white">{formatDate(quote.createdAt)}</span>
+      ),
+    },
+    {
+      key: 'createdBy',
+      label: 'Utworzono przez',
+      render: (quote: { createdByEmail?: string }) => (
+        <span className="text-white">{quote.createdByEmail || '-'}</span>
       ),
     },
     {
       key: 'actions',
       label: 'Akcje',
-      render: (quote: any) => (
+      render: (quote: { uuid: string }) => (
         <div className="flex space-x-2">
           <Button
             color="gray"
@@ -126,6 +140,18 @@ const QuotesListPage: React.FC = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1"
           />
+          <select
+            value={createdBy}
+            onChange={(e) => setCreatedBy(e.target.value)}
+            className="p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
+          >
+            <option value="">Wszyscy użytkownicy</option>
+            {users?.map((user) => (
+              <option key={user.userId} value={user.userId}>
+                {user.email}
+              </option>
+            ))}
+          </select>
           <Button type="submit" color="gray">
             Szukaj
           </Button>

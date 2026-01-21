@@ -1,6 +1,6 @@
 import apiClient from '../lib/api-client';
 import { API_ENDPOINTS } from '../constants';
-import type { EmployeeDto, PagedResponse, PaginationParams } from '../types';
+import type { EmployeeDto, PagedResponse, PaginationParams, AssignToolDto } from '../types';
 
 export const employeesApi = {
   getAll: async (params?: PaginationParams): Promise<PagedResponse<EmployeeDto>> => {
@@ -46,8 +46,8 @@ export const employeesApi = {
     return response.data;
   },
 
-  getAssignedTools: async (id: string): Promise<any[]> => {
-    const response = await apiClient.get<any[]>(
+  getAssignedTools: async (id: string): Promise<AssignToolDto[]> => {
+    const response = await apiClient.get<AssignToolDto[]>(
       `${API_ENDPOINTS.EMPLOYEES.BY_ID(id)}/tools`
     );
     return response.data;

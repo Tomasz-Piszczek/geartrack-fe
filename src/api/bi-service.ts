@@ -7,6 +7,13 @@ export interface ContractorDto {
   name: string;
 }
 
+export interface ProductGroupDto {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+}
+
 export interface ProductDto {
   code: string;
   name: string;
@@ -14,6 +21,7 @@ export interface ProductDto {
   purchaseDate: string;
   quantity: number;
   price: number;
+  group?: ProductGroupDto;
 }
 
 export interface PageResponse<T> {
@@ -25,6 +33,13 @@ export interface PageResponse<T> {
   first: boolean;
   last: boolean;
   empty: boolean;
+}
+
+export interface EmployeeHoursDto {
+  employeeName: string;
+  year: number;
+  month: number;
+  hours: number;
 }
 
 const biServiceClient = axios.create({
@@ -81,17 +96,47 @@ biServiceClient.interceptors.response.use(
 
 export const biServiceApi = {
   getContractors: async (): Promise<ContractorDto[]> => {
-    const response = await biServiceClient.get<PageResponse<ContractorDto>>(
-      `${API_ENDPOINTS.BI.CONTRACTORS}?size=10000`
+    const response = await biServiceClient.get<ContractorDto[]>(
+      API_ENDPOINTS.BI.CONTRACTORS
     );
-    return response.data.content;
+    return response.data;
   },
 
-  getProducts: async (filterQuantity: boolean = true): Promise<ProductDto[]> => {
-    const response = await biServiceClient.get<PageResponse<ProductDto>>(
-      `${API_ENDPOINTS.BI.PRODUCTS}?size=10000&filterQuantity=${filterQuantity}`
+  getProducts: async (filterQuantity: boolean = true, groupId?: number): Promise<ProductDto[]> => {
+    const params = new URLSearchParams({
+      filterQuantity: filterQuantity.toString()
+    });
+    
+    if (groupId) {
+      params.append('groupId', groupId.toString());
+    }
+    
+    const queryString = params.toString();
+    const url = queryString ? `${API_ENDPOINTS.BI.PRODUCTS}?${queryString}` : API_ENDPOINTS.BI.PRODUCTS;
+    
+    const response = await biServiceClient.get<ProductDto[]>(url);
+    return response.data;
+  },
+
+  getProductGroups: async (): Promise<ProductGroupDto[]> => {
+    const response = await biServiceClient.get<ProductGroupDto[]>(
+      `${API_ENDPOINTS.BI.PRODUCTS}/groups`
     );
-    return response.data.content;
+    return response.data;
+  },
+
+  getEmployeeHours: async (employeeNames: string[], year: number, month: number): Promise<EmployeeHoursDto[]> => {
+    const response = await biServiceClient.post<EmployeeHoursDto[]>(
+      API_ENDPOINTS.BI.EMPLOYEE_HOURS,
+      employeeNames,
+      {
+        params: {
+          year,
+          month,
+        },
+      }
+    );
+    return response.data;
   },
 };
 

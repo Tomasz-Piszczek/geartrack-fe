@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
 import type { CreateQuoteDto, UpdateQuoteDto, QuoteDetailsDto } from '../../../api/quotes';
 
@@ -198,7 +199,7 @@ function quoteReducer(state: QuoteState, action: QuoteAction): QuoteState {
 
     case 'LOAD_QUOTE': {
       const quote = action.quote;
-      const materials = quote.materials.map(material => {
+      const materials = (quote.materials || []).map(material => {
         const marginPercent = material.purchasePrice > 0 ? (material.marginPln / material.purchasePrice) * 100 : 0;
         return {
           id: material.uuid || Date.now().toString(),
@@ -213,8 +214,8 @@ function quoteReducer(state: QuoteState, action: QuoteAction): QuoteState {
           ignoreMinQuantity: material.ignoreMinQuantity,
         };
       });
-      
-      const productionActivities = quote.productionActivities.map(activity => {
+
+      const productionActivities = (quote.productionActivities || []).map(activity => {
         const marginPercent = activity.price > 0 ? (activity.marginPln / activity.price) * 100 : 0;
         return {
           id: activity.uuid || Date.now().toString(),
@@ -413,7 +414,7 @@ export function QuoteProvider({ children, initialDocumentNumber, initialQuote, i
   };
 
   const prepareForSubmit = (): CreateQuoteDto | UpdateQuoteDto => {
-    const materials = state.materials.map(material => ({
+    const materials = (state.materials || []).map(material => ({
       uuid: material.uuid,
       name: material.name,
       purchasePrice: material.purchasePrice,
@@ -422,8 +423,8 @@ export function QuoteProvider({ children, initialDocumentNumber, initialQuote, i
       quantity: material.quantity,
       ignoreMinQuantity: material.ignoreMinQuantity,
     }));
-    
-    const productionActivities = state.productionActivities.map(activity => ({
+
+    const productionActivities = (state.productionActivities || []).map(activity => ({
       uuid: activity.uuid,
       name: activity.name,
       workTimeHours: activity.workTimeHours,
@@ -433,9 +434,9 @@ export function QuoteProvider({ children, initialDocumentNumber, initialQuote, i
       marginPln: activity.marginPln,
       ignoreMinQuantity: activity.ignoreMinQuantity,
     }));
-    
+
     const summary = getSummary();
-    
+
     const baseData = {
       documentNumber: state.documentNumber,
       contractorCode: state.contractorCode,
@@ -445,8 +446,8 @@ export function QuoteProvider({ children, initialDocumentNumber, initialQuote, i
       minQuantity: state.minQuantity,
       totalQuantity: state.totalQuantity,
       totalPrice: summary.priceForTotalQty,
-      materials,
-      productionActivities,
+      materials: materials || [],
+      productionActivities: productionActivities || [],
     };
     
     if (isEditMode && initialQuote) {

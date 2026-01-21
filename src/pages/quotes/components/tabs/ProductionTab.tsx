@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { HiPlus, HiTrash } from 'react-icons/hi';
+import { HiPlus } from 'react-icons/hi';
+import { X } from 'lucide-react';
 import { useQuote, type ProductionActivity } from '../../context/QuoteContext';
 import NumberInput from '../../../../components/common/NumberInput';
 import Label from '../../../../components/common/Label';
@@ -100,10 +101,10 @@ const ProductionTab: React.FC = () => {
     isNew: boolean = false
   ) => {
     const updateField = isNew
-      ? (field: keyof ActivityFormData, value: any) => {
+      ? (field: keyof ActivityFormData, value: string | number | boolean) => {
           setNewActivity(prev => ({ ...prev, [field]: value }));
         }
-      : (field: keyof ProductionActivity, value: any) => {
+      : (field: keyof ProductionActivity, value: string | number | boolean) => {
           if (activity) {
             handleUpdateActivity(activity.id, field, value);
           }
@@ -115,7 +116,7 @@ const ProductionTab: React.FC = () => {
 
     return (
       <div className="space-y-6 p-4 border border-gray-600 rounded-lg bg-section-grey-dark">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between mb-4">
           <div className="flex-1 mr-4">
             <Label htmlFor={`activity-name-${activity?.id || 'new'}`}>Nazwa</Label>
             <input
@@ -127,25 +128,25 @@ const ProductionTab: React.FC = () => {
               placeholder="Nazwa czynności"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id={`ignore-min-qty-${activity?.id || 'new'}`}
-              checked={formData.ignoreMinQuantity}
-              onChange={(e) => updateField('ignoreMinQuantity', e.target.checked)}
-            />
-            <Label htmlFor={`ignore-min-qty-${activity?.id || 'new'}`} className="text-sm">
-              Ignoruj ilość minimalną
-            </Label>
-            {!isNew && state.productionActivities.length > 1 && (
-              <Button
-                size="sm"
-                color="failure"
-                onClick={() => handleRemoveActivity(activity!.id)}
-              >
-                <HiTrash className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
+          {!isNew && (
+            <Button
+              size="sm"
+              color="failure"
+              onClick={() => handleRemoveActivity(activity!.id)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id={`ignore-min-qty-${activity?.id || 'new'}`}
+            checked={formData.ignoreMinQuantity}
+            onChange={(e) => updateField('ignoreMinQuantity', e.target.checked)}
+          />
+          <Label htmlFor={`ignore-min-qty-${activity?.id || 'new'}`} className="text-sm">
+            Ignoruj ilość minimalną
+          </Label>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -154,14 +155,43 @@ const ProductionTab: React.FC = () => {
             <div className="flex gap-2 items-center">
               <NumberInput
                 value={formData.workTimeHours}
-                onChange={(value) => updateField('workTimeHours', value)}
+                onChange={(value) => {
+                  if (isNew) {
+                    const newTotalHours = value + formData.workTimeMinutes / 60;
+                    const newPrice = newTotalHours > 0 ? (formData as ActivityFormData).costPerHour * newTotalHours : 0;
+                    setNewActivity(prev => ({ ...prev, workTimeHours: value, price: newPrice }));
+                  } else {
+                    const activity = state.productionActivities.find(a => a.id === (formData as ProductionActivity).id);
+                    if (activity) {
+                      const newTotalHours = value + activity.workTimeMinutes / 60;
+                      const newPrice = newTotalHours > 0 ? activity.costPerHour * newTotalHours : 0;
+                      handleUpdateActivity(activity.id, 'workTimeHours', value);
+                      handleUpdateActivity(activity.id, 'price', newPrice);
+                    }
+                  }
+                }}
                 placeholder="Godziny"
                 min={0}
               />
               <span className="text-white">:</span>
               <NumberInput
                 value={formData.workTimeMinutes}
-                onChange={(value) => updateField('workTimeMinutes', Math.max(0, Math.min(59, value)))}
+                onChange={(value) => {
+                  const clampedValue = Math.max(0, Math.min(59, value));
+                  if (isNew) {
+                    const newTotalHours = formData.workTimeHours + clampedValue / 60;
+                    const newPrice = newTotalHours > 0 ? (formData as ActivityFormData).costPerHour * newTotalHours : 0;
+                    setNewActivity(prev => ({ ...prev, workTimeMinutes: clampedValue, price: newPrice }));
+                  } else {
+                    const activity = state.productionActivities.find(a => a.id === (formData as ProductionActivity).id);
+                    if (activity) {
+                      const newTotalHours = activity.workTimeHours + clampedValue / 60;
+                      const newPrice = newTotalHours > 0 ? activity.costPerHour * newTotalHours : 0;
+                      handleUpdateActivity(activity.id, 'workTimeMinutes', clampedValue);
+                      handleUpdateActivity(activity.id, 'price', newPrice);
+                    }
+                  }
+                }}
                 placeholder="Minuty"
                 min={0}
                 max={59}
@@ -174,13 +204,7 @@ const ProductionTab: React.FC = () => {
             <NumberInput
               value={formData.price}
               onChange={(value) => {
-                if (isNew) {
-                  const totalHours = formData.workTimeHours + formData.workTimeMinutes / 60;
-                  const newCostPerHour = totalHours > 0 ? value / totalHours : 0;
-                  setNewActivity(prev => ({ ...prev, price: value, costPerHour: newCostPerHour }));
-                } else {
-                  updateField('price', value);
-                }
+                updateField('price', value);
               }}
               min={0}
               step={0.01}
@@ -210,7 +234,7 @@ const ProductionTab: React.FC = () => {
           <div>
             <Label>Marża %</Label>
             <NumberInput
-              value={(formData as any).marginPercent}
+              value={formData.marginPercent}
               onChange={(value) => updateField('marginPercent', value)}
               min={0}
               step={0.01}
@@ -240,7 +264,7 @@ const ProductionTab: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <span className="text-gray-300">Koszt/h: </span>
-                <span className="text-white font-medium">{formatPrice((formData as ProductionActivity).costPerHour + (formData as ProductionActivity).marginPln / ((formData.workTimeHours + formData.workTimeMinutes / 60) || 1))} PLN</span>
+                <span className="text-white font-medium">{formatPrice((formData as ProductionActivity).total / ((formData.workTimeHours + formData.workTimeMinutes / 60) || 1))} PLN</span>
               </div>
               <div>
                 <span className="text-gray-300">Suma: </span>

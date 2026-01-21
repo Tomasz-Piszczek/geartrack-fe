@@ -73,7 +73,7 @@ const MachinesPage: React.FC = () => {
       toast.success('Machine created successfully');
       handleCloseModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to create machine');
     },
   });
@@ -85,7 +85,7 @@ const MachinesPage: React.FC = () => {
       toast.success('Machine updated successfully');
       handleCloseModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to update machine');
     },
   });
@@ -96,31 +96,33 @@ const MachinesPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
       toast.success('Machine deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete machine');
     },
   });
 
   const assignMutation = useMutation({
-    mutationFn: machinesApi.assign,
+    mutationFn: ({ machineId, employeeId }: { machineId: string; employeeId: string }) => 
+      machinesApi.assign(machineId, employeeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
       toast.success('Machine assigned successfully');
       handleCloseAssignModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to assign machine');
     },
   });
 
   const inspectionMutation = useMutation({
-    mutationFn: machinesApi.createInspection,
+    mutationFn: ({ machineId, inspection }: { machineId: string; inspection: any }) => 
+      machinesApi.createInspection(machineId, inspection),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
       toast.success('Inspection added successfully');
       handleCloseInspectionModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to add inspection');
     },
   });
@@ -213,9 +215,11 @@ const MachinesPage: React.FC = () => {
     if (inspectingMachine) {
       inspectionMutation.mutate({
         machineId: inspectingMachine.uuid!,
-        inspectionDate: data.inspectionDate,
-        notes: data.notes || undefined,
-        status: 'SCHEDULED',
+        inspection: {
+          inspectionDate: data.inspectionDate,
+          notes: data.notes || undefined,
+          status: 'SCHEDULED',
+        }
       });
     }
   };

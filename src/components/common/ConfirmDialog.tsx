@@ -24,7 +24,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const getVariantColors = () => {
+  const getVariantColors = (): { header: string; button: 'primary' | 'gray' | 'failure' | 'info' | 'success' | 'warning' } => {
     switch (variant) {
       case 'danger':
         return {
@@ -72,7 +72,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </Button>
           <Button
             onClick={onConfirm}
-            color={colors.button as any}
+            color={colors.button}
             size="sm"
           >
             {confirmText}

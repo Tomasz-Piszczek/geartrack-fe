@@ -12,15 +12,15 @@ const apiClient = axios.create({
 
 let isRefreshing = false;
 let failedQueue: Array<{
-  resolve: (value: any) => void;
-  reject: (error: any) => void;
+  resolve: (value: string) => void;
+  reject: (error: Error) => void;
 }> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: Error | null, token: string | null = null) => {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) {
       reject(error);
-    } else {
+    } else if (token) {
       resolve(token);
     }
   });
@@ -44,7 +44,7 @@ const refreshToken = async (): Promise<string | null> => {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify({ userId, email, token }));
 
     return token;
-  } catch (error) {
+  } catch {
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
     localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER);
@@ -104,7 +104,7 @@ apiClient.interceptors.response.use(
           return Promise.reject(error);
         }
       } catch (refreshError) {
-        processQueue(refreshError, null);
+        processQueue(refreshError instanceof Error ? refreshError : new Error('Refresh failed'), null);
         window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {

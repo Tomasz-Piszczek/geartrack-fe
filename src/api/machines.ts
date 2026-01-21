@@ -1,6 +1,6 @@
 import apiClient from '../lib/api-client';
 import { API_ENDPOINTS } from '../constants';
-import type { MachineDto, AssignMachineDto, PagedResponse, PaginationParams, MachineInspectionDto, CreateMachineInspectionDto } from '../types';
+import type { MachineDto, PagedResponse, PaginationParams, MachineInspectionDto, CreateMachineInspectionDto } from '../types';
 
 export const machinesApi = {
   getAll: async (params?: PaginationParams): Promise<PagedResponse<MachineDto>> => {
@@ -42,10 +42,9 @@ export const machinesApi = {
     await apiClient.delete(API_ENDPOINTS.MACHINES.BY_ID(id));
   },
 
-  assign: async (assignment: AssignMachineDto): Promise<MachineDto> => {
+  assign: async (machineId: string, employeeId: string): Promise<MachineDto> => {
     const response = await apiClient.post<MachineDto>(
-      API_ENDPOINTS.MACHINES.ASSIGN,
-      assignment
+      API_ENDPOINTS.MACHINES.ASSIGN(machineId, employeeId)
     );
     return response.data;
   },
@@ -57,9 +56,9 @@ export const machinesApi = {
     return response.data;
   },
 
-  createInspection: async (inspection: CreateMachineInspectionDto): Promise<MachineInspectionDto> => {
+  createInspection: async (machineId: string, inspection: CreateMachineInspectionDto): Promise<MachineInspectionDto> => {
     const response = await apiClient.post<MachineInspectionDto>(
-      API_ENDPOINTS.MACHINES.INSPECTIONS,
+      API_ENDPOINTS.MACHINES.INSPECTIONS(machineId),
       inspection
     );
     return response.data;

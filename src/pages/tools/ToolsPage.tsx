@@ -51,7 +51,7 @@ const ToolsPage: React.FC = () => {
       toast.success('Tool created successfully');
       handleCloseModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to create tool');
     },
   });
@@ -63,7 +63,7 @@ const ToolsPage: React.FC = () => {
       toast.success('Tool updated successfully');
       handleCloseModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to update tool');
     },
   });
@@ -75,7 +75,7 @@ const ToolsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES] });
       toast.success('Tool deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete tool');
     },
   });
@@ -149,7 +149,6 @@ const ToolsPage: React.FC = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Narzędzia</h1>
-          <p className="text-surface-grey-dark">Zarządzaj inwentarzem narzędzi</p>
         </div>
         <Button
           color="primary"
@@ -326,8 +325,8 @@ const ToolsPage: React.FC = () => {
                 </Table.Head>
                 <Table.Body>
                   {toolAssignments.map((assignment, index) => (
-                    <Table.Row key={`${assignment.employeeId}-${assignment.toolId}-${index}`} className="hover:bg-section-grey-light">
-                      <Table.Cell className="text-white">{assignment.employeeName || `Pracownik ${assignment.employeeId}`}</Table.Cell>
+                    <Table.Row key={`${assignment.uuid}-${index}`} className="hover:bg-section-grey-light">
+                      <Table.Cell className="text-white">{assignment.employeeName || 'Unknown Employee'}</Table.Cell>
                       <Table.Cell className="text-white">
                         {assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString() : '-'}
                       </Table.Cell>
