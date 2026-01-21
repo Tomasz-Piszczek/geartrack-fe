@@ -26,12 +26,12 @@ const Button: React.FC<ButtonProps> = ({
   };
   
   const colorClasses = {
-    primary: 'bg-dark-green text-white hover:bg-dark-green/90 focus:ring-dark-green/50',
+    primary: 'bg-[#dfffa9] text-black hover:bg-[#dfffa9]/90 focus:ring-[#dfffa9]/50',
     gray: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',
     failure: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
     info: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-    success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
-    warning: 'bg-yellow-600 text-white hover:bg-yellow-700 focus:ring-yellow-500',
+    success: 'bg-green-600 text-black hover:bg-green-700 focus:ring-green-500',
+    warning: 'bg-yellow-600 text-black hover:bg-yellow-700 focus:ring-yellow-500',
   };
   
   const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed' : '';

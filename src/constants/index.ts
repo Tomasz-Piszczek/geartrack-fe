@@ -1,12 +1,11 @@
-// API endpoints
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 export const BI_SERVICE_URL = import.meta.env.VITE_BI_SERVICE_URL || 'http://localhost:8080';
 
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/api/auth/login',
-    REGISTER: '/api/auth/register',
     OAUTH2_SUCCESS: '/api/auth/oauth2/success',
+    REFRESH: '/api/auth/refresh',
   },
   EMPLOYEES: {
     BASE: '/api/employees',
@@ -15,25 +14,37 @@ export const API_ENDPOINTS = {
   MACHINES: {
     BASE: '/api/machines',
     BY_ID: (id: string) => `/api/machines/${id}`,
-    ASSIGN: '/api/machines/assign',
-    INSPECTIONS: '/api/machine-inspections',
+    ASSIGN: (machineId: string, employeeId: string) => `/api/machines/assign/${machineId}/${employeeId}`,
+    INSPECTIONS: (machineId: string) => `/api/machine-inspections/${machineId}`,
     MACHINE_INSPECTIONS: (machineId: string) => `/api/machine-inspections/machine/${machineId}`,
     MACHINE_INSPECTION_HISTORY: (machineId: string) => `/api/machine-inspections/machine/${machineId}/history`,
   },
   TOOLS: {
     BASE: '/api/tools',
     BY_ID: (id: string) => `/api/tools/${id}`,
-    ASSIGN: '/api/tools/assign',
-    UNASSIGN: '/api/tools/unassign',
+    ASSIGN: (toolId: string, employeeId: string) => `/api/tools/assign/${toolId}/${employeeId}`,
+    UNASSIGN: (toolId: string, employeeId: string) => `/api/tools/unassign/${toolId}/${employeeId}`,
     EMPLOYEES: (toolId: string) => `/api/tools/${toolId}/employees`,
   },
   BI: {
     CONTRACTORS: '/api/contractors',
     PRODUCTS: '/api/products',
+    EMPLOYEE_HOURS: '/api/employees/hours',
+  },
+  ORGANIZATIONS: {
+    BASE: '/api/organizations',
+    BY_ID: (id: string) => `/api/organizations/${id}`,
+    ASSIGN_USER: '/api/organizations/assign-user',
+    REMOVE_USER: (userEmail: string) => `/api/organizations/remove-user/${userEmail}`,
+  },
+  USERS: {
+    BASE: '/api/users',
+    BY_ID: (id: string) => `/api/users/${id}`,
+    ME: '/api/users/me',
+    UPDATE_ROLE: (id: string) => `/api/users/${id}/role`,
   },
 } as const;
 
-// Query keys for React Query
 export const QUERY_KEYS = {
   EMPLOYEES: 'employees',
   MACHINES: 'machines',
@@ -42,20 +53,20 @@ export const QUERY_KEYS = {
   PAYROLL: 'payroll',
   CONTRACTORS: 'contractors',
   PRODUCTS: 'products',
+  PRODUCT_GROUPS: 'product-groups',
+  ORGANIZATIONS: 'organizations',
+  USERS: 'users',
 } as const;
 
-// Local storage keys
 export const STORAGE_KEYS = {
   TOKEN: 'geartrack_token',
+  REFRESH_TOKEN: 'geartrack_refresh_token',
   USER: 'geartrack_user',
 } as const;
 
-// Navigation paths
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
-  REGISTER: '/register',
-  DASHBOARD: '/dashboard',
   TOOLS: '/tools',
   MACHINES: '/machines',
   EMPLOYEES: '/employees',
@@ -65,7 +76,6 @@ export const ROUTES = {
   SETTINGS: '/settings',
 } as const;
 
-// Form validation constants
 export const VALIDATION = {
   EMAIL: {
     REQUIRED: 'Email jest wymagany',
@@ -79,7 +89,6 @@ export const VALIDATION = {
   POSITIVE_NUMBER: 'Musi być liczbą dodatnią',
 } as const;
 
-// UI constants
 export const UI = {
   PAGINATION: {
     DEFAULT_PAGE_SIZE: 10,
@@ -89,7 +98,6 @@ export const UI = {
   ANIMATION_DURATION: 300,
 } as const;
 
-// Status constants
 export const STATUS = {
   LOADING: 'loading',
   SUCCESS: 'success',
@@ -97,14 +105,12 @@ export const STATUS = {
   IDLE: 'idle',
 } as const;
 
-// Tool conditions
 export const TOOL_CONDITIONS = [
   'NOWY',
   'DOBRY',
   'SŁABY',
 ] as const;
 
-// Error messages
 export const ERROR_MESSAGES = {
   NETWORK_ERROR: 'Błąd sieci. Sprawdź połączenie i spróbuj ponownie.',
   UNAUTHORIZED: 'Nie masz uprawnień do wykonania tej akcji.',
@@ -114,7 +120,6 @@ export const ERROR_MESSAGES = {
   GENERIC_ERROR: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.',
 } as const;
 
-// Success messages
 export const SUCCESS_MESSAGES = {
   CREATED: 'Element został pomyślnie utworzony',
   UPDATED: 'Element został pomyślnie zaktualizowany',
@@ -123,7 +128,6 @@ export const SUCCESS_MESSAGES = {
   UNASSIGNED: 'Cofnięcie przypisania zostało pomyślnie zakończone',
 } as const;
 
-// Theme constants
 export const THEME = {
   COLORS: {
     PRIMARY: '#7c9357',

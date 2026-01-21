@@ -47,15 +47,11 @@ const ToolsPage: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: toolsApi.create,
     onSuccess: () => {
-      console.log('DEBUG: Tool created, about to invalidate queries');
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
-      console.log('DEBUG: Queries invalidated, showing toast');
       toast.success('Tool created successfully');
-      console.log('DEBUG: Toast shown, about to close modal');
       handleCloseModal();
-      console.log('DEBUG: Modal close called');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to create tool');
     },
   });
@@ -67,7 +63,7 @@ const ToolsPage: React.FC = () => {
       toast.success('Tool updated successfully');
       handleCloseModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to update tool');
     },
   });
@@ -79,7 +75,7 @@ const ToolsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES] });
       toast.success('Tool deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete tool');
     },
   });
@@ -95,7 +91,6 @@ const ToolsPage: React.FC = () => {
   });
 
   const handleOpenModal = (tool?: ToolDto) => {
-    console.log('DEBUG: Opening modal', tool ? 'edit' : 'create');
     setEditingTool(tool || null);
     if (tool) {
       reset({
@@ -113,30 +108,23 @@ const ToolsPage: React.FC = () => {
       });
     }
     setShowModal(true);
-    console.log('DEBUG: Modal opened, showModal=true');
   };
 
   const handleCloseModal = () => {
-    console.log('DEBUG: handleCloseModal called');
     setShowModal(false);
     setEditingTool(null);
     reset();
-    console.log('DEBUG: handleCloseModal completed');
   };
 
   const onSubmit = (data: ToolFormData) => {
-    console.log('DEBUG: Form submitted, about to call mutation');
     if (editingTool) {
-      console.log('DEBUG: Calling update mutation');
       updateMutation.mutate({
         ...editingTool,
         ...data,
       });
     } else {
-      console.log('DEBUG: Calling create mutation');
       createMutation.mutate(data);
     }
-    console.log('DEBUG: Mutation called');
   };
 
   const handleDelete = (id: string) => {
@@ -161,12 +149,10 @@ const ToolsPage: React.FC = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Narzędzia</h1>
-          <p className="text-surface-grey-dark">Zarządzaj inwentarzem narzędzi</p>
         </div>
         <Button
           color="primary"
           onClick={() => handleOpenModal()}
-          className="bg-dark-green hover:bg-dark-green/80"
         >
           <HiPlus className="w-4 h-4 mr-2" />
           Dodaj narzędzie
@@ -301,12 +287,10 @@ const ToolsPage: React.FC = () => {
           <Button
             color="primary"
             onClick={() => {
-              console.log('DEBUG: Submit button clicked');
               handleSubmit(onSubmit)();
             }}
             disabled={createMutation.isPending || updateMutation.isPending}
             loading={createMutation.isPending || updateMutation.isPending}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             {editingTool ? 'Aktualizuj narzędzie' : 'Utwórz narzędzie'}
           </Button>
@@ -341,8 +325,8 @@ const ToolsPage: React.FC = () => {
                 </Table.Head>
                 <Table.Body>
                   {toolAssignments.map((assignment, index) => (
-                    <Table.Row key={`${assignment.employeeId}-${assignment.toolId}-${index}`} className="hover:bg-section-grey-light">
-                      <Table.Cell className="text-white">{assignment.employeeName || `Pracownik ${assignment.employeeId}`}</Table.Cell>
+                    <Table.Row key={`${assignment.uuid}-${index}`} className="hover:bg-section-grey-light">
+                      <Table.Cell className="text-white">{assignment.employeeName || 'Unknown Employee'}</Table.Cell>
                       <Table.Cell className="text-white">
                         {assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString() : '-'}
                       </Table.Cell>

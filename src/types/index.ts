@@ -1,21 +1,16 @@
-// Auth types
 export interface LoginDto {
   email: string;
   password: string;
 }
 
-export interface RegisterDto {
-  email: string;
-  password: string;
-}
 
 export interface AuthResponseDto {
   token: string;
+  refreshToken: string;
   email: string;
   userId: string;
 }
 
-// Employee types
 export interface EmployeeDto {
   uuid?: string;
   firstName: string;
@@ -23,7 +18,6 @@ export interface EmployeeDto {
   hourlyRate: number;
 }
 
-// Machine types
 export interface MachineDto {
   uuid?: string;
   name: string;
@@ -36,8 +30,6 @@ export interface MachineDto {
 }
 
 export interface AssignMachineDto {
-  machineId: string;
-  employeeId: string;
 }
 
 export interface MachineInspectionDto {
@@ -53,13 +45,11 @@ export interface MachineInspectionDto {
 }
 
 export interface CreateMachineInspectionDto {
-  machineId: string;
   inspectionDate: string;
   notes?: string;
   status?: string;
 }
 
-// Tool condition enum
 export const ToolCondition = {
   NEW: 'NOWY',
   GOOD: 'DOBRY', 
@@ -68,7 +58,6 @@ export const ToolCondition = {
 
 export type ToolCondition = typeof ToolCondition[keyof typeof ToolCondition];
 
-// Tool types
 export interface ToolDto {
   uuid?: string;
   name: string;
@@ -80,8 +69,6 @@ export interface ToolDto {
 
 export interface AssignToolDto {
   uuid?: string;
-  employeeId: string;
-  toolId: string;
   quantity: number;
   condition: ToolCondition;
   assignedAt?: string;
@@ -91,7 +78,6 @@ export interface AssignToolDto {
   toolFactoryNumber?: string;
 }
 
-// API response types
 export interface ApiResponse<T> {
   data: T;
   message?: string;
@@ -104,22 +90,28 @@ export interface ApiError {
   errorCode?: string;
 }
 
-// UI state types
 export interface User {
   userId: string;
   email: string;
   token: string;
+  role: 'ADMIN' | 'USER' | 'SUPER_USER';
+  organization?: {
+    id: string;
+    organizationName: string;
+  };
 }
 
 export interface AuthContextType {
   user: User | null;
-  login: (token: string, email: string, userId: string) => void;
+  login: (token: string, refreshToken: string, email: string, userId: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
+  hasRole: (role: 'ADMIN' | 'USER' | 'SUPER_USER') => boolean;
+  isAdmin: () => boolean;
+  isUserOrSuperUser: () => boolean;
 }
 
-// Form types
 export interface FormErrors {
   [key: string]: string | undefined;
 }
@@ -131,7 +123,6 @@ export interface PaginationData {
   totalPages: number;
 }
 
-// Table types
 export interface TableColumn {
   key: string;
   label: string;
@@ -145,7 +136,6 @@ export interface SortConfig {
   direction: 'asc' | 'desc';
 }
 
-// Modal types
 export interface ModalProps {
   show: boolean;
   onClose: () => void;
@@ -153,7 +143,6 @@ export interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
-// Card types
 export interface CardProps {
   title?: string;
   children: React.ReactNode;
@@ -161,7 +150,6 @@ export interface CardProps {
   hoverable?: boolean;
 }
 
-// Navigation types
 export interface NavigationItem {
   label: string;
   path: string;
@@ -169,7 +157,6 @@ export interface NavigationItem {
   children?: NavigationItem[];
 }
 
-// Pagination types
 export interface PagedResponse<T> {
   content: T[];
   page: number;
@@ -187,4 +174,35 @@ export interface PaginationParams {
   sortBy?: string;
   sortDirection?: 'asc' | 'desc';
   search?: string;
+}
+
+export interface OrganizationDto {
+  id: string;
+  organizationName: string;
+  createdAt: string;
+  updatedAt: string;
+  users?: UserDto[];
+}
+
+export interface UserDto {
+  userId: string;
+  email: string;
+  role: 'ADMIN' | 'USER' | 'SUPER_USER';
+  emailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+  organization?: {
+    id: string;
+    organizationName: string;
+  };
+}
+
+export interface CreateOrganizationRequest {
+  organizationName: string;
+}
+
+export interface AssignUserRequest {
+  userEmail: string;
+  organizationId: string;
+  role?: 'ADMIN' | 'USER' | 'SUPER_USER';
 }

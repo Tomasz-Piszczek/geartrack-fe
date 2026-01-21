@@ -16,6 +16,8 @@ interface ProductSelectProps {
   searchBy?: 'code' | 'name';
   showPrice?: boolean;
   loading?: boolean;
+  filterQuantity?: boolean;
+  groupId?: number;
 }
 
 const ProductSelect: React.FC<ProductSelectProps> = ({
@@ -31,12 +33,14 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
   searchBy = 'name',
   showPrice = true,
   loading: externalLoading = false,
+  filterQuantity = true,
+  groupId,
 }) => {
   void placeholder;
-  const { data: products = [], isLoading, error: apiError } = useProducts();
+  const { data: products = [], isLoading, error: apiError } = useProducts(filterQuantity, groupId);
   const loading = isLoading || externalLoading;
 
-  const options: AutocompleteOption[] = useMemo(() => {
+  const options: AutocompleteOption<ProductDto>[] = useMemo(() => {
     return products.map(product => {
       let label = searchBy === 'code' ? product.code : product.name;
       
@@ -51,6 +55,7 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
           parts.push(`Data zakupu ${formatDate(product.purchaseDate)}`);
         }
         
+        parts.push(`Ilość ${product.quantity} ${product.unitOfMeasure}`);
         parts.push(`Kod ${product.code}`);
         
         if (parts.length > 0) {
@@ -68,23 +73,21 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
 
   const displayValue = useMemo(() => {
     if (searchBy === 'name') {
-      // For searchBy name, check if we have a corresponding product to show "name - code" format
       const product = findProductByName(products, value);
       if (product) {
-        return `${product.name} - ${product.code}`;
+        return product.name;
       }
       return value;
     } else {
-      // For searchBy code, check if we have a corresponding product to show "name - code" format  
       const product = findProductByCode(products, value);
       if (product) {
-        return `${product.name} - ${product.code}`;
+        return product.code;
       }
       return value;
     }
   }, [value, products, searchBy]);
 
-  const handleChange = (selectedValue: string, option?: AutocompleteOption) => {
+  const handleChange = (selectedValue: string, option?: AutocompleteOption<ProductDto>) => {
     if (option?.data) {
       onCodeChange(option.data.code);
       onNameChange(option.data.name);
@@ -99,13 +102,10 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
         onNameChange(product.name);
         onProductSelect?.(product);
       } else {
-        // For custom values, only update the field being typed in
         if (searchBy === 'code') {
           onCodeChange(selectedValue);
-          // Don't clear the name field - preserve existing custom name
         } else {
           onNameChange(selectedValue);
-          // Don't clear the code field - preserve existing custom code
         }
         onProductSelect?.(null);
       }

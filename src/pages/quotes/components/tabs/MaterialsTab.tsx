@@ -3,58 +3,67 @@ import { useQuote } from '../../context/QuoteContext';
 import type { Material } from '../../context/QuoteContext';
 import Button from '../../../../components/common/Button';
 import Input from '../../../../components/common/Input';
+import NumberInput from '../../../../components/common/NumberInput';
+import Checkbox from '../../../../components/common/Checkbox';
 import Label from '../../../../components/common/Label';
 import ProductSelect from '../../../../components/common/ProductSelect';
-import { useProducts } from '../../../../hooks/useBiService';
+import { useProducts, useProductGroups } from '../../../../hooks/useBiService';
 import type { ProductDto } from '../../../../api/bi-service';
-import { formatDecimal } from '../../../../utils/formatting';
+import { formatPrice } from '../../../../utils/formatting';
 
 const MaterialsTab: React.FC = () => {
-  const { state, dispatch } = useQuote();
-  const { isLoading: productsLoading } = useProducts();
+  const { state, dispatch, getSummary } = useQuote();
+  const [selectedGroupId, setSelectedGroupId] = useState<number | undefined>(undefined);
+  const { isLoading: productsLoading } = useProducts(true, selectedGroupId);
+  const { data: productGroups, isLoading: groupsLoading } = useProductGroups();
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductDto | null>(null);
   const [selectedProductCode, setSelectedProductCode] = useState('');
   const [customProductName, setCustomProductName] = useState('');
   const [quantity, setQuantity] = useState('');
+  const [purchasePrice, setPurchasePrice] = useState('');
   const [marginPercent, setMarginPercent] = useState('');
+  const [marginPln, setMarginPln] = useState('');
   const [pricePerUnit, setPricePerUnit] = useState('');
+  const [ignoreMinQuantity, setIgnoreMinQuantity] = useState(false);
 
   const handleAddMaterial = () => {
     const requestedQuantity = parseInt(quantity) || 1;
     let materialName: string;
-    let materialPrice: number;
+    let materialPurchasePrice: number;
     let maxQuantity: number;
 
     if (selectedProduct) {
       materialName = selectedProduct.name;
-      materialPrice = selectedProduct.price;
+      materialPurchasePrice = selectedProduct.price;
       maxQuantity = selectedProduct.quantity;
       
       if (requestedQuantity > maxQuantity) {
-        alert(`Maximum available quantity is ${maxQuantity}`);
+        alert(`Maksymalna dostępna ilośc to ${maxQuantity}`);
         return;
       }
     } else {
       materialName = customProductName || selectedProductCode || 'Custom Product';
-      materialPrice = parseFloat(pricePerUnit) || 0;
+      materialPurchasePrice = parseFloat(purchasePrice) || 0;
     }
 
+    const finalPurchasePrice = parseFloat(purchasePrice) || materialPurchasePrice;
     const finalPricePerUnit = parseFloat(pricePerUnit) || 0;
     const marginPercentValue = parseFloat(marginPercent) || 0;
-    const calculatedMarginPln = materialPrice > 0 && marginPercentValue > 0 
-      ? (materialPrice * marginPercentValue) / 100 
-      : finalPricePerUnit - materialPrice;
+    const calculatedMarginPln = finalPurchasePrice > 0 && marginPercentValue > 0 
+      ? (finalPurchasePrice * marginPercentValue) / 100 
+      : finalPricePerUnit - finalPurchasePrice;
 
     const newMaterial: Material = {
       id: Date.now().toString(),
       name: materialName,
-      purchasePrice: materialPrice,
-      marginPercent: materialPrice > 0 ? ((finalPricePerUnit - materialPrice) / materialPrice) * 100 : marginPercentValue,
+      purchasePrice: finalPurchasePrice,
+      marginPercent: finalPurchasePrice > 0 ? ((finalPricePerUnit - finalPurchasePrice) / finalPurchasePrice) * 100 : marginPercentValue,
       marginPln: calculatedMarginPln,
       pricePerUnit: finalPricePerUnit,
       totalPrice: finalPricePerUnit * requestedQuantity,
       quantity: requestedQuantity,
+      ignoreMinQuantity,
     };
 
     dispatch({ type: 'ADD_MATERIAL', material: newMaterial });
@@ -64,11 +73,14 @@ const MaterialsTab: React.FC = () => {
     setSelectedProductCode('');
     setCustomProductName('');
     setQuantity('');
+    setPurchasePrice('');
     setMarginPercent('');
+    setMarginPln('');
     setPricePerUnit('');
+    setIgnoreMinQuantity(false);
   };
 
-  const handleUpdateMaterial = (materialId: string, field: string, value: number) => {
+  const handleUpdateMaterial = (materialId: string, field: string, value: number | boolean) => {
     dispatch({
       type: 'UPDATE_MATERIAL',
       materialId,
@@ -76,33 +88,62 @@ const MaterialsTab: React.FC = () => {
     });
   };
 
+  const handleMarginPlnChange = (materialId: string, marginPln: number) => {
+    const material = state.materials.find(m => m.id === materialId);
+    if (!material) return;
+
+    const marginPercent = material.purchasePrice > 0 ? (marginPln / material.purchasePrice) * 100 : 0;
+    const newPricePerUnit = material.purchasePrice + marginPln;
+    dispatch({
+      type: 'UPDATE_MATERIAL',
+      materialId,
+      updates: { marginPln, marginPercent, pricePerUnit: newPricePerUnit },
+    });
+  };
+
   const handleRemoveMaterial = (materialId: string) => {
-    dispatch({ type: 'REMOVE_MATERIAL', materialId });
+    const material = state.materials.find(m => m.id === materialId);
+    if (material && window.confirm(`Czy na pewno chcesz usunąć surowiec "${material.name}"?`)) {
+      dispatch({ type: 'REMOVE_MATERIAL', materialId });
+    }
   };
 
   const handleMarginPercentChange = (value: string) => {
     setMarginPercent(value);
     
-    if (selectedProduct) {
-      const basePrice = selectedProduct.price;
-      if (value && basePrice > 0) {
-        const margin = parseFloat(value) || 0;
-        const calculatedPricePerUnit = basePrice * (1 + margin / 100);
-        setPricePerUnit(formatDecimal(calculatedPricePerUnit));
-      }
+    const currentPurchasePrice = parseFloat(purchasePrice) || (selectedProduct ? selectedProduct.price : 0);
+    if (value && currentPurchasePrice > 0) {
+      const margin = parseFloat(value) || 0;
+      const calculatedMarginPln = (currentPurchasePrice * margin) / 100;
+      const calculatedPricePerUnit = currentPurchasePrice + calculatedMarginPln;
+      setMarginPln(calculatedMarginPln.toFixed(2));
+      setPricePerUnit(calculatedPricePerUnit.toFixed(2));
+    }
+  };
+
+  const handleAddFormMarginPlnChange = (value: string) => {
+    setMarginPln(value);
+    
+    const currentPurchasePrice = parseFloat(purchasePrice) || (selectedProduct ? selectedProduct.price : 0);
+    if (value && currentPurchasePrice > 0) {
+      const marginPlnValue = parseFloat(value) || 0;
+      const calculatedMarginPercent = (marginPlnValue / currentPurchasePrice) * 100;
+      const calculatedPricePerUnit = currentPurchasePrice + marginPlnValue;
+      setMarginPercent(calculatedMarginPercent.toFixed(2));
+      setPricePerUnit(calculatedPricePerUnit.toFixed(2));
     }
   };
 
   const handlePricePerUnitChange = (value: string) => {
     setPricePerUnit(value);
     
-    if (selectedProduct) {
-      const basePrice = selectedProduct.price;
-      if (value && basePrice > 0) {
-        const pricePerUnitValue = parseFloat(value) || 0;
-        const calculatedMargin = ((pricePerUnitValue - basePrice) / basePrice) * 100;
-        setMarginPercent(formatDecimal(calculatedMargin));
-      }
+    const currentPurchasePrice = parseFloat(purchasePrice) || (selectedProduct ? selectedProduct.price : 0);
+    if (value && currentPurchasePrice > 0) {
+      const pricePerUnitValue = parseFloat(value) || 0;
+      const calculatedMarginPln = pricePerUnitValue - currentPurchasePrice;
+      const calculatedMarginPercent = (calculatedMarginPln / currentPurchasePrice) * 100;
+      setMarginPln(calculatedMarginPln.toFixed(2));
+      setMarginPercent(calculatedMarginPercent.toFixed(2));
     }
   };
 
@@ -110,10 +151,15 @@ const MaterialsTab: React.FC = () => {
     setSelectedProduct(product);
     
     if (product) {
+      setPurchasePrice(product.price.toString());
       setPricePerUnit(product.price.toString());
+      setMarginPercent('0');
+      setMarginPln('0');
     } else {
       setPricePerUnit('');
       setMarginPercent('');
+      setMarginPln('');
+      setPurchasePrice('');
     }
   };
 
@@ -131,6 +177,33 @@ const MaterialsTab: React.FC = () => {
           <h5 className="text-white font-medium">Dodaj nowy surowiec</h5>
           
           <div>
+            <Label htmlFor="productGroupSelect">Grupa produktów</Label>
+            <select
+              id="productGroupSelect"
+              value={selectedGroupId || ''}
+              onChange={(e) => {
+                setSelectedGroupId(e.target.value ? parseInt(e.target.value) : undefined);
+                setSelectedProduct(null);
+                setSelectedProductCode('');
+                setCustomProductName('');
+                setPurchasePrice('');
+                setMarginPercent('');
+                setMarginPln('');
+                setPricePerUnit('');
+              }}
+              className="block w-full px-3 py-2 border border-gray-600 bg-background-dark text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={groupsLoading}
+            >
+              <option value="">Wszystkie grupy</option>
+              {productGroups?.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name} ({group.code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <Label htmlFor="productSelect">Wybierz produkt</Label>
             <ProductSelect
               value={customProductName}
@@ -140,11 +213,23 @@ const MaterialsTab: React.FC = () => {
               searchBy="name"
               showPrice={true}
               loading={productsLoading}
+              filterQuantity={true}
+              groupId={selectedGroupId}
             />
           </div>
 
+          <div className="flex items-center gap-2 mb-4 p-2 rounded">
+            <Checkbox
+              id="ignoreMaterialMinQty"
+              checked={ignoreMinQuantity}
+              onChange={(e) => setIgnoreMinQuantity(e.target.checked)}
+            />
+            <Label htmlFor="ignoreMaterialMinQty" className="text-sm">
+              Ignoruj ilość minimalną
+            </Label>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <Label htmlFor="quantity">
                 Ilość
@@ -162,23 +247,52 @@ const MaterialsTab: React.FC = () => {
               />
             </div>
             <div>
+              <Label htmlFor="purchasePrice">Cena zakupu</Label>
+              <NumberInput
+                value={parseFloat(purchasePrice) || 0}
+                onChange={(value) => {
+                  setPurchasePrice(value.toString());
+                  const currentMargin = parseFloat(marginPercent) || 0;
+                  const currentMarginPln = parseFloat(marginPln) || 0;
+                  if (currentMargin > 0) {
+                    const calculatedMarginPln = (value * currentMargin) / 100;
+                    const calculatedPricePerUnit = value + calculatedMarginPln;
+                    setMarginPln(calculatedMarginPln.toFixed(2));
+                    setPricePerUnit(calculatedPricePerUnit.toFixed(2));
+                  } else if (currentMarginPln > 0) {
+                    const calculatedPricePerUnit = value + currentMarginPln;
+                    const calculatedMarginPercent = (currentMarginPln / value) * 100;
+                    setMarginPercent(calculatedMarginPercent.toFixed(2));
+                    setPricePerUnit(calculatedPricePerUnit.toFixed(2));
+                  }
+                }}
+                step={0.01}
+              />
+            </div>
+            <div>
               <Label htmlFor="margin">Marża %</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={marginPercent}
-                onChange={(e) => handleMarginPercentChange(e.target.value)}
+              <NumberInput
+                value={parseFloat(marginPercent) || 0}
+                onChange={(value) => handleMarginPercentChange(value.toString())}
+                step={0.01}
+              />
+            </div>
+            <div>
+              <Label htmlFor="marginPln">Marża PLN</Label>
+              <NumberInput
+                value={parseFloat(marginPln) || 0}
+                onChange={(value) => handleAddFormMarginPlnChange(value.toString())}
+                step={0.01}
               />
             </div>
             <div>
               <Label htmlFor="pricePerUnit">
                 Cena za {selectedProduct ? selectedProduct.unitOfMeasure : 'szt'}
               </Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={pricePerUnit}
-                onChange={(e) => handlePricePerUnitChange(e.target.value)}
+              <NumberInput
+                value={parseFloat(pricePerUnit) || 0}
+                onChange={(value) => handlePricePerUnitChange(value.toString())}
+                step={0.01}
               />
             </div>
           </div>
@@ -212,6 +326,7 @@ const MaterialsTab: React.FC = () => {
                 <th className="px-4 py-3 text-left text-white">Marża PLN</th>
                 <th className="px-4 py-3 text-left text-white">Cena/Szt</th>
                 <th className="px-4 py-3 text-left text-white">Cena suma</th>
+                <th className="px-4 py-3 text-left text-white">Ignoruj ilość min.</th>
                 <th className="px-4 py-3 text-left text-white">Akcje</th>
               </tr>
             </thead>
@@ -219,44 +334,52 @@ const MaterialsTab: React.FC = () => {
               {state.materials.map((material) => (
                 <tr key={material.id} className="border-b border-gray-700">
                   <td className="px-4 py-3 text-white">{material.name}</td>
-                  <td className="px-4 py-3 text-white">{material.purchasePrice.toFixed(2)} PLN</td>
                   <td className="px-4 py-3">
-                    <Input
-                      type="number"
-                      value={material.quantity}
-                      onChange={(e) => {
-                        const value = e.target.value === '' ? '' : parseInt(e.target.value) || '';
-                        handleUpdateMaterial(material.id, 'quantity', value === '' ? 0 : value);
-                      }}
-                      className="w-20"
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={formatDecimal(material.marginPercent)}
-                      onChange={(e) => {
-                        const value = e.target.value === '' ? '' : parseFloat(e.target.value) || '';
-                        handleUpdateMaterial(material.id, 'marginPercent', value === '' ? 0 : value);
-                      }}
-                      className="w-20"
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-white">{material.marginPln.toFixed(2)} PLN</td>
-                  <td className="px-4 py-3">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={formatDecimal(material.pricePerUnit)}
-                      onChange={(e) => {
-                        const value = e.target.value === '' ? '' : parseFloat(e.target.value) || '';
-                        handleUpdateMaterial(material.id, 'pricePerUnit', value === '' ? 0 : value);
-                      }}
+                    <NumberInput
+                      value={material.purchasePrice}
+                      onChange={(value) => handleUpdateMaterial(material.id, 'purchasePrice', value)}
+                      step={0.01}
                       className="w-24"
                     />
                   </td>
-                  <td className="px-4 py-3 text-white">{material.totalPrice.toFixed(2)} PLN</td>
+                  <td className="px-4 py-3">
+                    <NumberInput
+                      value={material.quantity}
+                      onChange={(value) => handleUpdateMaterial(material.id, 'quantity', value)}
+                      className="w-20"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <NumberInput
+                      value={material.marginPercent}
+                      onChange={(value) => handleUpdateMaterial(material.id, 'marginPercent', value)}
+                      step={0.01}
+                      className="w-20"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <NumberInput
+                      value={material.marginPln}
+                      onChange={(value) => handleMarginPlnChange(material.id, value)}
+                      step={0.01}
+                      className="w-24"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <NumberInput
+                      value={material.pricePerUnit}
+                      onChange={(value) => handleUpdateMaterial(material.id, 'pricePerUnit', value)}
+                      step={0.01}
+                      className="w-24"
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-white">{formatPrice(material.totalPrice)} PLN</td>
+                  <td className="px-4 py-3">
+                    <Checkbox
+                      checked={material.ignoreMinQuantity}
+                      onChange={(e) => handleUpdateMaterial(material.id, 'ignoreMinQuantity', e.target.checked)}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <Button
                       onClick={() => handleRemoveMaterial(material.id)}
@@ -282,14 +405,18 @@ const MaterialsTab: React.FC = () => {
       {state.materials.length > 0 && (
         <div className="border-t pt-4">
           <h4 className="text-lg font-medium text-white mb-4">Koszt Surowców</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <span className="text-gray-300">Zakup surowców: </span>
+              <span className="text-white font-medium">{formatPrice(getSummary().totalMaterialPurchase)} PLN</span>
+            </div>
             <div>
               <span className="text-gray-300">Marża: </span>
-              <span className="text-white font-medium">{state.materials.reduce((sum, m) => sum + (m.marginPln * m.quantity), 0).toFixed(2)} PLN</span>
+              <span className="text-white font-medium">{formatPrice(getSummary().totalMaterialMargin)} PLN</span>
             </div>
             <div>
               <span className="text-gray-300">Suma: </span>
-              <span className="text-white font-medium">{state.materials.reduce((sum, m) => sum + m.totalPrice, 0).toFixed(2)} PLN</span>
+              <span className="text-white font-medium">{formatPrice(getSummary().totalMaterialValue)} PLN</span>
             </div>
           </div>
         </div>

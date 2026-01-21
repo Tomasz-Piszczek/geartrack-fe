@@ -24,7 +24,6 @@ class ToastManager {
     this.toasts.push(toast);
     this.notifyListeners();
 
-    // Auto remove toast after duration
     setTimeout(() => {
       this.remove(toast.id);
     }, toast.duration);

@@ -73,7 +73,7 @@ const MachinesPage: React.FC = () => {
       toast.success('Machine created successfully');
       handleCloseModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to create machine');
     },
   });
@@ -85,7 +85,7 @@ const MachinesPage: React.FC = () => {
       toast.success('Machine updated successfully');
       handleCloseModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to update machine');
     },
   });
@@ -96,31 +96,33 @@ const MachinesPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
       toast.success('Machine deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete machine');
     },
   });
 
   const assignMutation = useMutation({
-    mutationFn: machinesApi.assign,
+    mutationFn: ({ machineId, employeeId }: { machineId: string; employeeId: string }) => 
+      machinesApi.assign(machineId, employeeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
       toast.success('Machine assigned successfully');
       handleCloseAssignModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to assign machine');
     },
   });
 
   const inspectionMutation = useMutation({
-    mutationFn: machinesApi.createInspection,
+    mutationFn: ({ machineId, inspection }: { machineId: string; inspection: any }) => 
+      machinesApi.createInspection(machineId, inspection),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
       toast.success('Inspection added successfully');
       handleCloseInspectionModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to add inspection');
     },
   });
@@ -167,7 +169,7 @@ const MachinesPage: React.FC = () => {
   const handleOpenInspectionModal = (machine: MachineDto) => {
     setInspectingMachine(machine);
     resetInspection({
-      inspectionDate: new Date().toISOString().split('T')[0], // Today's date
+      inspectionDate: new Date().toISOString().split('T')[0],
       notes: '',
     });
     setShowInspectionModal(true);
@@ -213,9 +215,11 @@ const MachinesPage: React.FC = () => {
     if (inspectingMachine) {
       inspectionMutation.mutate({
         machineId: inspectingMachine.uuid!,
-        inspectionDate: data.inspectionDate,
-        notes: data.notes || undefined,
-        status: 'SCHEDULED',
+        inspection: {
+          inspectionDate: data.inspectionDate,
+          notes: data.notes || undefined,
+          status: 'SCHEDULED',
+        }
       });
     }
   };
@@ -237,7 +241,6 @@ const MachinesPage: React.FC = () => {
         <Button
           color="primary"
           onClick={() => handleOpenModal()}
-          className="bg-dark-green hover:bg-dark-green/80"
         >
           <HiPlus className="w-4 h-4 mr-2" />
           Dodaj maszynę
@@ -298,7 +301,7 @@ const MachinesPage: React.FC = () => {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        color="success"
+                        color="primary"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleOpenInspectionModal(machine);
@@ -309,7 +312,7 @@ const MachinesPage: React.FC = () => {
                       </Button>
                       <Button
                         size="sm"
-                        color="info"
+                        color="primary"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleOpenAssignModal(machine);
@@ -380,7 +383,6 @@ const MachinesPage: React.FC = () => {
             color="primary"
             onClick={handleSubmit(onSubmit)}
             disabled={createMutation.isPending || updateMutation.isPending}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             {createMutation.isPending || updateMutation.isPending ? (
               <div className="flex items-center gap-2">
@@ -425,7 +427,6 @@ const MachinesPage: React.FC = () => {
             color="primary"
             onClick={handleAssign}
             disabled={assignMutation.isPending || !selectedEmployeeId}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             {assignMutation.isPending ? (
               <div className="flex items-center gap-2">
@@ -482,7 +483,6 @@ const MachinesPage: React.FC = () => {
             color="primary"
             onClick={handleInspectionSubmit(onInspectionSubmit)}
             disabled={inspectionMutation.isPending}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             {inspectionMutation.isPending ? (
               <div className="flex items-center gap-2">

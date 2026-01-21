@@ -30,18 +30,16 @@ export const toolsApi = {
     await apiClient.delete(API_ENDPOINTS.TOOLS.BY_ID(id));
   },
 
-  assign: async (assignment: AssignToolDto): Promise<AssignToolDto> => {
+  assign: async (toolId: string, employeeId: string, assignment: AssignToolDto): Promise<AssignToolDto> => {
     const response = await apiClient.post<AssignToolDto>(
-      API_ENDPOINTS.TOOLS.ASSIGN,
+      API_ENDPOINTS.TOOLS.ASSIGN(toolId, employeeId),
       assignment
     );
     return response.data;
   },
 
-  unassign: async (assignment: AssignToolDto): Promise<void> => {
-    await apiClient.delete(API_ENDPOINTS.TOOLS.UNASSIGN, {
-      data: assignment,
-    });
+  unassign: async (toolId: string, employeeId: string): Promise<void> => {
+    await apiClient.delete(API_ENDPOINTS.TOOLS.UNASSIGN(toolId, employeeId));
   },
 
   getEmployeesAssignedToTool: async (toolId: string): Promise<AssignToolDto[]> => {

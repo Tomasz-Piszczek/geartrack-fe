@@ -1,6 +1,6 @@
 import apiClient from '../lib/api-client';
 import { API_ENDPOINTS } from '../constants';
-import type { MachineDto, AssignMachineDto, PagedResponse, PaginationParams, MachineInspectionDto, CreateMachineInspectionDto } from '../types';
+import type { MachineDto, PagedResponse, PaginationParams, MachineInspectionDto, CreateMachineInspectionDto } from '../types';
 
 export const machinesApi = {
   getAll: async (params?: PaginationParams): Promise<PagedResponse<MachineDto>> => {
@@ -16,7 +16,6 @@ export const machinesApi = {
   },
 
   getAllNonPaginated: async (): Promise<MachineDto[]> => {
-    // Use paginated endpoint with large page size to get all records
     const response = await apiClient.get<PagedResponse<MachineDto>>(
       `${API_ENDPOINTS.MACHINES.BASE}?size=1000`
     );
@@ -43,15 +42,13 @@ export const machinesApi = {
     await apiClient.delete(API_ENDPOINTS.MACHINES.BY_ID(id));
   },
 
-  assign: async (assignment: AssignMachineDto): Promise<MachineDto> => {
+  assign: async (machineId: string, employeeId: string): Promise<MachineDto> => {
     const response = await apiClient.post<MachineDto>(
-      API_ENDPOINTS.MACHINES.ASSIGN,
-      assignment
+      API_ENDPOINTS.MACHINES.ASSIGN(machineId, employeeId)
     );
     return response.data;
   },
 
-  // Inspection methods
   getMachineInspectionHistory: async (machineId: string): Promise<MachineInspectionDto[]> => {
     const response = await apiClient.get<MachineInspectionDto[]>(
       API_ENDPOINTS.MACHINES.MACHINE_INSPECTION_HISTORY(machineId)
@@ -59,9 +56,9 @@ export const machinesApi = {
     return response.data;
   },
 
-  createInspection: async (inspection: CreateMachineInspectionDto): Promise<MachineInspectionDto> => {
+  createInspection: async (machineId: string, inspection: CreateMachineInspectionDto): Promise<MachineInspectionDto> => {
     const response = await apiClient.post<MachineInspectionDto>(
-      API_ENDPOINTS.MACHINES.INSPECTIONS,
+      API_ENDPOINTS.MACHINES.INSPECTIONS(machineId),
       inspection
     );
     return response.data;

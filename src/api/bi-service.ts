@@ -7,6 +7,13 @@ export interface ContractorDto {
   name: string;
 }
 
+export interface ProductGroupDto {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+}
+
 export interface ProductDto {
   code: string;
   name: string;
@@ -14,6 +21,7 @@ export interface ProductDto {
   purchaseDate: string;
   quantity: number;
   price: number;
+  group?: ProductGroupDto;
 }
 
 export interface PageResponse<T> {
@@ -27,7 +35,13 @@ export interface PageResponse<T> {
   empty: boolean;
 }
 
-// Create axios instance for BI service
+export interface EmployeeHoursDto {
+  employeeName: string;
+  year: number;
+  month: number;
+  hours: number;
+}
+
 const biServiceClient = axios.create({
   baseURL: BI_SERVICE_URL,
   timeout: 10000,
@@ -36,7 +50,6 @@ const biServiceClient = axios.create({
   },
 });
 
-// Request interceptor to add auth token
 biServiceClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
@@ -50,7 +63,6 @@ biServiceClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
 biServiceClient.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
@@ -62,7 +74,6 @@ biServiceClient.interceptors.response.use(
     };
 
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
       localStorage.removeItem(STORAGE_KEYS.TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER);
       window.location.href = '/login';
@@ -83,24 +94,49 @@ biServiceClient.interceptors.response.use(
   }
 );
 
-// API functions
 export const biServiceApi = {
-  // Get all contractors (without pagination for client-side filtering)
   getContractors: async (): Promise<ContractorDto[]> => {
-    // Fetch with large page size to get all contractors
-    const response = await biServiceClient.get<PageResponse<ContractorDto>>(
-      `${API_ENDPOINTS.BI.CONTRACTORS}?size=10000`
+    const response = await biServiceClient.get<ContractorDto[]>(
+      API_ENDPOINTS.BI.CONTRACTORS
     );
-    return response.data.content;
+    return response.data;
   },
 
-  // Get all products (without pagination for client-side filtering)
-  getProducts: async (): Promise<ProductDto[]> => {
-    // Fetch with large page size to get all products
-    const response = await biServiceClient.get<PageResponse<ProductDto>>(
-      `${API_ENDPOINTS.BI.PRODUCTS}?size=10000`
+  getProducts: async (filterQuantity: boolean = true, groupId?: number): Promise<ProductDto[]> => {
+    const params = new URLSearchParams({
+      filterQuantity: filterQuantity.toString()
+    });
+    
+    if (groupId) {
+      params.append('groupId', groupId.toString());
+    }
+    
+    const queryString = params.toString();
+    const url = queryString ? `${API_ENDPOINTS.BI.PRODUCTS}?${queryString}` : API_ENDPOINTS.BI.PRODUCTS;
+    
+    const response = await biServiceClient.get<ProductDto[]>(url);
+    return response.data;
+  },
+
+  getProductGroups: async (): Promise<ProductGroupDto[]> => {
+    const response = await biServiceClient.get<ProductGroupDto[]>(
+      `${API_ENDPOINTS.BI.PRODUCTS}/groups`
     );
-    return response.data.content;
+    return response.data;
+  },
+
+  getEmployeeHours: async (employeeNames: string[], year: number, month: number): Promise<EmployeeHoursDto[]> => {
+    const response = await biServiceClient.post<EmployeeHoursDto[]>(
+      API_ENDPOINTS.BI.EMPLOYEE_HOURS,
+      employeeNames,
+      {
+        params: {
+          year,
+          month,
+        },
+      }
+    );
+    return response.data;
   },
 };
 

@@ -8,8 +8,10 @@ import {
   HiCurrencyDollar, 
   HiCog, 
   HiSearch,
-  HiPrinter
+  HiPrinter,
+  HiPencil
 } from 'react-icons/hi';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
@@ -18,9 +20,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { employeesApi } from '../../api/employees';
 import { toolsApi } from '../../api/tools';
-import { QUERY_KEYS, ROUTES } from '../../constants';
+import { payrollApi, type PayrollDeductionDto } from '../../api/payroll';
+import { QUERY_KEYS, ROUTES, VALIDATION } from '../../constants';
 import { ToolCondition } from '../../types';
 import { toast } from '../../lib/toast';
+import { useAuth } from '../../context/AuthContext';
 
 interface AssignToolFormData {
   toolId: string;
@@ -33,13 +37,22 @@ interface RemoveToolFormData {
   quantity: number;
 }
 
+interface EmployeeFormData {
+  firstName: string;
+  lastName: string;
+  hourlyRate: number;
+}
+
 const EmployeeDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [showAssignToolModal, setShowAssignToolModal] = useState(false);
   const [showRemoveToolModal, setShowRemoveToolModal] = useState(false);
-  const [selectedToolForRemoval, setSelectedToolForRemoval] = useState<any>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedToolForRemoval, setSelectedToolForRemoval] = useState<typeof employeeTools[0] | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const queryClient = useQueryClient();
 
   const { data: employee, isLoading: isLoadingEmployee } = useQuery({
@@ -60,6 +73,12 @@ const EmployeeDetailPage: React.FC = () => {
     enabled: !!id,
   });
 
+  const { data: employeeDeductions = [], isLoading: isLoadingDeductions } = useQuery({
+    queryKey: ['payroll-deductions', id],
+    queryFn: () => payrollApi.getEmployeeDeductions(id!),
+    enabled: !!id && isAdmin(),
+  });
+
   const {
     register: registerTool,
     handleSubmit: handleSubmitTool,
@@ -74,8 +93,16 @@ const EmployeeDetailPage: React.FC = () => {
     reset: resetRemove,
   } = useForm<RemoveToolFormData>();
 
+  const {
+    register: registerEdit,
+    handleSubmit: handleSubmitEdit,
+    formState: { errors: editErrors },
+    reset: resetEdit,
+  } = useForm<EmployeeFormData>();
+
   const assignToolMutation = useMutation({
-    mutationFn: toolsApi.assign,
+    mutationFn: ({ toolId, employeeId, assignment }: { toolId: string; employeeId: string; assignment: any }) => 
+      toolsApi.assign(toolId, employeeId, assignment),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
@@ -83,13 +110,14 @@ const EmployeeDetailPage: React.FC = () => {
       toast.success('Tool assigned successfully');
       handleCloseAssignToolModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to assign tool');
     },
   });
 
   const unassignToolMutation = useMutation({
-    mutationFn: toolsApi.unassign,
+    mutationFn: ({ toolId, employeeId }: { toolId: string; employeeId: string }) => 
+      toolsApi.unassign(toolId, employeeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
@@ -97,8 +125,33 @@ const EmployeeDetailPage: React.FC = () => {
       toast.success('Tool removed successfully');
       handleCloseRemoveToolModal();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to remove tool');
+    },
+  });
+
+  const updateEmployeeMutation = useMutation({
+    mutationFn: employeesApi.update,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, id] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES] });
+      toast.success('Employee updated successfully');
+      handleCloseEditModal();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update employee');
+    },
+  });
+
+  const deleteEmployeeMutation = useMutation({
+    mutationFn: employeesApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES] });
+      toast.success('Employee deleted successfully');
+      navigate(ROUTES.EMPLOYEES);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete employee');
     },
   });
 
@@ -123,7 +176,7 @@ const EmployeeDetailPage: React.FC = () => {
     resetTool();
   };
 
-  const handleOpenRemoveToolModal = (toolAssignment: any) => {
+  const handleOpenRemoveToolModal = (toolAssignment: typeof employeeTools[0]) => {
     setSelectedToolForRemoval(toolAssignment);
     resetRemove({
       quantity: 1,
@@ -137,26 +190,57 @@ const EmployeeDetailPage: React.FC = () => {
     resetRemove();
   };
 
+  const handleOpenEditModal = () => {
+    if (employee) {
+      resetEdit({
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        hourlyRate: employee.hourlyRate,
+      });
+    }
+    setShowEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    resetEdit();
+  };
+
   const onSubmitToolAssignment = (data: AssignToolFormData) => {
     if (employee) {
       assignToolMutation.mutate({
-        employeeId: employee.uuid!,
         toolId: data.toolId,
-        quantity: data.quantity,
-        condition: data.condition,
-        assignedAt: data.assignedAt,
+        employeeId: employee.uuid!,
+        assignment: {
+          quantity: data.quantity,
+          condition: data.condition,
+          assignedAt: data.assignedAt,
+        }
       });
     }
   };
 
-  const onSubmitToolRemoval = (data: RemoveToolFormData) => {
+  const onSubmitToolRemoval = (_data: RemoveToolFormData) => {
     if (selectedToolForRemoval) {
       unassignToolMutation.mutate({
+        toolId: selectedToolForRemoval.uuid!,
         employeeId: employee!.uuid!,
-        toolId: selectedToolForRemoval.toolId,
-        quantity: data.quantity,
-        condition: selectedToolForRemoval.condition,
       });
+    }
+  };
+
+  const onSubmitEdit = (data: EmployeeFormData) => {
+    if (employee) {
+      updateEmployeeMutation.mutate({
+        ...employee,
+        ...data,
+      });
+    }
+  };
+
+  const handleDeleteEmployee = () => {
+    if (employee && window.confirm(`Czy na pewno chcesz usunąć pracownika ${employee.firstName} ${employee.lastName}?`)) {
+      deleteEmployeeMutation.mutate(employee.uuid!);
     }
   };
 
@@ -166,6 +250,30 @@ const EmployeeDetailPage: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
+  };
+
+  const groupDeductionsByCategory = () => {
+    const grouped = employeeDeductions.reduce((acc: Record<string, PayrollDeductionDto[]>, deduction) => {
+      const category = deduction.category;
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(deduction);
+      return acc;
+    }, {});
+    
+    return grouped;
+  };
+
+  const calculateTotalDeductions = () => {
+    return employeeDeductions.reduce((sum, deduction) => sum + deduction.amount, 0);
+  };
+
+  const toggleCategoryExpanded = (category: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
   };
 
   const aggregateToolsByNameAndDate = () => {
@@ -335,7 +443,6 @@ const EmployeeDetailPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-white mb-2">
             {employee.firstName} {employee.lastName}
           </h1>
-          <p className="text-surface-grey-dark">Szczegóły pracownika i przypisanie narzędzi</p>
         </div>
       </div>
 
@@ -352,10 +459,12 @@ const EmployeeDetailPage: React.FC = () => {
               {employee.firstName} {employee.lastName}
             </h2>
             
-            <div className="flex items-center gap-2 text-surface-grey-dark mb-6">
-              <HiCurrencyDollar className="w-5 h-5" />
-              <span className="text-lg">{employee.hourlyRate}zł/godzina</span>
-            </div>
+            {isAdmin() && (
+              <div className="flex items-center gap-2 text-surface-grey-dark mb-6">
+                <HiCurrencyDollar className="w-5 h-5" />
+                <span className="text-lg">{employee.hourlyRate} PLN/h</span>
+              </div>
+            )}
 
           </div>
         </Card>
@@ -371,6 +480,23 @@ const EmployeeDetailPage: React.FC = () => {
             <div className="flex gap-3">
               <Button
                 color="gray"
+                onClick={handleOpenEditModal}
+                className="bg-green-900 hover:bg-green-800 text-green-300"
+              >
+                <HiPencil className="w-4 h-4 mr-2" />
+                Edytuj
+              </Button>
+              <Button
+                color="gray"
+                onClick={handleDeleteEmployee}
+                className="bg-red-900 hover:bg-red-800 text-red-300"
+                disabled={deleteEmployeeMutation.isPending}
+              >
+                <HiTrash className="w-4 h-4 mr-2" />
+                {deleteEmployeeMutation.isPending ? 'Usuwanie...' : 'Usuń'}
+              </Button>
+              <Button
+                color="gray"
                 onClick={handlePrintToolList}
                 className="bg-blue-900 hover:bg-blue-800 text-blue-300"
               >
@@ -380,7 +506,6 @@ const EmployeeDetailPage: React.FC = () => {
               <Button
                 color="primary"
                 onClick={handleOpenAssignToolModal}
-                className="bg-dark-green hover:bg-dark-green/80"
               >
                 <HiPlus className="w-4 h-4 mr-2" />
                 Przypisz narzędzie
@@ -413,7 +538,7 @@ const EmployeeDetailPage: React.FC = () => {
           ) : (
             <div className="space-y-4">
               {filteredEmployeeTools.map((assignment) => (
-                <Card key={`${assignment.toolId}-${assignment.assignedAt}`} className="hover:shadow-lg transition-all">
+                <Card key={`${assignment.uuid}-${assignment.assignedAt}`} className="hover:shadow-lg transition-all">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-4">
@@ -450,7 +575,7 @@ const EmployeeDetailPage: React.FC = () => {
                         </div>
                         <div>
                           <p className="text-surface-grey">Przypisano</p>
-                          <p className="text-white font-medium">{formatDate(assignment.assignedAt)}</p>
+                          <p className="text-white font-medium">{formatDate(assignment.assignedAt || '')}</p>
                         </div>
                       </div>
                     </div>
@@ -473,6 +598,106 @@ const EmployeeDetailPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {isAdmin() && (
+        <div className="mt-8">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-2">Obciążenia płacowe</h2>
+              <p className="text-surface-grey-dark">
+                Historia obciążeń pracownika
+              </p>
+            </div>
+          </div>
+
+          {isLoadingDeductions ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="spinner"></div>
+            </div>
+          ) : employeeDeductions.length === 0 ? (
+            <Card className="text-center py-12">
+              <HiCurrencyDollar className="w-16 h-16 mx-auto mb-4 opacity-50 text-surface-grey-dark" />
+              <p className="text-lg text-surface-grey-dark">Brak obciążeń płacowych</p>
+              <p className="text-sm text-surface-grey">Obciążenia będą widoczne po dodaniu w wypłatach</p>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(groupDeductionsByCategory()).map(([category, deductions]) => (
+                <Card key={category} className="overflow-hidden">
+                  <div
+                    className="flex items-center justify-between cursor-pointer p-4 hover:bg-section-grey-light/50 transition-colors"
+                    onClick={() => toggleCategoryExpanded(category)}
+                  >
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-white">{category}</h3>
+                      <p className="text-surface-grey text-sm">
+                        {deductions.length} {deductions.length === 1 ? 'obciążenie' : 'obciążeń'} • 
+                        Suma: {deductions.reduce((sum, d) => sum + d.amount, 0).toFixed(2)} PLN
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-red-400 font-semibold">
+                        -{deductions.reduce((sum, d) => sum + d.amount, 0).toFixed(2)} PLN
+                      </span>
+                      {expandedCategories[category] ? (
+                        <ChevronUp className="w-5 h-5 text-surface-grey" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-surface-grey" />
+                      )}
+                    </div>
+                  </div>
+
+                  {expandedCategories[category] && (
+                    <div className="border-t border-lighter-border">
+                      {deductions.map((deduction) => (
+                        <div key={deduction.id} className="p-4 border-b border-lighter-border last:border-b-0 hover:bg-section-grey-light/30 transition-colors">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              {deduction.note && (
+                                <p className="text-white font-medium mb-1">{deduction.note}</p>
+                              )}
+                              <p className="text-surface-grey text-sm">
+                                Kategoria: {deduction.category}
+                              </p>
+                              {deduction.createdAt && (
+                                <p className="text-surface-grey text-xs mt-1">
+                                  Data utworzenia: {new Date(deduction.createdAt).toLocaleDateString('pl-PL')}
+                                </p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <span className="text-red-400 font-bold text-lg">
+                                -{deduction.amount.toFixed(2)} PLN
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              ))}
+
+              {/* Total Summary */}
+              <Card className="bg-section-grey-light border-2 border-red-900/50">
+                <div className="flex items-center justify-between p-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Suma wszystkich obciążeń</h3>
+                    <p className="text-surface-grey">
+                      {employeeDeductions.length} {employeeDeductions.length === 1 ? 'obciążenie' : 'obciążeń'} w sumie
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-red-400 font-bold text-2xl">
+                      -{calculateTotalDeductions().toFixed(2)} PLN
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Assign Tool Modal */}
       <Modal show={showAssignToolModal} onClose={handleCloseAssignToolModal}>
@@ -548,7 +773,6 @@ const EmployeeDetailPage: React.FC = () => {
             color="primary"
             onClick={handleSubmitTool(onSubmitToolAssignment)}
             disabled={assignToolMutation.isPending}
-            className="bg-dark-green hover:bg-dark-green/80"
           >
             {assignToolMutation.isPending ? (
               <div className="flex items-center gap-2">
@@ -615,6 +839,67 @@ const EmployeeDetailPage: React.FC = () => {
             )}
           </Button>
           <Button color="gray" onClick={handleCloseRemoveToolModal}>
+            Anuluj
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showEditModal} onClose={handleCloseEditModal}>
+        <Modal.Header className="bg-section-grey border-lighter-border">
+          <span className="text-white">
+            Edytuj pracownika
+          </span>
+        </Modal.Header>
+        <Modal.Body className="bg-section-grey">
+          <form onSubmit={handleSubmitEdit(onSubmitEdit)} className="space-y-4">
+            <Input
+              id="firstName"
+              label="Imię"
+              {...registerEdit('firstName', { required: VALIDATION.REQUIRED })}
+              error={editErrors.firstName?.message}
+              className="bg-section-grey-light"
+            />
+
+            <Input
+              id="lastName"
+              label="Nazwisko"
+              {...registerEdit('lastName', { required: VALIDATION.REQUIRED })}
+              error={editErrors.lastName?.message}
+              className="bg-section-grey-light"
+            />
+
+            {isAdmin() && (
+              <Input
+                id="hourlyRate"
+                label="Stawka godzinowa (zł)"
+                type="number"
+                step="0.01"
+                {...registerEdit('hourlyRate', { 
+                  required: VALIDATION.REQUIRED,
+                  min: { value: 0, message: VALIDATION.POSITIVE_NUMBER }
+                })}
+                error={editErrors.hourlyRate?.message}
+                className="bg-section-grey-light"
+              />
+            )}
+          </form>
+        </Modal.Body>
+        <Modal.Footer className="bg-section-grey border-lighter-border">
+          <Button
+            color="primary"
+            onClick={handleSubmitEdit(onSubmitEdit)}
+            disabled={updateEmployeeMutation.isPending}
+          >
+            {updateEmployeeMutation.isPending ? (
+              <div className="flex items-center gap-2">
+                <div className="spinner w-4 h-4"></div>
+                Aktualizowanie...
+              </div>
+            ) : (
+              'Aktualizuj'
+            )}
+          </Button>
+          <Button color="gray" onClick={handleCloseEditModal}>
             Anuluj
           </Button>
         </Modal.Footer>

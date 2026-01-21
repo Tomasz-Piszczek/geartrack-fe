@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-export interface AutocompleteOption {
+export interface AutocompleteOption<T = unknown> {
   value: string;
   label: string;
-  data?: unknown;
+  data?: T;
 }
 
-interface AutocompleteProps {
-  options: AutocompleteOption[];
+interface AutocompleteProps<T = unknown> {
+  options: AutocompleteOption<T>[];
   value: string;
-  onChange: (value: string, option?: AutocompleteOption) => void;
+  onChange: (value: string, option?: AutocompleteOption<T>) => void;
   onInputChange?: (value: string) => void;
   placeholder?: string;
   label?: string;
@@ -20,7 +20,7 @@ interface AutocompleteProps {
   loading?: boolean;
 }
 
-const Autocomplete: React.FC<AutocompleteProps> = ({
+const Autocomplete = <T,>({
   options,
   value,
   onChange,
@@ -32,10 +32,10 @@ const Autocomplete: React.FC<AutocompleteProps> = ({
   disabled = false,
   allowCustom = false,
   loading = false,
-}) => {
+}: AutocompleteProps<T>) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value);
-  const [filteredOptions, setFilteredOptions] = useState<AutocompleteOption[]>([]);
+  const [filteredOptions, setFilteredOptions] = useState<AutocompleteOption<T>[]>([]);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -50,10 +50,19 @@ const Autocomplete: React.FC<AutocompleteProps> = ({
     } else {
       const filtered = options.filter(option => {
         const search = inputValue.toLowerCase();
+        const hasCodeProperty = (obj: unknown): obj is { code: string } => {
+          return (
+            typeof obj === 'object' &&
+            obj !== null &&
+            'code' in obj &&
+            typeof (obj as Record<string, unknown>).code === 'string'
+          );
+        };
+
         return (
           option.label.toLowerCase().includes(search) ||
           option.value.toLowerCase().includes(search) ||
-          (option.data?.code && option.data.code.toLowerCase().includes(search))
+          (option.data && hasCodeProperty(option.data) && option.data.code.toLowerCase().includes(search))
         );
       });
       setFilteredOptions(filtered);
@@ -88,7 +97,7 @@ const Autocomplete: React.FC<AutocompleteProps> = ({
     }
   };
 
-  const handleOptionClick = (option: AutocompleteOption) => {
+  const handleOptionClick = (option: AutocompleteOption<T>) => {
     setInputValue(option.label);
     onChange(option.value, option);
     setIsOpen(false);

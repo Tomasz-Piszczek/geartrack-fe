@@ -4,6 +4,7 @@ module.exports = {
   theme: {
     colors: {
       main: 'rgba(223, 255, 169, 1)',
+      'main-dark': 'rgba(195, 228, 148, 1)',
       'main-lighter': 'rgb(231, 254, 191)',
       'olive-notification': '#1d1e19',
       'green-notification': '#3C4135',
@@ -32,7 +33,7 @@ module.exports = {
       'error-red': 'rgba(255, 74, 74, 1)',
       'section-grey': '#232323',
       'section-grey-dark': '#222222',
-      'section-grey-light': '#2a2a2a',
+      'section-grey-light': '#343434',
       'background-black': '#1F1F1F',
       'background-sidebar': '#222222',
       'surface-grey': 'rgba(165, 167, 170, 1)',
@@ -219,7 +220,7 @@ module.exports = {
       backgroundImage: {
         'dark-gradient':
           'linear-gradient(0deg, #373737, #373737), linear-gradient(360deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0) 100%)',
-        'gray-gradient': 'linear-gradient(to bottom,rgb(36, 35, 35), #2a2a2a)',
+        'gray-gradient': 'linear-gradient(to bottom,rgb(36, 35, 35), #343434)',
         'gradient-hover': 'linear-gradient(90deg, rgba(153, 153, 153, 0) 0%, rgba(255, 255, 255, 0.08) 100%)',
         'modal-gradient':
           'linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(153, 153, 153, 0) 78.99%), linear-gradient(360deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%)',

@@ -2,29 +2,36 @@ import { useQuery } from '@tanstack/react-query';
 import { biServiceApi, type ContractorDto, type ProductDto } from '../api/bi-service';
 import { QUERY_KEYS } from '../constants';
 
-// Hook for contractors with caching
 export const useContractors = () => {
   return useQuery({
     queryKey: [QUERY_KEYS.CONTRACTORS],
     queryFn: biServiceApi.getContractors,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     retry: 2,
   });
 };
 
-// Hook for products with caching
-export const useProducts = () => {
+export const useProducts = (filterQuantity: boolean = true, groupId?: number) => {
   return useQuery({
-    queryKey: [QUERY_KEYS.PRODUCTS],
-    queryFn: biServiceApi.getProducts,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    queryKey: [QUERY_KEYS.PRODUCTS, filterQuantity, groupId],
+    queryFn: () => biServiceApi.getProducts(filterQuantity, groupId),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     retry: 2,
   });
 };
 
-// Utility function to search contractors
+export const useProductGroups = () => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.PRODUCT_GROUPS],
+    queryFn: biServiceApi.getProductGroups,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 20 * 60 * 1000,
+    retry: 2,
+  });
+};
+
 export const searchContractors = (
   contractors: ContractorDto[],
   searchTerm: string
@@ -92,7 +99,6 @@ export const shouldShowDate = (dateString: string | null | undefined): boolean =
   return date.getTime() !== epochDate.getTime();
 };
 
-// Utility function to find contractor by code
 export const findContractorByCode = (
   contractors: ContractorDto[],
   code: string
@@ -100,7 +106,6 @@ export const findContractorByCode = (
   return contractors.find((c) => c.code === code);
 };
 
-// Utility function to find contractor by name
 export const findContractorByName = (
   contractors: ContractorDto[],
   name: string
@@ -108,7 +113,6 @@ export const findContractorByName = (
   return contractors.find((c) => c.name === name);
 };
 
-// Utility function to find product by code
 export const findProductByCode = (
   products: ProductDto[],
   code: string
@@ -116,7 +120,6 @@ export const findProductByCode = (
   return products.find((p) => p.code === code);
 };
 
-// Utility function to find product by name
 export const findProductByName = (
   products: ProductDto[],
   name: string
