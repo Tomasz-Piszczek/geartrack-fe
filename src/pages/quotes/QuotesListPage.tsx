@@ -46,26 +46,22 @@ const QuotesListPage: React.FC = () => {
     {
       key: 'documentNumber',
       label: 'Numer dokumentu',
-      render: (quote: { documentNumber: string }) => quote.documentNumber,
+      render: (quote: { documentNumber: string }) => (
+        <span className="text-white">{quote.documentNumber}</span>
+      ),
     },
     {
       key: 'contractorName',
       label: 'Kontrahent',
       render: (quote: { contractorName: string; contractorCode: string }) => (
-        <div>
-          <div className="font-medium text-white">{quote.contractorName}</div>
-          <div className="text-sm text-gray-400">{quote.contractorCode}</div>
-        </div>
+        <div className="font-medium text-white">{quote.contractorName}</div>
       ),
     },
     {
       key: 'productName',
       label: 'Produkt',
       render: (quote: { productName: string; productCode: string }) => (
-        <div>
-          <div className="font-medium text-white">{quote.productName}</div>
-          <div className="text-sm text-gray-400">{quote.productCode}</div>
-        </div>
+        <div className="font-medium text-white">{quote.productName}</div>
       ),
     },
     {
