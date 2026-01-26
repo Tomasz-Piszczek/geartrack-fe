@@ -3,13 +3,14 @@ import {HiSave} from 'react-icons/hi';
 import {ChevronDown, Plus, X, Trash2} from 'lucide-react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {payrollApi, type PayrollDeductionDto, type PayrollRecordDto} from '../../api/payroll';
-import { biServiceApi } from '../../api/bi-service';
+import { biServiceApi, type DailyHoursDto } from '../../api/bi-service';
 
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
 import Autocomplete from '../../components/common/Autocomplete';
 import {toast} from '../../lib/toast';
+import { OvertimeIndicator } from '../../components/OvertimeIndicator';
 
 const PayrollPage: React.FC = () => {
   const currentDate = new Date();
@@ -35,6 +36,7 @@ const PayrollPage: React.FC = () => {
   const [hoveredDeduction, setHoveredDeduction] = useState<string | null>(null);
   const [hoveredSummary, setHoveredSummary] = useState<string | null>(null);
   const [editingHours, setEditingHours] = useState<Record<string, string>>({});
+  const [dailyHoursMap, setDailyHoursMap] = useState<Record<string, DailyHoursDto[]>>({});
 
   const months = [
     { value: 1, label: 'Styczeń' },
@@ -100,6 +102,7 @@ const PayrollPage: React.FC = () => {
         .map(record => record.employeeName);
 
       let hoursMap: Record<string, number> = {};
+      let dailyHoursData: Record<string, DailyHoursDto[]> = {};
 
       if (employeeNamesToFetch.length > 0) {
         try {
@@ -108,6 +111,11 @@ const PayrollPage: React.FC = () => {
             acc[hoursData.employeeName] = hoursData.hours;
             return acc;
           }, {} as Record<string, number>);
+          dailyHoursData = hoursDataList.reduce((acc, hoursData) => {
+            acc[hoursData.employeeName] = hoursData.dailyHours;
+            return acc;
+          }, {} as Record<string, DailyHoursDto[]>);
+          setDailyHoursMap(dailyHoursData);
         } catch (error) {
           console.error('Failed to fetch hours for employees:', error);
         }
@@ -399,30 +407,35 @@ const PayrollPage: React.FC = () => {
                       />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <Input
-                        type="text"
-                        value={editingHours[record.employeeId] !== undefined
-                          ? editingHours[record.employeeId]
-                          : (record.hoursWorked > 0 ? formatDecimalToTime(record.hoursWorked) : '')}
-                        onChange={(e) => {
-                          setEditingHours(prev => ({
-                            ...prev,
-                            [record.employeeId]: e.target.value
-                          }));
-                        }}
-                        onBlur={(e) => {
-                          const decimal = parseTimeToDecimal(e.target.value);
-                          updateRecord(index, 'hoursWorked', decimal);
-                          setEditingHours(prev => {
-                            const newState = {...prev};
-                            delete newState[record.employeeId];
-                            return newState;
-                          });
-                        }}
-                        placeholder="0:00"
-                        className="w-24 mx-auto"
-                        style={{backgroundColor: '#343434'}}
-                      />
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Input
+                          type="text"
+                          value={editingHours[record.employeeId] !== undefined
+                            ? editingHours[record.employeeId]
+                            : (record.hoursWorked > 0 ? formatDecimalToTime(record.hoursWorked) : '')}
+                          onChange={(e) => {
+                            setEditingHours(prev => ({
+                              ...prev,
+                              [record.employeeId]: e.target.value
+                            }));
+                          }}
+                          onBlur={(e) => {
+                            const decimal = parseTimeToDecimal(e.target.value);
+                            updateRecord(index, 'hoursWorked', decimal);
+                            setEditingHours(prev => {
+                              const newState = {...prev};
+                              delete newState[record.employeeId];
+                              return newState;
+                            });
+                          }}
+                          placeholder="0:00"
+                          className="w-24 mx-auto"
+                          style={{backgroundColor: '#343434'}}
+                        />
+                        {dailyHoursMap[record.employeeName] && dailyHoursMap[record.employeeName].length > 0 && (
+                          <OvertimeIndicator dailyHours={dailyHoursMap[record.employeeName]} />
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <Input

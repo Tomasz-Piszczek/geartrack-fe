@@ -35,11 +35,17 @@ export interface PageResponse<T> {
   empty: boolean;
 }
 
+export interface DailyHoursDto {
+  date: string;
+  hours: number;
+}
+
 export interface EmployeeHoursDto {
   employeeName: string;
   year: number;
   month: number;
   hours: number;
+  dailyHours: DailyHoursDto[];
 }
 
 const biServiceClient = axios.create({

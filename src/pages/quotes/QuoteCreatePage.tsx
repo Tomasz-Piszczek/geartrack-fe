@@ -3,34 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { quotesApi } from '../../api/quotes';
 import type { CreateQuoteDto } from '../../api/quotes';
-import { QuoteProvider, useQuote } from './context/QuoteContext';
-import QuoteForm from './components/QuoteForm';
+import { QuoteProvider } from './context/QuoteContext';
+import QuoteFormWithActions from './components/QuoteFormWithActions';
 import Button from '../../components/common/Button';
 import { toast } from '../../lib/toast';
-
-const QuoteFormWithSubmit: React.FC<{ onSubmit: (data: CreateQuoteDto) => void; isSubmitting: boolean }> = ({ onSubmit, isSubmitting }) => {
-  const { prepareForSubmit } = useQuote();
-
-  const handleSubmit = () => {
-    const data = prepareForSubmit() as CreateQuoteDto;
-    onSubmit(data);
-  };
-
-  return (
-    <>
-      <QuoteForm />
-      <div className="mt-6 flex justify-end">
-        <Button
-          color="primary"
-          onClick={handleSubmit}
-          loading={isSubmitting}
-        >
-          Zapisz
-        </Button>
-      </div>
-    </>
-  );
-};
 
 const QuoteCreatePage: React.FC = () => {
   const navigate = useNavigate();
@@ -78,7 +54,7 @@ const QuoteCreatePage: React.FC = () => {
         isSubmitting={isSubmitting}
         isEditMode={false}
       >
-        <QuoteFormWithSubmit onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+        <QuoteFormWithActions onSubmit={handleSubmit} isSubmitting={isSubmitting} />
       </QuoteProvider>
     </div>
   );
