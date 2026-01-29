@@ -108,7 +108,8 @@ const PayrollPage: React.FC = () => {
         try {
           const hoursDataList = await biServiceApi.getEmployeeHours(employeeNamesToFetch, selectedYear, selectedMonth);
           hoursMap = hoursDataList.reduce((acc, hoursData) => {
-            acc[hoursData.employeeName] = hoursData.hours;
+            const roundedTotal = calculateRoundedTotalHours(hoursData.dailyHours);
+            acc[hoursData.employeeName] = roundedTotal;
             return acc;
           }, {} as Record<string, number>);
           dailyHoursData = hoursDataList.reduce((acc, hoursData) => {
@@ -166,11 +167,18 @@ const PayrollPage: React.FC = () => {
     return 0;
   };
 
-  const formatDecimalToTime = (decimal: number): string => {
-    const totalMinutes = Math.round(decimal * 60);
-    const hrs = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    return `${hrs}:${mins.toString().padStart(2, '0')}`;
+  const roundDailyHours = (hours: number): number => {
+    const wholeHours = Math.floor(hours);
+    const minutes = Math.round((hours - wholeHours) * 60);
+    return minutes >= 45 ? wholeHours + 1 : wholeHours;
+  };
+
+  const calculateRoundedTotalHours = (dailyHours: DailyHoursDto[]): number => {
+    return dailyHours.reduce((sum, day) => sum + roundDailyHours(day.hours), 0);
+  };
+
+  const calculateActualTotalHours = (dailyHours: DailyHoursDto[]): number => {
+    return dailyHours.reduce((sum, day) => sum + day.hours, 0);
   };
 
   const updateRecord = (index: number, field: keyof PayrollRecordDto, value: number | string) => {
@@ -412,7 +420,7 @@ const PayrollPage: React.FC = () => {
                           type="text"
                           value={editingHours[record.employeeId] !== undefined
                             ? editingHours[record.employeeId]
-                            : (record.hoursWorked > 0 ? formatDecimalToTime(record.hoursWorked) : '')}
+                            : (record.hoursWorked > 0 ? Math.round(record.hoursWorked).toString() : '')}
                           onChange={(e) => {
                             setEditingHours(prev => ({
                               ...prev,
@@ -428,12 +436,17 @@ const PayrollPage: React.FC = () => {
                               return newState;
                             });
                           }}
-                          placeholder="0:00"
+                          placeholder="0"
                           className="w-24 mx-auto"
                           style={{backgroundColor: '#343434'}}
                         />
                         {dailyHoursMap[record.employeeName] && dailyHoursMap[record.employeeName].length > 0 && (
-                          <OvertimeIndicator dailyHours={dailyHoursMap[record.employeeName]} />
+                          <OvertimeIndicator
+                            dailyHours={dailyHoursMap[record.employeeName]}
+                            roundDailyHours={roundDailyHours}
+                            calculateActualTotalHours={calculateActualTotalHours}
+                            calculateRoundedTotalHours={calculateRoundedTotalHours}
+                          />
                         )}
                       </div>
                     </td>
