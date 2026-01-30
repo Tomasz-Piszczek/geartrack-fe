@@ -22,6 +22,18 @@ const QuoteFormWithActions: React.FC<QuoteFormWithActionsProps> = ({ onSubmit, i
   const handlePrintQuote = () => {
     const summary = getSummary();
 
+    const totalWorkTime = state.productionActivities.reduce((sum, activity) =>
+      sum + activity.workTimeHours + activity.workTimeMinutes / 60, 0);
+    const totalProductionMargin = state.productionActivities.reduce((sum, activity) =>
+      sum + activity.marginPln, 0);
+    const totalProductionCost = state.productionActivities.reduce((sum, activity) =>
+      sum + activity.price, 0);
+
+    const totalMaterialsMargin = state.materials.reduce((sum, material) =>
+      sum + material.marginPln, 0);
+    const totalMaterialsPurchasePrice = state.materials.reduce((sum, material) =>
+      sum + material.purchasePrice * material.quantity, 0);
+
     const printContent = `
       <!DOCTYPE html>
       <html lang="pl">
@@ -102,7 +114,12 @@ const QuoteFormWithActions: React.FC<QuoteFormWithActionsProps> = ({ onSubmit, i
                 </tr>
               `).join('')}
               <tr class="total">
-                <td colspan="6">Suma czynności produkcyjnych</td>
+                <td></td>
+                <td class="right">${totalWorkTime.toFixed(2)}</td>
+                <td></td>
+                <td class="right">${formatPrice(totalProductionCost)} PLN</td>
+                <td></td>
+                <td class="right">${formatPrice(totalProductionMargin)} PLN</td>
                 <td class="right">${formatPrice(summary.totalProductionValueForMinQty)} PLN</td>
               </tr>
             </tbody>
@@ -136,7 +153,12 @@ const QuoteFormWithActions: React.FC<QuoteFormWithActionsProps> = ({ onSubmit, i
                 </tr>
               `).join('')}
               <tr class="total">
-                <td colspan="6">Suma surowców</td>
+                <td></td>
+                <td class="right">${formatPrice(totalMaterialsPurchasePrice)} PLN</td>
+                <td></td>
+                <td></td>
+                <td class="right">${formatPrice(totalMaterialsMargin)} PLN</td>
+                <td></td>
                 <td class="right">${formatPrice(summary.totalMaterialValueForMinQty)} PLN</td>
               </tr>
             </tbody>
@@ -148,11 +170,11 @@ const QuoteFormWithActions: React.FC<QuoteFormWithActionsProps> = ({ onSubmit, i
           <table>
             <tbody>
               <tr>
-                <td>Koszt produkcji</td>
+                <td>Suma produkcji</td>
                 <td class="right">${formatPrice(summary.totalProductionValueForMinQty)} PLN</td>
               </tr>
               <tr>
-                <td>Koszt surowców</td>
+                <td>Suma surowców</td>
                 <td class="right">${formatPrice(summary.totalMaterialValueForMinQty)} PLN</td>
               </tr>
               <tr>

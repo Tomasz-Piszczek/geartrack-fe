@@ -7,6 +7,7 @@ import NumberInput from '../../../../components/common/NumberInput';
 import Checkbox from '../../../../components/common/Checkbox';
 import Label from '../../../../components/common/Label';
 import ProductSelect from '../../../../components/common/ProductSelect';
+import TreeSelect from '../../../../components/common/TreeSelect';
 import { useProducts, useProductGroups } from '../../../../hooks/useBiService';
 import type { ProductDto } from '../../../../api/bi-service';
 import { formatPrice } from '../../../../utils/formatting';
@@ -177,12 +178,11 @@ const MaterialsTab: React.FC = () => {
           <h5 className="text-white font-medium">Dodaj nowy surowiec</h5>
           
           <div>
-            <Label htmlFor="productGroupSelect">Grupa produktów</Label>
-            <select
-              id="productGroupSelect"
-              value={selectedGroupId || ''}
-              onChange={(e) => {
-                setSelectedGroupId(e.target.value ? parseInt(e.target.value) : undefined);
+            <TreeSelect
+              groups={productGroups || []}
+              value={selectedGroupId}
+              onChange={(groupId) => {
+                setSelectedGroupId(groupId);
                 setSelectedProduct(null);
                 setSelectedProductCode('');
                 setCustomProductName('');
@@ -191,16 +191,10 @@ const MaterialsTab: React.FC = () => {
                 setMarginPln('');
                 setPricePerUnit('');
               }}
-              className="block w-full px-3 py-2 border border-gray-600 bg-background-dark text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              label="Grupa produktów"
+              placeholder="Wszystkie grupy"
               disabled={groupsLoading}
-            >
-              <option value="">Wszystkie grupy</option>
-              {productGroups?.map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.name} ({group.code})
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div>

@@ -11,7 +11,9 @@ export interface ProductGroupDto {
   id: number;
   code: string;
   name: string;
-  description: string;
+  parentId?: number;
+  level: number;
+  path: string;
 }
 
 export interface ProductDto {
