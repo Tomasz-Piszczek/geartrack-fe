@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
     ASSIGN: (toolId: string, employeeId: string) => `/api/tools/assign/${toolId}/${employeeId}`,
     UNASSIGN: (toolId: string, employeeId: string) => `/api/tools/unassign/${toolId}/${employeeId}`,
     EMPLOYEES: (toolId: string) => `/api/tools/${toolId}/employees`,
+    MARK_USED: (employeeToolId: string) => `/api/tools/mark-used/${employeeToolId}`,
   },
   BI: {
     CONTRACTORS: '/api/contractors',

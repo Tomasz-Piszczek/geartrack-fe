@@ -48,4 +48,11 @@ export const toolsApi = {
     );
     return response.data;
   },
+
+  markAsUsed: async (employeeToolId: string): Promise<AssignToolDto> => {
+    const response = await apiClient.post<AssignToolDto>(
+      API_ENDPOINTS.TOOLS.MARK_USED(employeeToolId)
+    );
+    return response.data;
+  },
 };

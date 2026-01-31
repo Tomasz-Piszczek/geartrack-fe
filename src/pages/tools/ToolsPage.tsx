@@ -176,7 +176,6 @@ const ToolsPage: React.FC = () => {
           <Table.Head>
             <Table.HeadCell className="bg-section-grey-dark text-white">Nazwa</Table.HeadCell>
             <Table.HeadCell className="bg-section-grey-dark text-white">Numer fabryczny</Table.HeadCell>
-            <Table.HeadCell className="bg-section-grey-dark text-white">Ilość</Table.HeadCell>
             <Table.HeadCell className="bg-section-grey-dark text-white">Dostępne</Table.HeadCell>
             <Table.HeadCell className="bg-section-grey-dark text-white">Wartość</Table.HeadCell>
             <Table.HeadCell className="bg-section-grey-dark text-white">Akcje</Table.HeadCell>
@@ -184,13 +183,13 @@ const ToolsPage: React.FC = () => {
           <Table.Body>
             {isLoading ? (
               <Table.Row>
-                <Table.Cell colSpan={6} className="text-center text-white">
+                <Table.Cell colSpan={5} className="text-center text-white">
                   Ładowanie...
                 </Table.Cell>
               </Table.Row>
             ) : filteredTools.length === 0 ? (
               <Table.Row>
-                <Table.Cell colSpan={6} className="text-center text-surface-grey-dark">
+                <Table.Cell colSpan={5} className="text-center text-surface-grey-dark">
                   Nie znaleziono narzędzi
                 </Table.Cell>
               </Table.Row>
@@ -199,7 +198,6 @@ const ToolsPage: React.FC = () => {
                 <Table.Row key={tool.uuid} className="hover:bg-section-grey-light cursor-pointer" onClick={() => handleOpenAssignmentModal(tool)}>
                   <Table.Cell className="text-white">{tool.name}</Table.Cell>
                   <Table.Cell className="text-white">{tool.factoryNumber || '-'}</Table.Cell>
-                  <Table.Cell className="text-white">{tool.quantity}</Table.Cell>
                   <Table.Cell className="text-white">{tool.availableQuantity || 0}</Table.Cell>
                   <Table.Cell className="text-white">{tool.value.toFixed(2)}zł</Table.Cell>
                   <Table.Cell>

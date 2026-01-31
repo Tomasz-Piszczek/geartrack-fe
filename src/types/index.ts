@@ -72,6 +72,7 @@ export interface AssignToolDto {
   quantity: number;
   condition: ToolCondition;
   assignedAt?: string;
+  usedAt?: string;
   employeeName?: string;
   toolName?: string;
   toolPrice?: number;

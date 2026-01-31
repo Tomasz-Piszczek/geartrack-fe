@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   HiArrowLeft, 
@@ -16,6 +16,7 @@ import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
 import Modal from '../../components/common/Modal';
+import Table from '../../components/common/Table';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { employeesApi } from '../../api/employees';
@@ -54,6 +55,8 @@ const EmployeeDetailPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [expandedYears, setExpandedYears] = useState<Record<string, boolean>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
   const queryClient = useQueryClient();
 
   const { data: employee, isLoading: isLoadingEmployee } = useQuery({
@@ -117,7 +120,7 @@ const EmployeeDetailPage: React.FC = () => {
   });
 
   const unassignToolMutation = useMutation({
-    mutationFn: ({ toolId, employeeId }: { toolId: string; employeeId: string }) => 
+    mutationFn: ({ toolId, employeeId }: { toolId: string; employeeId: string }) =>
       toolsApi.unassign(toolId, employeeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'] });
@@ -128,6 +131,17 @@ const EmployeeDetailPage: React.FC = () => {
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to remove tool');
+    },
+  });
+
+  const markAsUsedMutation = useMutation({
+    mutationFn: (employeeToolId: string) => toolsApi.markAsUsed(employeeToolId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'] });
+      toast.success('Narzędzie oznaczone jako zużyte');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Nie udało się oznaczyć narzędzia jako zużytego');
     },
   });
 
@@ -156,10 +170,32 @@ const EmployeeDetailPage: React.FC = () => {
     },
   });
 
-  const filteredEmployeeTools = employeeTools.filter(assignment =>
-    (assignment.toolName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (assignment.toolFactoryNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+  const filteredEmployeeTools = employeeTools
+    .filter(assignment =>
+      (assignment.toolName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (assignment.toolFactoryNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Sort by assignedAt date - newest first
+      const dateA = new Date(a.assignedAt || '').getTime();
+      const dateB = new Date(b.assignedAt || '').getTime();
+      return dateB - dateA;
+    });
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredEmployeeTools.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTools = filteredEmployeeTools.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   const handleOpenAssignToolModal = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -243,6 +279,10 @@ const EmployeeDetailPage: React.FC = () => {
     if (employee && window.confirm(`Czy na pewno chcesz usunąć pracownika ${employee.firstName} ${employee.lastName}?`)) {
       deleteEmployeeMutation.mutate(employee.uuid!);
     }
+  };
+
+  const handleMarkAsUsed = (employeeToolId: string) => {
+    markAsUsedMutation.mutate(employeeToolId);
   };
 
   const getInitials = (firstName: string, lastName: string) => {
@@ -488,7 +528,9 @@ const EmployeeDetailPage: React.FC = () => {
             <div>
               <h2 className="text-2xl font-bold text-white mb-2">Przypisane narzędzia</h2>
               <p className="text-surface-grey-dark">
-                Przypisane narzędzia: {filteredEmployeeTools.length}
+                {filteredEmployeeTools.length > 0 && totalPages > 1
+                  ? `Wyświetlanie ${startIndex + 1}-${Math.min(endIndex, filteredEmployeeTools.length)} z ${filteredEmployeeTools.length}`
+                  : `Przypisane narzędzia: ${filteredEmployeeTools.length}`}
               </p>
             </div>
             <div className="flex gap-3">
@@ -499,15 +541,6 @@ const EmployeeDetailPage: React.FC = () => {
               >
                 <HiPencil className="w-4 h-4 mr-2" />
                 Edytuj
-              </Button>
-              <Button
-                color="gray"
-                onClick={handleDeleteEmployee}
-                className="bg-red-900 hover:bg-red-800 text-red-300"
-                disabled={deleteEmployeeMutation.isPending}
-              >
-                <HiTrash className="w-4 h-4 mr-2" />
-                {deleteEmployeeMutation.isPending ? 'Usuwanie...' : 'Usuń'}
               </Button>
               <Button
                 color="gray"
@@ -550,65 +583,106 @@ const EmployeeDetailPage: React.FC = () => {
               <p className="text-sm text-surface-grey">Śledź użycie i stan poprzez przypisanie narzędzi</p>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {filteredEmployeeTools.map((assignment) => (
-                <Card key={`${assignment.uuid}-${assignment.assignedAt}`} className="hover:shadow-lg transition-all">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-dark-green flex items-center justify-center">
-                          <HiCog className="w-6 h-6 text-white" />
+            <>
+              <div className="table-wrapper">
+                <Table hoverable>
+                  <Table.Head>
+                    <Table.HeadCell className="bg-section-grey-dark text-white text-center">Nazwa</Table.HeadCell>
+                    <Table.HeadCell className="bg-section-grey-dark text-white text-center">Ilość</Table.HeadCell>
+                    <Table.HeadCell className="bg-section-grey-dark text-white text-center">Stan</Table.HeadCell>
+                    <Table.HeadCell className="bg-section-grey-dark text-white text-center">Wydano</Table.HeadCell>
+                    <Table.HeadCell className="bg-section-grey-dark text-white text-center">Zużyto</Table.HeadCell>
+                    <Table.HeadCell className="bg-section-grey-dark text-white text-center">Akcje</Table.HeadCell>
+                  </Table.Head>
+                  <Table.Body>
+                    {paginatedTools.map((assignment) => (
+                    <Table.Row key={`${assignment.uuid}-${assignment.assignedAt}`} className="hover:bg-section-grey-light">
+                      <Table.Cell className="text-white text-center">
+                        {assignment.toolName}
+                        {assignment.toolFactoryNumber ? ` #${assignment.toolFactoryNumber}` : ''}
+                      </Table.Cell>
+                      <Table.Cell className="text-white text-center">{assignment.quantity}</Table.Cell>
+                      <Table.Cell className="text-center">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          assignment.condition === ToolCondition.NEW ? 'bg-green-900 text-green-300' :
+                          assignment.condition === ToolCondition.GOOD ? 'bg-blue-900 text-blue-300' :
+                          assignment.condition === ToolCondition.POOR ? 'bg-red-900 text-red-300' :
+                          'bg-gray-900 text-gray-300'
+                        }`}>
+                          {assignment.condition}
+                        </span>
+                      </Table.Cell>
+                      <Table.Cell className="text-white text-center">{formatDate(assignment.assignedAt || '')}</Table.Cell>
+                      <Table.Cell className="text-white text-center">
+                        {assignment.usedAt ? formatDate(assignment.usedAt) : '-'}
+                      </Table.Cell>
+                      <Table.Cell className="text-center">
+                        <div className="flex gap-2 justify-center">
+                          {!assignment.usedAt && (
+                            <Button
+                              size="sm"
+                              color="gray"
+                              onClick={() => handleMarkAsUsed(assignment.uuid!)}
+                              className="bg-blue-900 hover:bg-blue-800 text-blue-300"
+                            >
+                              Zużyto
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            color="gray"
+                            onClick={() => handleOpenRemoveToolModal(assignment)}
+                            className="bg-red-900 hover:bg-red-800 text-red-300"
+                          >
+                            <HiTrash className="w-4 h-4" />
+                          </Button>
                         </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-white">
-                            {assignment.toolName}
-                            {assignment.toolFactoryNumber ? ` #${assignment.toolFactoryNumber}` : ''}
-                          </h3>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                        <div>
-                          <p className="text-surface-grey">Ilość</p>
-                          <p className="text-white font-medium">{assignment.quantity}</p>
-                        </div>
-                        <div>
-                          <p className="text-surface-grey">Cena</p>
-                          <p className="text-white font-medium">{assignment.toolPrice?.toFixed(2) || '0.00'}zł</p>
-                        </div>
-                        <div>
-                          <p className="text-surface-grey">Stan</p>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            assignment.condition === ToolCondition.NEW ? 'bg-green-900 text-green-300' :
-                            assignment.condition === ToolCondition.GOOD ? 'bg-blue-900 text-blue-300' :
-                            assignment.condition === ToolCondition.POOR ? 'bg-red-900 text-red-300' :
-                            'bg-gray-900 text-gray-300'
-                          }`}>
-                            {assignment.condition}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="text-surface-grey">Przypisano</p>
-                          <p className="text-white font-medium">{formatDate(assignment.assignedAt || '')}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="ml-4">
-                      <Button
-                        color="gray"
-                        size="sm"
-                        onClick={() => handleOpenRemoveToolModal(assignment)}
-                        className="bg-red-900 hover:bg-red-800 text-red-300"
-                      >
-                        <HiTrash className="w-4 h-4 mr-1" />
-                        Usuń
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-4">
+                <Button
+                  size="sm"
+                  color="gray"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Poprzednia
+                </Button>
+
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      size="sm"
+                      color={currentPage === page ? "primary" : "gray"}
+                      onClick={() => handlePageChange(page)}
+                      className={currentPage === page ? "bg-dark-green" : ""}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+
+                <Button
+                  size="sm"
+                  color="gray"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Następna
+                </Button>
+              </div>
+            )}
+          </>
           )}
         </div>
       </div>
