@@ -1,42 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  HiArrowLeft, 
-  HiPlus, 
-  HiTrash, 
-  HiUser, 
-  HiCurrencyDollar, 
-  HiCog, 
-  HiSearch,
-  HiPrinter,
-  HiPencil
-} from 'react-icons/hi';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { HiArrowLeft, HiUser, HiCurrencyDollar, HiPencil, HiPlus } from 'react-icons/hi';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
 import Modal from '../../components/common/Modal';
-import Table from '../../components/common/Table';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { employeesApi } from '../../api/employees';
-import { toolsApi } from '../../api/tools';
-import { payrollApi, type PayrollDeductionDto } from '../../api/payroll';
 import { QUERY_KEYS, ROUTES, VALIDATION } from '../../constants';
-import { ToolCondition } from '../../types';
 import { toast } from '../../lib/toast';
 import { useAuth } from '../../context/AuthContext';
-
-interface AssignToolFormData {
-  toolId: string;
-  quantity: number;
-  condition: ToolCondition;
-  assignedAt: string;
-}
-
-interface RemoveToolFormData {
-  quantity: number;
-}
+import EmployeeToolsSection from './components/EmployeeToolsSection';
+import EmployeeUrlopSection, { type EmployeeUrlopSectionRef } from './components/EmployeeUrlopSection';
+import EmployeeBadaniaSzkoleniaSection, { type EmployeeBadaniaSzkoleniaSectionRef } from './components/EmployeeBadaniaSzkoleniaSection';
+import EmployeeDeductionsSection from './components/EmployeeDeductionsSection';
 
 interface EmployeeFormData {
   firstName: string;
@@ -48,16 +26,10 @@ const EmployeeDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
-  const [showAssignToolModal, setShowAssignToolModal] = useState(false);
-  const [showRemoveToolModal, setShowRemoveToolModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedToolForRemoval, setSelectedToolForRemoval] = useState<typeof employeeTools[0] | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
-  const [expandedYears, setExpandedYears] = useState<Record<string, boolean>>({});
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
   const queryClient = useQueryClient();
+  const urlopSectionRef = useRef<EmployeeUrlopSectionRef>(null);
+  const badaniaSzkoleniaSectionRef = useRef<EmployeeBadaniaSzkoleniaSectionRef>(null);
 
   const { data: employee, isLoading: isLoadingEmployee } = useQuery({
     queryKey: [QUERY_KEYS.EMPLOYEES, id],
@@ -65,85 +37,12 @@ const EmployeeDetailPage: React.FC = () => {
     enabled: !!id,
   });
 
-  const { data: availableTools = [] } = useQuery({
-    queryKey: [QUERY_KEYS.TOOLS],
-    queryFn: toolsApi.getAll,
-  });
-
-
-  const { data: employeeTools = [], isLoading: isLoadingTools } = useQuery({
-    queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'],
-    queryFn: () => employeesApi.getAssignedTools(id!),
-    enabled: !!id,
-  });
-
-  const { data: employeeDeductions = [], isLoading: isLoadingDeductions } = useQuery({
-    queryKey: ['payroll-deductions', id],
-    queryFn: () => payrollApi.getEmployeeDeductions(id!),
-    enabled: !!id && isAdmin(),
-  });
-
-  const {
-    register: registerTool,
-    handleSubmit: handleSubmitTool,
-    formState: { errors: toolErrors },
-    reset: resetTool,
-  } = useForm<AssignToolFormData>();
-
-  const {
-    register: registerRemove,
-    handleSubmit: handleSubmitRemove,
-    formState: { errors: removeErrors },
-    reset: resetRemove,
-  } = useForm<RemoveToolFormData>();
-
   const {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     formState: { errors: editErrors },
     reset: resetEdit,
   } = useForm<EmployeeFormData>();
-
-  const assignToolMutation = useMutation({
-    mutationFn: ({ toolId, employeeId, assignment }: { toolId: string; employeeId: string; assignment: any }) => 
-      toolsApi.assign(toolId, employeeId, assignment),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS, 'quantities'] });
-      toast.success('Tool assigned successfully');
-      handleCloseAssignToolModal();
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to assign tool');
-    },
-  });
-
-  const unassignToolMutation = useMutation({
-    mutationFn: ({ toolId, employeeId }: { toolId: string; employeeId: string }) =>
-      toolsApi.unassign(toolId, employeeId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS, 'quantities'] });
-      toast.success('Tool removed successfully');
-      handleCloseRemoveToolModal();
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to remove tool');
-    },
-  });
-
-  const markAsUsedMutation = useMutation({
-    mutationFn: (employeeToolId: string) => toolsApi.markAsUsed(employeeToolId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, id, 'tools'] });
-      toast.success('Narzędzie oznaczone jako zużyte');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Nie udało się oznaczyć narzędzia jako zużytego');
-    },
-  });
 
   const updateEmployeeMutation = useMutation({
     mutationFn: employeesApi.update,
@@ -157,75 +56,6 @@ const EmployeeDetailPage: React.FC = () => {
       toast.error(error.message || 'Failed to update employee');
     },
   });
-
-  const deleteEmployeeMutation = useMutation({
-    mutationFn: employeesApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES] });
-      toast.success('Employee deleted successfully');
-      navigate(ROUTES.EMPLOYEES);
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to delete employee');
-    },
-  });
-
-  const filteredEmployeeTools = employeeTools
-    .filter(assignment =>
-      (assignment.toolName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (assignment.toolFactoryNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      // Sort by assignedAt date - newest first
-      const dateA = new Date(a.assignedAt || '').getTime();
-      const dateB = new Date(b.assignedAt || '').getTime();
-      return dateB - dateA;
-    });
-
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredEmployeeTools.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedTools = filteredEmployeeTools.slice(startIndex, endIndex);
-
-  // Reset to page 1 when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handleOpenAssignToolModal = () => {
-    const today = new Date().toISOString().split('T')[0];
-    resetTool({
-      toolId: '',
-      quantity: 1,
-      condition: ToolCondition.GOOD,
-      assignedAt: today,
-    });
-    setShowAssignToolModal(true);
-  };
-
-  const handleCloseAssignToolModal = () => {
-    setShowAssignToolModal(false);
-    resetTool();
-  };
-
-  const handleOpenRemoveToolModal = (toolAssignment: typeof employeeTools[0]) => {
-    setSelectedToolForRemoval(toolAssignment);
-    resetRemove({
-      quantity: 1,
-    });
-    setShowRemoveToolModal(true);
-  };
-
-  const handleCloseRemoveToolModal = () => {
-    setShowRemoveToolModal(false);
-    setSelectedToolForRemoval(null);
-    resetRemove();
-  };
 
   const handleOpenEditModal = () => {
     if (employee) {
@@ -243,29 +73,6 @@ const EmployeeDetailPage: React.FC = () => {
     resetEdit();
   };
 
-  const onSubmitToolAssignment = (data: AssignToolFormData) => {
-    if (employee) {
-      assignToolMutation.mutate({
-        toolId: data.toolId,
-        employeeId: employee.uuid!,
-        assignment: {
-          quantity: data.quantity,
-          condition: data.condition,
-          assignedAt: data.assignedAt,
-        }
-      });
-    }
-  };
-
-  const onSubmitToolRemoval = (_data: RemoveToolFormData) => {
-    if (selectedToolForRemoval) {
-      unassignToolMutation.mutate({
-        toolId: selectedToolForRemoval.uuid!,
-        employeeId: employee!.uuid!,
-      });
-    }
-  };
-
   const onSubmitEdit = (data: EmployeeFormData) => {
     if (employee) {
       updateEmployeeMutation.mutate({
@@ -275,183 +82,8 @@ const EmployeeDetailPage: React.FC = () => {
     }
   };
 
-  const handleDeleteEmployee = () => {
-    if (employee && window.confirm(`Czy na pewno chcesz usunąć pracownika ${employee.firstName} ${employee.lastName}?`)) {
-      deleteEmployeeMutation.mutate(employee.uuid!);
-    }
-  };
-
-  const handleMarkAsUsed = (employeeToolId: string) => {
-    markAsUsedMutation.mutate(employeeToolId);
-  };
-
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const groupDeductionsByYearAndCategory = () => {
-    const grouped = employeeDeductions.reduce((acc: Record<string, Record<string, PayrollDeductionDto[]>>, deduction) => {
-      const year = deduction.createdAt ? new Date(deduction.createdAt).getFullYear().toString() : 'Unknown';
-      const category = deduction.category;
-
-      if (!acc[year]) {
-        acc[year] = {};
-      }
-      if (!acc[year][category]) {
-        acc[year][category] = [];
-      }
-      acc[year][category].push(deduction);
-      return acc;
-    }, {});
-
-    return grouped;
-  };
-
-  const calculateTotalDeductions = () => {
-    return employeeDeductions.reduce((sum, deduction) => sum + deduction.amount, 0);
-  };
-
-  const toggleYearExpanded = (year: string) => {
-    setExpandedYears(prev => ({
-      ...prev,
-      [year]: !prev[year]
-    }));
-  };
-
-  const toggleCategoryExpanded = (year: string, category: string) => {
-    const key = `${year}-${category}`;
-    setExpandedCategories(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
-
-  const aggregateToolsByNameAndDate = () => {
-    const toolMap = new Map<string, { quantity: number, date: string }>();
-    
-    employeeTools.forEach(assignment => {
-      const toolName = assignment.toolName || 'Unknown Tool';
-      const assignedDate = assignment.assignedAt || '';
-      const key = `${toolName}_${assignedDate}`;
-      
-      const existing = toolMap.get(key);
-      if (existing) {
-        existing.quantity += assignment.quantity;
-      } else {
-        toolMap.set(key, {
-          quantity: assignment.quantity,
-          date: assignedDate
-        });
-      }
-    });
-    
-    return Array.from(toolMap.entries())
-      .map(([key, data]) => {
-        const toolName = key.split('_')[0];
-        return {
-          name: toolName,
-          quantity: data.quantity,
-          date: data.date
-        };
-      })
-      .sort((a, b) => {
-        if (a.name === b.name) {
-          return new Date(a.date).getTime() - new Date(b.date).getTime();
-        }
-        return a.name.localeCompare(b.name);
-      });
-  };
-
-  const handlePrintToolList = () => {
-    const aggregatedTools = aggregateToolsByNameAndDate();
-    
-    const printContent = `
-      <!DOCTYPE html>
-      <html lang="pl">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Lista Narzędzi</title>
-        <style>
-          @media print {
-            body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
-            .no-print { display: none !important; }
-          }
-          body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 20px; 
-            background: white; 
-            color: black; 
-          }
-          table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 20px; 
-          }
-          th, td { 
-            border: 1px solid #000; 
-            padding: 12px; 
-            text-align: left; 
-          }
-          th { 
-            background-color: #f5f5f5; 
-            font-weight: bold; 
-            font-size: 16px; 
-          }
-          td { 
-            font-size: 14px; 
-          }
-          .quantity { 
-            text-align: center; 
-            font-weight: bold; 
-          }
-          .date { 
-            text-align: center; 
-          }
-        </style>
-      </head>
-      <body>
-        <table>
-          <thead>
-            <tr>
-              <th>Nazwa</th>
-              <th>Ilość</th>
-              <th>Data</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${aggregatedTools.map(tool => `
-              <tr>
-                <td>${tool.name}</td>
-                <td class="quantity">${tool.quantity}</td>
-                <td class="date">${new Date(tool.date).toLocaleDateString('pl-PL')}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-        
-        <script>
-          window.onload = function() {
-            window.print();
-            window.onafterprint = function() {
-              window.close();
-            };
-          };
-        </script>
-      </body>
-      </html>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-    }
   };
 
   if (isLoadingEmployee) {
@@ -508,11 +140,11 @@ const EmployeeDetailPage: React.FC = () => {
                 {getInitials(employee.firstName, employee.lastName)}
               </span>
             </div>
-            
+
             <h2 className="text-2xl font-semibold text-white mb-2">
               {employee.firstName} {employee.lastName}
             </h2>
-            
+
             {isAdmin() && (
               <div className="flex items-center gap-2 text-surface-grey-dark mb-6">
                 <HiCurrencyDollar className="w-5 h-5" />
@@ -520,456 +152,63 @@ const EmployeeDetailPage: React.FC = () => {
               </div>
             )}
 
-          </div>
-        </Card>
-
-        <div className="lg:col-span-2">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-2">Przypisane narzędzia</h2>
-              <p className="text-surface-grey-dark">
-                {filteredEmployeeTools.length > 0 && totalPages > 1
-                  ? `Wyświetlanie ${startIndex + 1}-${Math.min(endIndex, filteredEmployeeTools.length)} z ${filteredEmployeeTools.length}`
-                  : `Przypisane narzędzia: ${filteredEmployeeTools.length}`}
-              </p>
-            </div>
-            <div className="flex gap-3">
+            <div className="w-full space-y-3">
               <Button
                 color="gray"
                 onClick={handleOpenEditModal}
-                className="bg-green-900 hover:bg-green-800 text-green-300"
+                className="bg-green-900 hover:bg-green-800 text-green-300 w-full"
               >
                 <HiPencil className="w-4 h-4 mr-2" />
-                Edytuj
-              </Button>
-              <Button
-                color="gray"
-                onClick={handlePrintToolList}
-                className="bg-blue-900 hover:bg-blue-800 text-blue-300"
-              >
-                <HiPrinter className="w-4 h-4 mr-2" />
-                Drukuj listę narzędzi
+                Edytuj Pracownika
               </Button>
               <Button
                 color="primary"
-                onClick={handleOpenAssignToolModal}
+                onClick={() => urlopSectionRef.current?.openAddModal()}
+                className="w-full"
               >
                 <HiPlus className="w-4 h-4 mr-2" />
-                Przypisz narzędzie
+                Dodaj Urlop
+              </Button>
+              <Button
+                color="primary"
+                onClick={() => badaniaSzkoleniaSectionRef.current?.openAddModal()}
+                className="w-full"
+              >
+                <HiPlus className="w-4 h-4 mr-2" />
+                Dodaj Badanie lub Szkolenie
               </Button>
             </div>
           </div>
+        </Card>
 
-          <div className="mb-6">
-            <div className="relative max-w-md">
-              <Input
-                icon={HiSearch}
-                placeholder="Szukaj przypisanych narzędzi..."
-                value={searchTerm}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                className="bg-section-grey"
-              />
-            </div>
-          </div>
-
-          {isLoadingTools ? (
-            <div className="flex justify-center items-center h-32">
-              <div className="spinner"></div>
-            </div>
-          ) : filteredEmployeeTools.length === 0 ? (
-            <Card className="text-center py-12">
-              <HiCog className="w-16 h-16 mx-auto mb-4 opacity-50 text-surface-grey-dark" />
-              <p className="text-lg text-surface-grey-dark">Brak przypisanych narzędzi</p>
-              <p className="text-sm text-surface-grey">Śledź użycie i stan poprzez przypisanie narzędzi</p>
-            </Card>
-          ) : (
-            <>
-              <div className="table-wrapper">
-                <Table hoverable>
-                  <Table.Head>
-                    <Table.HeadCell className="bg-section-grey-dark text-white text-center">Nazwa</Table.HeadCell>
-                    <Table.HeadCell className="bg-section-grey-dark text-white text-center">Ilość</Table.HeadCell>
-                    <Table.HeadCell className="bg-section-grey-dark text-white text-center">Stan</Table.HeadCell>
-                    <Table.HeadCell className="bg-section-grey-dark text-white text-center">Wydano</Table.HeadCell>
-                    <Table.HeadCell className="bg-section-grey-dark text-white text-center">Zużyto</Table.HeadCell>
-                    <Table.HeadCell className="bg-section-grey-dark text-white text-center">Akcje</Table.HeadCell>
-                  </Table.Head>
-                  <Table.Body>
-                    {paginatedTools.map((assignment) => (
-                    <Table.Row key={`${assignment.uuid}-${assignment.assignedAt}`} className="hover:bg-section-grey-light">
-                      <Table.Cell className="text-white text-center">
-                        {assignment.toolName}
-                        {assignment.toolFactoryNumber ? ` #${assignment.toolFactoryNumber}` : ''}
-                      </Table.Cell>
-                      <Table.Cell className="text-white text-center">{assignment.quantity}</Table.Cell>
-                      <Table.Cell className="text-center">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          assignment.condition === ToolCondition.NEW ? 'bg-green-900 text-green-300' :
-                          assignment.condition === ToolCondition.GOOD ? 'bg-blue-900 text-blue-300' :
-                          assignment.condition === ToolCondition.POOR ? 'bg-red-900 text-red-300' :
-                          'bg-gray-900 text-gray-300'
-                        }`}>
-                          {assignment.condition}
-                        </span>
-                      </Table.Cell>
-                      <Table.Cell className="text-white text-center">{formatDate(assignment.assignedAt || '')}</Table.Cell>
-                      <Table.Cell className="text-white text-center">
-                        {assignment.usedAt ? formatDate(assignment.usedAt) : '-'}
-                      </Table.Cell>
-                      <Table.Cell className="text-center">
-                        <div className="flex gap-2 justify-center">
-                          {!assignment.usedAt && (
-                            <Button
-                              size="sm"
-                              color="gray"
-                              onClick={() => handleMarkAsUsed(assignment.uuid!)}
-                              className="bg-blue-900 hover:bg-blue-800 text-blue-300"
-                            >
-                              Zużyto
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            color="gray"
-                            onClick={() => handleOpenRemoveToolModal(assignment)}
-                            className="bg-red-900 hover:bg-red-800 text-red-300"
-                          >
-                            <HiTrash className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </Table.Cell>
-                    </Table.Row>
-                  ))}
-                </Table.Body>
-              </Table>
-            </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-4">
-                <Button
-                  size="sm"
-                  color="gray"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Poprzednia
-                </Button>
-
-                <div className="flex gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      size="sm"
-                      color={currentPage === page ? "primary" : "gray"}
-                      onClick={() => handlePageChange(page)}
-                      className={currentPage === page ? "bg-dark-green" : ""}
-                    >
-                      {page}
-                    </Button>
-                  ))}
-                </div>
-
-                <Button
-                  size="sm"
-                  color="gray"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Następna
-                </Button>
-              </div>
-            )}
-          </>
-          )}
-        </div>
+        <EmployeeToolsSection
+          employeeId={employee.uuid!}
+          employeeName={`${employee.firstName} ${employee.lastName}`}
+        />
       </div>
 
-      {isAdmin() && (
-        <div className="mt-8">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-2">Obciążenia płacowe</h2>
-              <p className="text-surface-grey-dark">
-                Historia obciążeń pracownika
-              </p>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        <EmployeeUrlopSection
+          ref={urlopSectionRef}
+          employeeId={employee.uuid!}
+          employeeName={`${employee.firstName} ${employee.lastName}`}
+          isAdmin={isAdmin()}
+        />
 
-          {isLoadingDeductions ? (
-            <div className="flex justify-center items-center h-32">
-              <div className="spinner"></div>
-            </div>
-          ) : employeeDeductions.length === 0 ? (
-            <Card className="text-center py-12">
-              <HiCurrencyDollar className="w-16 h-16 mx-auto mb-4 opacity-50 text-surface-grey-dark" />
-              <p className="text-lg text-surface-grey-dark">Brak obciążeń płacowych</p>
-              <p className="text-sm text-surface-grey">Obciążenia będą widoczne po dodaniu w wypłatach</p>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {Object.entries(groupDeductionsByYearAndCategory())
-                .sort(([yearA], [yearB]) => parseInt(yearB) - parseInt(yearA))
-                .map(([year, categories]) => {
-                  const yearTotal = Object.values(categories).flat().reduce((sum, d) => sum + d.amount, 0);
-                  const yearDeductionsCount = Object.values(categories).flat().length;
+        <EmployeeBadaniaSzkoleniaSection
+          ref={badaniaSzkoleniaSectionRef}
+          employeeId={employee.uuid!}
+          employeeName={`${employee.firstName} ${employee.lastName}`}
+          isAdmin={isAdmin()}
+        />
+      </div>
 
-                  return (
-                    <Card key={year} className="overflow-hidden">
-                      <div
-                        className="flex items-center justify-between cursor-pointer p-4 hover:bg-section-grey-light/50 transition-colors"
-                        onClick={() => toggleYearExpanded(year)}
-                      >
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-white">{year}</h3>
-                          <p className="text-surface-grey text-sm">
-                            {yearDeductionsCount} {yearDeductionsCount === 1 ? 'obciążenie' : 'obciążeń'} •
-                            Suma: {yearTotal.toFixed(2)} PLN
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-red-400 font-bold text-lg">
-                            -{yearTotal.toFixed(2)} PLN
-                          </span>
-                          {expandedYears[year] ? (
-                            <ChevronUp className="w-5 h-5 text-surface-grey" />
-                          ) : (
-                            <ChevronDown className="w-5 h-5 text-surface-grey" />
-                          )}
-                        </div>
-                      </div>
+      <EmployeeDeductionsSection
+        employeeId={employee.uuid!}
+        isAdmin={isAdmin()}
+      />
 
-                      {expandedYears[year] && (
-                        <div className="border-t border-lighter-border p-4 space-y-3">
-                          {Object.entries(categories).map(([category, deductions]) => (
-                            <Card key={`${year}-${category}`} className="overflow-hidden">
-                              <div
-                                className="flex items-center justify-between cursor-pointer p-4 hover:bg-section-grey-light/50 transition-colors"
-                                onClick={() => toggleCategoryExpanded(year, category)}
-                              >
-                                <div className="flex-1">
-                                  <h3 className="text-lg font-semibold text-white">{category}</h3>
-                                  <p className="text-surface-grey text-sm">
-                                    {deductions.length} {deductions.length === 1 ? 'obciążenie' : 'obciążeń'} •
-                                    Suma: {deductions.reduce((sum, d) => sum + d.amount, 0).toFixed(2)} PLN
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-red-400 font-semibold">
-                                    -{deductions.reduce((sum, d) => sum + d.amount, 0).toFixed(2)} PLN
-                                  </span>
-                                  {expandedCategories[`${year}-${category}`] ? (
-                                    <ChevronUp className="w-5 h-5 text-surface-grey" />
-                                  ) : (
-                                    <ChevronDown className="w-5 h-5 text-surface-grey" />
-                                  )}
-                                </div>
-                              </div>
-
-                              {expandedCategories[`${year}-${category}`] && (
-                                <div className="border-t border-lighter-border">
-                                  {deductions.map((deduction) => (
-                                    <div key={deduction.id} className="p-4 border-b border-lighter-border last:border-b-0 hover:bg-section-grey-light/30 transition-colors">
-                                      <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                          {deduction.note && (
-                                            <p className="text-white font-medium mb-1">{deduction.note}</p>
-                                          )}
-                                          <p className="text-surface-grey text-sm">
-                                            Kategoria: {deduction.category}
-                                          </p>
-                                          {deduction.createdAt && (
-                                            <p className="text-surface-grey text-xs mt-1">
-                                              Data utworzenia: {new Date(deduction.createdAt).toLocaleDateString('pl-PL')}
-                                            </p>
-                                          )}
-                                        </div>
-                                        <div className="text-right">
-                                          <span className="text-red-400 font-bold text-lg">
-                                            -{deduction.amount.toFixed(2)} PLN
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </Card>
-                          ))}
-                        </div>
-                      )}
-                    </Card>
-                  );
-                })}
-
-              {/* Total Summary */}
-              <Card className="bg-section-grey-light border-2 border-red-900/50">
-                <div className="flex items-center justify-between p-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-white">Suma wszystkich obciążeń</h3>
-                    <p className="text-surface-grey">
-                      {employeeDeductions.length} {employeeDeductions.length === 1 ? 'obciążenie' : 'obciążeń'} w sumie
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-red-400 font-bold text-2xl">
-                      -{calculateTotalDeductions().toFixed(2)} PLN
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Assign Tool Modal */}
-      <Modal show={showAssignToolModal} onClose={handleCloseAssignToolModal}>
-        <Modal.Header className="bg-section-grey border-lighter-border">
-          <span className="text-white">
-            Przypisz narzędzie do {employee.firstName} {employee.lastName}
-          </span>
-        </Modal.Header>
-        <Modal.Body className="bg-section-grey">
-          <form onSubmit={handleSubmitTool(onSubmitToolAssignment)} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                Narzędzie
-              </label>
-              <select
-                {...registerTool('toolId', { required: 'Tool is required' })}
-                className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
-              >
-                <option value="">Wybierz narzędzie</option>
-                {availableTools.map((tool) => (
-                  <option key={tool.uuid} value={tool.uuid}>
-                    {tool.name}{tool.factoryNumber ? ` - ${tool.factoryNumber}` : ''} (Dostępne: {tool.availableQuantity || 0})
-                  </option>
-                ))}
-              </select>
-              {toolErrors.toolId && (
-                <p className="mt-1 text-sm text-red-400">{toolErrors.toolId.message}</p>
-              )}
-            </div>
-
-            <Input
-              id="quantity"
-              label="Ilość"
-              type="number"
-              min="1"
-              {...registerTool('quantity', { 
-                required: 'Quantity is required',
-                min: { value: 1, message: 'Quantity must be at least 1' }
-              })}
-              error={toolErrors.quantity?.message}
-              className="bg-section-grey-light"
-            />
-
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                Stan
-              </label>
-              <select
-                {...registerTool('condition', { required: 'Condition is required' })}
-                className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
-              >
-                <option value={ToolCondition.NEW}>{ToolCondition.NEW}</option>
-                <option value={ToolCondition.GOOD}>{ToolCondition.GOOD}</option>
-                <option value={ToolCondition.POOR}>{ToolCondition.POOR}</option>
-              </select>
-              {toolErrors.condition && (
-                <p className="mt-1 text-sm text-red-400">{toolErrors.condition.message}</p>
-              )}
-            </div>
-
-            <Input
-              id="assignedAt"
-              label="Data przypisania"
-              type="date"
-              {...registerTool('assignedAt', { required: 'Assignment date is required' })}
-              error={toolErrors.assignedAt?.message}
-              className="bg-section-grey-light"
-            />
-          </form>
-        </Modal.Body>
-        <Modal.Footer className="bg-section-grey border-lighter-border">
-          <Button
-            color="primary"
-            onClick={handleSubmitTool(onSubmitToolAssignment)}
-            disabled={assignToolMutation.isPending}
-          >
-            {assignToolMutation.isPending ? (
-              <div className="flex items-center gap-2">
-                <div className="spinner w-4 h-4"></div>
-                Przypisywanie...
-              </div>
-            ) : (
-              'Przypisz narzędzie'
-            )}
-          </Button>
-          <Button color="gray" onClick={handleCloseAssignToolModal}>
-            Anuluj
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Remove Tool Modal */}
-      <Modal show={showRemoveToolModal} onClose={handleCloseRemoveToolModal}>
-        <Modal.Header className="bg-section-grey border-lighter-border">
-          <span className="text-white">
-            Usuń narzędzie od {employee.firstName} {employee.lastName}
-          </span>
-        </Modal.Header>
-        <Modal.Body className="bg-section-grey">
-          <div className="mb-4">
-            <p className="text-white">
-              Narzędzie: <span className="font-medium">{selectedToolForRemoval?.toolName}</span>
-            </p>
-            <p className="text-surface-grey text-sm">
-              Aktualnie przypisane: {selectedToolForRemoval?.quantity} sztuk
-            </p>
-          </div>
-          <form onSubmit={handleSubmitRemove(onSubmitToolRemoval)} className="space-y-4">
-            <Input
-              id="quantity"
-              label="Ilość do usunięcia"
-              type="number"
-              min="1"
-              max={selectedToolForRemoval?.quantity || 1}
-              {...registerRemove('quantity', { 
-                required: 'Quantity is required',
-                min: { value: 1, message: 'Quantity must be at least 1' },
-                max: { value: selectedToolForRemoval?.quantity || 1, message: `Cannot remove more than ${selectedToolForRemoval?.quantity}` }
-              })}
-              error={removeErrors.quantity?.message}
-              className="bg-section-grey-light"
-            />
-          </form>
-        </Modal.Body>
-        <Modal.Footer className="bg-section-grey border-lighter-border">
-          <Button
-            color="primary"
-            onClick={handleSubmitRemove(onSubmitToolRemoval)}
-            disabled={unassignToolMutation.isPending}
-            className="bg-red-900 hover:bg-red-800"
-          >
-            {unassignToolMutation.isPending ? (
-              <div className="flex items-center gap-2">
-                <div className="spinner w-4 h-4"></div>
-                Usuwanie...
-              </div>
-            ) : (
-              'Usuń narzędzie'
-            )}
-          </Button>
-          <Button color="gray" onClick={handleCloseRemoveToolModal}>
-            Anuluj
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
+      {/* Edit Employee Modal */}
       <Modal show={showEditModal} onClose={handleCloseEditModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
@@ -1000,7 +239,7 @@ const EmployeeDetailPage: React.FC = () => {
                 label="Stawka godzinowa (zł)"
                 type="number"
                 step="0.01"
-                {...registerEdit('hourlyRate', { 
+                {...registerEdit('hourlyRate', {
                   required: VALIDATION.REQUIRED,
                   min: { value: 0, message: VALIDATION.POSITIVE_NUMBER }
                 })}

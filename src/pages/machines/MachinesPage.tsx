@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { machinesApi } from '../../api/machines';
 import { employeesApi } from '../../api/employees';
-import type { MachineDto } from '../../types';
+import type { MachineDto, CreateMachineInspectionDto } from '../../types';
 import { QUERY_KEYS, VALIDATION } from '../../constants';
 import { toast } from '../../lib/toast';
 import Table from '../../components/common/Table';
@@ -115,7 +115,7 @@ const MachinesPage: React.FC = () => {
   });
 
   const inspectionMutation = useMutation({
-    mutationFn: ({ machineId, inspection }: { machineId: string; inspection: any }) => 
+    mutationFn: ({ machineId, inspection }: { machineId: string; inspection: CreateMachineInspectionDto }) =>
       machinesApi.createInspection(machineId, inspection),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });

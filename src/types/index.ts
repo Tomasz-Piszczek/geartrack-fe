@@ -29,6 +29,7 @@ export interface MachineDto {
   totalInspections?: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface AssignMachineDto {
 }
 
@@ -206,4 +207,29 @@ export interface AssignUserRequest {
   userEmail: string;
   organizationId: string;
   role?: 'ADMIN' | 'USER' | 'SUPER_USER';
+}
+
+export type UrlopStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
+
+export interface UrlopDto {
+  id?: string;
+  employeeId: string;
+  employeeFirstName?: string;
+  employeeLastName?: string;
+  fromDate: string;
+  toDate: string;
+  note?: string;
+  status: UrlopStatus;
+}
+
+export type BadanieSzkolenieStatus = 'OCZEKUJACY' | 'UKONCZONY';
+
+export interface BadanieSzkolenieDto {
+  id?: string;
+  employeeId: string;
+  employeeFirstName?: string;
+  employeeLastName?: string;
+  date: string;
+  category: string;
+  status: BadanieSzkolenieStatus;
 }

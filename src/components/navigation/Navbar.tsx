@@ -1,5 +1,5 @@
 import React from 'react';
-import { HiLogout, HiAdjustments } from 'react-icons/hi';
+import { HiLogout } from 'react-icons/hi';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../constants';
@@ -12,10 +12,6 @@ const MainNavbar: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate(ROUTES.LOGIN);
-  };
-
-  const handleSettings = () => {
-    navigate(ROUTES.SETTINGS);
   };
 
   return (
@@ -36,13 +32,6 @@ const MainNavbar: React.FC = () => {
               <div className="flex flex-col">
                 <span className="text-sm text-white">{user?.email}</span>
                 <div className="flex gap-2 mt-1">
-                  <button
-                    onClick={handleSettings}
-                    className="flex items-center gap-1 text-xs text-surface-grey-dark hover:text-white transition-colors"
-                  >
-                    <HiAdjustments className="w-3 h-3" />
-                    Ustawienia
-                  </button>
                   <button
                     onClick={handleLogout}
                     className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors"

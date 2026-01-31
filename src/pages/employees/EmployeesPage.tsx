@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiPlus, HiSearch, HiUser } from 'react-icons/hi';
+import { HiPlus, HiSearch, HiUser, HiAcademicCap } from 'react-icons/hi';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
@@ -13,6 +13,8 @@ import { QUERY_KEYS, VALIDATION } from '../../constants';
 import { toast } from '../../lib/toast';
 import Modal from '../../components/common/Modal';
 import { useAuth } from '../../context/AuthContext';
+import { useUrlopy } from '../../context/UrlopContext';
+import { useBadaniaSzkolenia } from '../../context/BadaniaSzkolenieContext';
 
 interface EmployeeFormData {
   firstName: string;
@@ -24,6 +26,8 @@ interface EmployeeFormData {
 const EmployeesPage: React.FC = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const { urlopy } = useUrlopy();
+  const { getUpcomingByEmployeeId, badaniaSzkolenia } = useBadaniaSzkolenia();
   const [showModal, setShowModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeDto | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -138,6 +142,36 @@ const EmployeesPage: React.FC = () => {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
+  const hasPendingUrlopy = (employeeId: string) => {
+    return urlopy.some(u => u.employeeId === employeeId && u.status === 'PENDING');
+  };
+
+  const hasExpiredBadania = (employeeId: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return badaniaSzkolenia.some(b => {
+      const badanieDate = new Date(b.date);
+      badanieDate.setHours(0, 0, 0, 0);
+      return b.employeeId === employeeId && b.status === 'OCZEKUJACY' && badanieDate < today;
+    });
+  };
+
+  const hasExpiringSoonBadania = (employeeId: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const sevenDaysFromNow = new Date(today);
+    sevenDaysFromNow.setDate(today.getDate() + 7);
+    return badaniaSzkolenia.some(b => {
+      const badanieDate = new Date(b.date);
+      badanieDate.setHours(0, 0, 0, 0);
+      return b.employeeId === employeeId && b.status === 'OCZEKUJACY' && badanieDate >= today && badanieDate <= sevenDaysFromNow;
+    });
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pl-PL');
+  };
+
   return (
     <div className="fade-in">
       <div className="flex justify-between items-center mb-8">
@@ -178,21 +212,54 @@ const EmployeesPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {employees.map((employee) => (
-            <Card 
-              key={employee.uuid} 
-              className="card hover:shadow-lg transition-all cursor-pointer group"
+            <Card
+              key={employee.uuid}
+              className="card hover:shadow-lg transition-all cursor-pointer group relative"
               onClick={() => navigate(`/employees/${employee.uuid}`)}
             >
+              {isAdmin() && (
+                <div className="absolute top-3 right-3 flex gap-1">
+                  {hasPendingUrlopy(employee.uuid!) && (
+                    <div className="flex items-center justify-center w-6 h-6 bg-green-500 rounded-full animate-pulse">
+                      <span className="text-white text-xs font-bold">!</span>
+                    </div>
+                  )}
+                  {hasExpiredBadania(employee.uuid!) && (
+                    <div className="flex items-center justify-center w-6 h-6 bg-red-500 rounded-full animate-pulse">
+                      <span className="text-white text-xs font-bold">!</span>
+                    </div>
+                  )}
+                  {hasExpiringSoonBadania(employee.uuid!) && (
+                    <div className="flex items-center justify-center w-6 h-6 bg-orange-500 rounded-full animate-pulse">
+                      <span className="text-white text-xs font-bold">!</span>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 rounded-full bg-dark-green flex items-center justify-center mb-4 group-hover:bg-dark-green/80 transition-colors">
                   <span className="text-white font-bold text-lg">
                     {getInitials(employee.firstName, employee.lastName)}
                   </span>
                 </div>
-                
-                <h3 className="text-xl font-semibold text-white mb-6 group-hover:text-dark-green transition-colors">
+
+                <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-dark-green transition-colors">
                   {employee.firstName} {employee.lastName}
                 </h3>
+
+                {(() => {
+                  const upcoming = getUpcomingByEmployeeId(employee.uuid!);
+                  return upcoming ? (
+                    <div className="mt-4 p-3 bg-section-grey-dark rounded-lg w-full">
+                      <div className="flex items-center gap-2 mb-2">
+                        <HiAcademicCap className="w-4 h-4 text-blue-400" />
+                        <p className="text-xs text-surface-grey font-medium">Nadchodzące szkolenie:</p>
+                      </div>
+                      <p className="text-sm text-white font-semibold">{upcoming.category}</p>
+                      <p className="text-xs text-surface-grey-dark mt-1">{formatDate(upcoming.date)}</p>
+                    </div>
+                  ) : null;
+                })()}
 
               </div>
             </Card>

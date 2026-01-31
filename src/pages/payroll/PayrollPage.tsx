@@ -92,13 +92,33 @@ const PayrollPage: React.FC = () => {
     },
   });
 
+  // Helper functions defined before useEffect to avoid Temporal Dead Zone error
+  const roundDailyHours = (hours: number): number => {
+    const wholeHours = Math.floor(hours);
+    const minutes = Math.round((hours - wholeHours) * 60);
+    return minutes >= 45 ? wholeHours + 1 : wholeHours;
+  };
+
+  const calculateRoundedTotalHours = (dailyHours: DailyHoursDto[]): number => {
+    return dailyHours.reduce((sum, day) => sum + roundDailyHours(day.hours), 0);
+  };
+
+  const calculateActualTotalHours = (dailyHours: DailyHoursDto[]): number => {
+    return dailyHours.reduce((sum, day) => sum + day.hours, 0);
+  };
+
+  const calculateCashAmount = (record: PayrollRecordDto): number => {
+    const deductionsTotal = record.payrollDeductions?.reduce((sum, deduction) => sum + deduction.amount, 0) || 0;
+    const total = (record.hoursWorked * record.hourlyRate) + record.bonus + record.sickLeavePay - deductionsTotal - record.bankTransfer;
+    return Math.max(0, total);
+  };
 
   useEffect(() => {
     const fetchHoursFromBiAnalytics = async () => {
       if (!records) return;
 
       const employeeNamesToFetch = records
-        .filter(record => (!record.hoursWorked || record.hoursWorked === 0) && record.employeeName)
+        .filter(record => record.employeeName)
         .map(record => record.employeeName);
 
       let hoursMap: Record<string, number> = {};
@@ -124,7 +144,7 @@ const PayrollPage: React.FC = () => {
 
       const updatedRecords = records.map(record => {
         const deductionsTotal = record.payrollDeductions?.reduce((sum, deduction) => sum + deduction.amount, 0) || 0;
-        const hoursWorked = hoursMap[record.employeeName] || record.hoursWorked || 0;
+        const hoursWorked = record.hoursWorked || hoursMap[record.employeeName] || 0;
 
         return {
           ...record,
@@ -139,12 +159,6 @@ const PayrollPage: React.FC = () => {
 
     fetchHoursFromBiAnalytics();
   }, [records, selectedYear, selectedMonth]);
-
-  const calculateCashAmount = (record: PayrollRecordDto): number => {
-    const deductionsTotal = record.payrollDeductions?.reduce((sum, deduction) => sum + deduction.amount, 0) || 0;
-    const total = (record.hoursWorked * record.hourlyRate) + record.bonus + record.sickLeavePay - deductionsTotal - record.bankTransfer;
-    return Math.max(0, total);
-  };
 
   const parseTimeToDecimal = (timeString: string): number => {
     if (!timeString || timeString.trim() === '') return 0;
@@ -165,20 +179,6 @@ const PayrollPage: React.FC = () => {
     }
 
     return 0;
-  };
-
-  const roundDailyHours = (hours: number): number => {
-    const wholeHours = Math.floor(hours);
-    const minutes = Math.round((hours - wholeHours) * 60);
-    return minutes >= 45 ? wholeHours + 1 : wholeHours;
-  };
-
-  const calculateRoundedTotalHours = (dailyHours: DailyHoursDto[]): number => {
-    return dailyHours.reduce((sum, day) => sum + roundDailyHours(day.hours), 0);
-  };
-
-  const calculateActualTotalHours = (dailyHours: DailyHoursDto[]): number => {
-    return dailyHours.reduce((sum, day) => sum + day.hours, 0);
   };
 
   const updateRecord = (index: number, field: keyof PayrollRecordDto, value: number | string) => {

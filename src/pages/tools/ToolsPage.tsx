@@ -249,7 +249,7 @@ const ToolsPage: React.FC = () => {
 
             <Input
               id="factoryNumber"
-              label="Numer fabryczny (opcjonalny)"
+              label="Numer fabryczny"
               {...register('factoryNumber')}
               error={errors.factoryNumber?.message}
               className="bg-section-grey-light"

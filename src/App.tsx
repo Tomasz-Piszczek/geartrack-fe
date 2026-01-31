@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/query-client';
 import { AuthProvider } from './context/AuthContext';
+import { UrlopProvider } from './context/UrlopContext';
+import { BadaniaSzkolenieProvider } from './context/BadaniaSzkolenieContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './layouts/MainLayout';
 import LoginPage from './pages/auth/LoginPage';
@@ -13,7 +15,6 @@ import PayrollPage from './pages/payroll/PayrollPage';
 import QuotesListPage from './pages/quotes/QuotesListPage';
 import QuoteCreatePage from './pages/quotes/QuoteCreatePage';
 import QuoteEditPage from './pages/quotes/QuoteEditPage';
-import SettingsPage from './pages/settings/SettingsPage';
 import ToastContainer from './components/common/ToastContainer';
 import { ROUTES } from './constants';
 
@@ -21,9 +22,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
-          <div className="min-h-screen bg-background-black">
-            <Routes>
+        <UrlopProvider>
+          <BadaniaSzkolenieProvider>
+            <Router>
+            <div className="min-h-screen bg-background-black">
+              <Routes>
               <Route path={ROUTES.LOGIN} element={<LoginPage />} />
               <Route
                 path={ROUTES.TOOLS}
@@ -105,21 +108,13 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path={ROUTES.SETTINGS}
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <SettingsPage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
               <Route path="/" element={<Navigate to={ROUTES.QUOTES} replace />} />
             </Routes>
             <ToastContainer />
           </div>
         </Router>
+          </BadaniaSzkolenieProvider>
+        </UrlopProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

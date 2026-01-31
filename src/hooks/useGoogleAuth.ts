@@ -69,7 +69,7 @@ export const useGoogleAuth = () => {
         {
           theme: 'filled_blue',
           size: 'large',
-        } as any);
+        });
       }
     }
   }, []);

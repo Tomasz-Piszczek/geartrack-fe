@@ -1,20 +1,23 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  HiCog, 
-  HiUsers, 
+import {
+  HiCog,
+  HiUsers,
   HiDesktopComputer,
   HiDocumentText,
-  HiAdjustments,
   HiCurrencyDollar
 } from 'react-icons/hi';
 import { ROUTES } from '../../constants';
 import Brand from './Brand';
 import { useAuth } from '../../context/AuthContext';
+import { useUrlopy } from '../../context/UrlopContext';
+import { useBadaniaSzkolenia } from '../../context/BadaniaSzkolenieContext';
 
 const MainSidebar: React.FC = () => {
   const location = useLocation();
-  const { isUserOrSuperUser } = useAuth();
+  const { isUserOrSuperUser, isAdmin } = useAuth();
+  const { pendingCount } = useUrlopy();
+  const { expiredCount, expiringSoonCount } = useBadaniaSzkolenia();
   const active = 'border-r-[4px] border-r-main bg-gradient-hover';
 
   const allNavigationItems = [
@@ -43,11 +46,6 @@ const MainSidebar: React.FC = () => {
       label: 'Wyceny',
       icon: HiDocumentText,
     },
-    {
-      path: ROUTES.SETTINGS,
-      label: 'Ustawienia',
-      icon: HiAdjustments,
-    },
   ];
 
   // Filter navigation items based on user role
@@ -68,7 +66,7 @@ const MainSidebar: React.FC = () => {
   return (
     <>
       <style>{sidebarItemStyle}</style>
-      <div className="w-52 hide-scrollbar flex h-full flex-col justify-between pt-2 pr-2 overflow-y-auto bg-background-sidebar">
+      <div className="w-60 hide-scrollbar flex h-full flex-col justify-between pt-2 pr-2 overflow-y-auto bg-background-sidebar">
         <div>
           <div className="mb-8 mt-4">
             <Brand />
@@ -103,6 +101,25 @@ const MainSidebar: React.FC = () => {
                   />
                 </div>
                 <span className="text-white ml-3">{item.label}</span>
+                {item.path === ROUTES.EMPLOYEES && (
+                  <div className="ml-auto flex gap-1">
+                    {isAdmin() && pendingCount > 0 && (
+                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-green-500 rounded-full text-white text-xs font-bold">
+                        {pendingCount}
+                      </span>
+                    )}
+                    {isAdmin() && expiredCount > 0 && (
+                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-red-500 rounded-full text-white text-xs font-bold">
+                        {expiredCount}
+                      </span>
+                    )}
+                    {isAdmin() && expiringSoonCount > 0 && (
+                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-orange-500 rounded-full text-white text-xs font-bold">
+                        {expiringSoonCount}
+                      </span>
+                    )}
+                  </div>
+                )}
               </Link>
             ))}
           </div>

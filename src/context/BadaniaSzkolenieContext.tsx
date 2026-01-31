@@ -1,0 +1,166 @@
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import type { BadanieSzkolenieDto } from '../types/index';
+import { API_BASE_URL, API_ENDPOINTS } from '../constants';
+
+interface BadaniaSzkolenieContextType {
+  badaniaSzkolenia: BadanieSzkolenieDto[];
+  expiredCount: number;
+  expiringSoonCount: number;
+  getBadaniaSzkoleniaByEmployeeId: (employeeId: string) => BadanieSzkolenieDto[];
+  getUpcomingByEmployeeId: (employeeId: string) => BadanieSzkolenieDto | null;
+  isConnected: boolean;
+}
+
+const BadaniaSzkolenieContext = createContext<BadaniaSzkolenieContextType | undefined>(undefined);
+
+export const BadaniaSzkolenieProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [badaniaSzkolenia, setBadaniaSzkolenia] = useState<BadanieSzkolenieDto[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
+
+  const connectSSE = useCallback(() => {
+    const token = localStorage.getItem('geartrack_token');
+    if (!token) {
+      console.log('[BadaniaSzkolenieSSE] No token, skipping SSE connection');
+      return null;
+    }
+
+    const sseUrl = `${API_BASE_URL}${API_ENDPOINTS.BADANIA_SZKOLENIA.STREAM}?token=${encodeURIComponent(token)}`;
+    const eventSource = new EventSource(sseUrl);
+
+    eventSource.onopen = () => {
+      console.log('[BadaniaSzkolenieSSE] Connection established');
+      setIsConnected(true);
+    };
+
+    eventSource.addEventListener('INITIAL', (event) => {
+      console.log('[BadaniaSzkolenieSSE] Received initial data');
+      try {
+        const data = JSON.parse(event.data) as BadanieSzkolenieDto[];
+        setBadaniaSzkolenia(data);
+      } catch (error) {
+        console.error('[BadaniaSzkolenieSSE] Error parsing initial data:', error);
+      }
+    });
+
+    eventSource.addEventListener('CREATE', (event) => {
+      console.log('[BadaniaSzkolenieSSE] Received CREATE event');
+      try {
+        const newBadanie = JSON.parse(event.data) as BadanieSzkolenieDto;
+        setBadaniaSzkolenia(prev => [...prev, newBadanie]);
+      } catch (error) {
+        console.error('[BadaniaSzkolenieSSE] Error parsing CREATE data:', error);
+      }
+    });
+
+    eventSource.addEventListener('UPDATE', (event) => {
+      console.log('[BadaniaSzkolenieSSE] Received UPDATE event');
+      try {
+        const updatedBadanie = JSON.parse(event.data) as BadanieSzkolenieDto;
+        setBadaniaSzkolenia(prev =>
+          prev.map(b => b.id === updatedBadanie.id ? updatedBadanie : b)
+        );
+      } catch (error) {
+        console.error('[BadaniaSzkolenieSSE] Error parsing UPDATE data:', error);
+      }
+    });
+
+    eventSource.addEventListener('DELETE', (event) => {
+      console.log('[BadaniaSzkolenieSSE] Received DELETE event');
+      try {
+        const deletedBadanie = JSON.parse(event.data) as BadanieSzkolenieDto;
+        setBadaniaSzkolenia(prev => prev.filter(b => b.id !== deletedBadanie.id));
+      } catch (error) {
+        console.error('[BadaniaSzkolenieSSE] Error parsing DELETE data:', error);
+      }
+    });
+
+    eventSource.onerror = (error) => {
+      console.error('[BadaniaSzkolenieSSE] Error:', error);
+      setIsConnected(false);
+      eventSource.close();
+
+      setTimeout(() => {
+        console.log('[BadaniaSzkolenieSSE] Retrying connection...');
+        connectSSE();
+      }, 5000);
+    };
+
+    return eventSource;
+  }, []);
+
+  useEffect(() => {
+    const eventSource = connectSSE();
+
+    return () => {
+      if (eventSource) {
+        console.log('[BadaniaSzkolenieSSE] Closing connection');
+        eventSource.close();
+      }
+    };
+  }, [connectSSE]);
+
+  const getBadaniaSzkoleniaByEmployeeId = useCallback((employeeId: string): BadanieSzkolenieDto[] => {
+    return badaniaSzkolenia.filter(b => b.employeeId === employeeId);
+  }, [badaniaSzkolenia]);
+
+  const getUpcomingByEmployeeId = useCallback((employeeId: string): BadanieSzkolenieDto | null => {
+    const today = new Date();
+    const fourteenDaysFromNow = new Date();
+    fourteenDaysFromNow.setDate(today.getDate() + 14);
+
+    const upcoming = badaniaSzkolenia
+      .filter(b =>
+        b.employeeId === employeeId &&
+        b.status === 'OCZEKUJACY' &&
+        new Date(b.date) >= today &&
+        new Date(b.date) <= fourteenDaysFromNow
+      )
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return upcoming.length > 0 ? upcoming[0] : null;
+  }, [badaniaSzkolenia]);
+
+  const { expiredCount, expiringSoonCount } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const sevenDaysFromNow = new Date(today);
+    sevenDaysFromNow.setDate(today.getDate() + 7);
+
+    const expired = badaniaSzkolenia.filter(b => {
+      const badanieDate = new Date(b.date);
+      badanieDate.setHours(0, 0, 0, 0);
+      return b.status === 'OCZEKUJACY' && badanieDate < today;
+    }).length;
+
+    const expiringSoon = badaniaSzkolenia.filter(b => {
+      const badanieDate = new Date(b.date);
+      badanieDate.setHours(0, 0, 0, 0);
+      return b.status === 'OCZEKUJACY' && badanieDate >= today && badanieDate <= sevenDaysFromNow;
+    }).length;
+
+    return { expiredCount: expired, expiringSoonCount: expiringSoon };
+  }, [badaniaSzkolenia]);
+
+  return (
+    <BadaniaSzkolenieContext.Provider
+      value={{
+        badaniaSzkolenia,
+        expiredCount,
+        expiringSoonCount,
+        getBadaniaSzkoleniaByEmployeeId,
+        getUpcomingByEmployeeId,
+        isConnected
+      }}
+    >
+      {children}
+    </BadaniaSzkolenieContext.Provider>
+  );
+};
+
+export const useBadaniaSzkolenia = () => {
+  const context = useContext(BadaniaSzkolenieContext);
+  if (context === undefined) {
+    throw new Error('useBadaniaSzkolenia must be used within a BadaniaSzkolenieProvider');
+  }
+  return context;
+};

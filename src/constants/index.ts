@@ -44,6 +44,17 @@ export const API_ENDPOINTS = {
     ME: '/api/users/me',
     UPDATE_ROLE: (id: string) => `/api/users/${id}/role`,
   },
+  URLOPY: {
+    BY_EMPLOYEE: (employeeId: string) => `/api/urlopy/${employeeId}`,
+    BY_ID: (id: string) => `/api/urlopy/${id}`,
+    STREAM: '/api/urlopy/stream',
+  },
+  BADANIA_SZKOLENIA: {
+    BY_EMPLOYEE: (employeeId: string) => `/api/badania-szkolenia/${employeeId}`,
+    BY_ID: (id: string) => `/api/badania-szkolenia/${id}`,
+    CATEGORIES: '/api/badania-szkolenia/categories',
+    STREAM: '/api/badania-szkolenia/stream',
+  },
 } as const;
 
 export const QUERY_KEYS = {
@@ -57,6 +68,8 @@ export const QUERY_KEYS = {
   PRODUCT_GROUPS: 'product-groups',
   ORGANIZATIONS: 'organizations',
   USERS: 'users',
+  URLOPY: 'urlopy',
+  BADANIA_SZKOLENIA: 'badania-szkolenia',
 } as const;
 
 export const STORAGE_KEYS = {
@@ -74,7 +87,6 @@ export const ROUTES = {
   EMPLOYEE_DETAIL: '/employees/:id',
   PAYROLL: '/payroll',
   QUOTES: '/quotes',
-  SETTINGS: '/settings',
 } as const;
 
 export const VALIDATION = {
