@@ -16,9 +16,31 @@ const BadaniaSzkolenieContext = createContext<BadaniaSzkolenieContextType | unde
 export const BadaniaSzkolenieProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [badaniaSzkolenia, setBadaniaSzkolenia] = useState<BadanieSzkolenieDto[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('geartrack_token'));
+
+  // Monitor token changes in localStorage
+  useEffect(() => {
+    const checkToken = () => {
+      const currentToken = localStorage.getItem('geartrack_token');
+      setToken(currentToken);
+    };
+
+    // Check immediately
+    checkToken();
+
+    // Listen for storage events (token changes from other tabs)
+    window.addEventListener('storage', checkToken);
+
+    // Poll for token changes in same tab (since storage events don't fire in same tab)
+    const interval = setInterval(checkToken, 1000);
+
+    return () => {
+      window.removeEventListener('storage', checkToken);
+      clearInterval(interval);
+    };
+  }, []);
 
   const connectSSE = useCallback(() => {
-    const token = localStorage.getItem('geartrack_token');
     if (!token) {
       console.log('[BadaniaSzkolenieSSE] No token, skipping SSE connection');
       return null;
@@ -86,7 +108,7 @@ export const BadaniaSzkolenieProvider: React.FC<{ children: React.ReactNode }> =
     };
 
     return eventSource;
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     const eventSource = connectSSE();
