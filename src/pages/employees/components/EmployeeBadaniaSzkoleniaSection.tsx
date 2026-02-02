@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { HiTrash, HiPencil, HiCalendar } from 'react-icons/hi';
 import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
@@ -6,7 +6,7 @@ import Modal from '../../../components/common/Modal';
 import Table from '../../../components/common/Table';
 import Input from '../../../components/common/Input';
 import { useMutation } from '@tanstack/react-query';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { badaniaSzkoleniaApi } from '../../../api/badaniaSzkolenia';
 import { VALIDATION } from '../../../constants';
 import type { BadanieSzkolenieDto, BadanieSzkolenieStatus } from '../../../types/index';
@@ -28,7 +28,7 @@ export interface EmployeeBadaniaSzkoleniaSectionRef {
   openAddModal: () => void;
 }
 
-const EmployeeBadaniaSzkoleniaSection = forwardRef<EmployeeBadaniaSzkoleniaSectionRef, EmployeeBadaniaSzkoleniaSectionProps>(({ employeeId, employeeName, isAdmin }, ref) => {
+const EmployeeBadaniaSzkoleniaSection = forwardRef<EmployeeBadaniaSzkoleniaSectionRef, EmployeeBadaniaSzkoleniaSectionProps>(({ employeeId, isAdmin }, ref) => {
   const [showModal, setShowModal] = useState(false);
   const [selectedBadanie, setSelectedBadanie] = useState<BadanieSzkolenieDto | null>(null);
   const [page, setPage] = useState(1);
@@ -42,12 +42,8 @@ const EmployeeBadaniaSzkoleniaSection = forwardRef<EmployeeBadaniaSzkoleniaSecti
     handleSubmit,
     formState: { errors },
     reset,
-    control,
-    watch,
     setValue,
   } = useForm<BadanieSzkolenieFormData>();
-
-  const categoryValue = watch('category');
 
   useEffect(() => {
     const fetchCategories = async () => {

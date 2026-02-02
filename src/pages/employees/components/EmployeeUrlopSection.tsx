@@ -1,11 +1,11 @@
-import React, { useState, forwardRef, useImperativeHandle } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import { HiTrash, HiPencil, HiCalendar, HiDocumentText } from 'react-icons/hi';
 import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
 import Modal from '../../../components/common/Modal';
 import Table from '../../../components/common/Table';
 import Input from '../../../components/common/Input';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { urlopyApi } from '../../../api/urlopy';
 import { VALIDATION } from '../../../constants';
@@ -29,14 +29,13 @@ export interface EmployeeUrlopSectionRef {
   openAddModal: () => void;
 }
 
-const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSectionProps>(({ employeeId, employeeName, isAdmin }, ref) => {
+const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSectionProps>(({ employeeId, isAdmin }, ref) => {
   const [showUrlopModal, setShowUrlopModal] = useState(false);
   const [selectedUrlop, setSelectedUrlop] = useState<UrlopDto | null>(null);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [selectedNote, setSelectedNote] = useState<string>('');
   const [urlopPage, setUrlopPage] = useState(1);
   const [urlopPerPage] = useState(5);
-  const queryClient = useQueryClient();
   const { getUrlopByEmployeeId } = useUrlopy();
 
   const {
