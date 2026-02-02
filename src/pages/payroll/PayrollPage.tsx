@@ -96,7 +96,8 @@ const PayrollPage: React.FC = () => {
   const roundDailyHours = (hours: number): number => {
     const wholeHours = Math.floor(hours);
     const minutes = Math.round((hours - wholeHours) * 60);
-    return minutes >= 45 ? wholeHours + 1 : wholeHours;
+    const rounded = minutes >= 30 ? wholeHours + 1 : wholeHours;
+    return Math.min(rounded, 10); // Cap at 10 hours max per day
   };
 
   const calculateRoundedTotalHours = (dailyHours: DailyHoursDto[]): number => {
@@ -190,11 +191,7 @@ const PayrollPage: React.FC = () => {
   };
 
   const handleSave = () => {
-    const dataToSave = payrollData.map(record => ({
-      ...record,
-      bankTransfer: 0
-    }));
-    saveMutation.mutate(dataToSave);
+    saveMutation.mutate(payrollData);
   };
 
   const openDeductionModal = (record: PayrollRecordDto) => {
@@ -400,7 +397,8 @@ const PayrollPage: React.FC = () => {
                   <th className="px-4 py-3 text-white font-medium text-center">Premia</th>
                   <th className="px-4 py-3 text-white font-medium text-center">Chorobowe</th>
                   <th className="px-4 py-3 text-white font-medium text-center">Obciążenia</th>
-                  <th className="px-4 py-3 text-white font-medium text-center">Wynik</th>
+                  <th className="px-4 py-3 text-white font-medium text-center">Na konto</th>
+                  <th className="px-4 py-3 text-white font-medium text-center">Gotówka</th>
                 </tr>
               </thead>
               <tbody>
@@ -545,6 +543,16 @@ const PayrollPage: React.FC = () => {
                         )}
                       </div>
                     </td>
+                    <td className="px-4 py-3 text-center">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={record.bankTransfer || ''}
+                        onChange={(e) => updateRecord(index, 'bankTransfer', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
+                        className="w-24 mx-auto"
+                        style={{backgroundColor: '#343434'}}
+                      />
+                    </td>
                     <td className="px-4 py-3 text-white font-medium text-center">
                       {record.cashAmount.toFixed(2)} PLN
                     </td>
@@ -557,7 +565,7 @@ const PayrollPage: React.FC = () => {
           <div className="border-t border-lighter-border bg-section-grey-light p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-lg font-bold text-white">
-                 <span>Suma wyniku na miesiąc {selectedMonthName}: {totalCash.toFixed(2)} PLN</span>
+                 <span>Suma gotówki na miesiąc {selectedMonthName}: {totalCash.toFixed(2)} PLN</span>
               </div>
               <Button
                 color="primary"
