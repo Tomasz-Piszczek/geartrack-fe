@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {HiSave} from 'react-icons/hi';
-import {ChevronDown, Plus, X, Trash2} from 'lucide-react';
+import {ChevronDown, Plus, X, Trash2, Check} from 'lucide-react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {payrollApi, type PayrollDeductionDto, type PayrollRecordDto} from '../../api/payroll';
 import { biServiceApi, type DailyHoursDto } from '../../api/bi-service';
@@ -191,7 +191,22 @@ const PayrollPage: React.FC = () => {
   };
 
   const handleSave = () => {
+    const invalidRecords = payrollData.filter(record => !record.hourlyRate || record.hourlyRate === 0);
+    if (invalidRecords.length > 0) {
+      const names = invalidRecords.map(r => r.employeeName).join(', ');
+      toast.error(`${names} nie może mieć pustej stawki/h`);
+      return;
+    }
     saveMutation.mutate(payrollData);
+  };
+
+  const togglePaid = (index: number) => {
+    const updated = [...payrollData];
+    updated[index] = {
+      ...updated[index],
+      paid: !updated[index].paid
+    };
+    setPayrollData(updated);
   };
 
   const openDeductionModal = (record: PayrollRecordDto) => {
@@ -399,6 +414,7 @@ const PayrollPage: React.FC = () => {
                   <th className="px-4 py-3 text-white font-medium text-center">Obciążenia</th>
                   <th className="px-4 py-3 text-white font-medium text-center">Na konto</th>
                   <th className="px-4 py-3 text-white font-medium text-center">Gotówka</th>
+                  <th className="px-4 py-3 text-white font-medium text-center w-36">Suma</th>
                 </tr>
               </thead>
               <tbody>
@@ -554,7 +570,16 @@ const PayrollPage: React.FC = () => {
                       />
                     </td>
                     <td className="px-4 py-3 text-white font-medium text-center">
-                      {record.cashAmount.toFixed(2)} PLN
+                      {record.cashAmount.toFixed(2)}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-white font-medium text-center cursor-pointer hover:bg-section-grey-light/70 transition-colors"
+                      onClick={() => togglePaid(index)}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <span>{(record.bankTransfer + record.cashAmount).toFixed(2)} PLN</span>
+                        {record.paid && <Check size={18} className="text-emerald-500" />}
+                      </div>
                     </td>
                   </tr>
                 ))}

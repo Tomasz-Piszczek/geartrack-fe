@@ -20,6 +20,7 @@ export interface PayrollRecordDto {
   deductionsNote: string | null;
   bankTransfer: number;
   cashAmount: number;
+  paid?: boolean;
   payrollDeductions?: PayrollDeductionDto[];
 }
 
