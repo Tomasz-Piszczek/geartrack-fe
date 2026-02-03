@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { UrlopDto } from '../types/index';
 import { API_BASE_URL, API_ENDPOINTS } from '../constants';
+import axios from 'axios';
 
 interface UrlopContextType {
   urlopy: UrlopDto[];
@@ -38,6 +39,27 @@ export const UrlopProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
+  // Fetch initial data via REST API
+  const fetchInitialData = useCallback(async () => {
+    if (!token) {
+      console.log('[UrlopData] No token, skipping initial data fetch');
+      return;
+    }
+
+    try {
+      console.log('[UrlopData] Fetching initial data via REST');
+      const response = await axios.get<UrlopDto[]>(`${API_BASE_URL}${API_ENDPOINTS.URLOPY.BASE}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      setUrlopy(response.data);
+      console.log('[UrlopData] Initial data loaded successfully');
+    } catch (error) {
+      console.error('[UrlopData] Error fetching initial data:', error);
+    }
+  }, [token]);
+
   const connectSSE = useCallback(() => {
     if (!token) {
       console.log('[UrlopSSE] No token, skipping SSE connection');
@@ -52,16 +74,6 @@ export const UrlopProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.log('[UrlopSSE] Connection established');
       setIsConnected(true);
     };
-
-    eventSource.addEventListener('INITIAL', (event) => {
-      console.log('[UrlopSSE] Received initial data');
-      try {
-        const data = JSON.parse(event.data) as UrlopDto[];
-        setUrlopy(data);
-      } catch (error) {
-        console.error('[UrlopSSE] Error parsing initial data:', error);
-      }
-    });
 
     eventSource.addEventListener('CREATE', (event) => {
       console.log('[UrlopSSE] Received CREATE event');
@@ -110,6 +122,12 @@ export const UrlopProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return eventSource;
   }, [token]);
 
+  // Fetch initial data when token changes
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
+
+  // Connect SSE for real-time updates
   useEffect(() => {
     const eventSource = connectSSE();
 

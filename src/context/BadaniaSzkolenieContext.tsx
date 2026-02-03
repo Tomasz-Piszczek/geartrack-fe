@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { BadanieSzkolenieDto } from '../types/index';
 import { API_BASE_URL, API_ENDPOINTS } from '../constants';
+import axios from 'axios';
 
 interface BadaniaSzkolenieContextType {
   badaniaSzkolenia: BadanieSzkolenieDto[];
@@ -40,6 +41,30 @@ export const BadaniaSzkolenieProvider: React.FC<{ children: React.ReactNode }> =
     };
   }, []);
 
+  // Fetch initial data via REST API
+  const fetchInitialData = useCallback(async () => {
+    if (!token) {
+      console.log('[BadaniaSzkolenieData] No token, skipping initial data fetch');
+      return;
+    }
+
+    try {
+      console.log('[BadaniaSzkolenieData] Fetching initial data via REST');
+      const response = await axios.get<BadanieSzkolenieDto[]>(
+        `${API_BASE_URL}${API_ENDPOINTS.BADANIA_SZKOLENIA.BASE}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      setBadaniaSzkolenia(response.data);
+      console.log('[BadaniaSzkolenieData] Initial data loaded successfully');
+    } catch (error) {
+      console.error('[BadaniaSzkolenieData] Error fetching initial data:', error);
+    }
+  }, [token]);
+
   const connectSSE = useCallback(() => {
     if (!token) {
       console.log('[BadaniaSzkolenieSSE] No token, skipping SSE connection');
@@ -53,16 +78,6 @@ export const BadaniaSzkolenieProvider: React.FC<{ children: React.ReactNode }> =
       console.log('[BadaniaSzkolenieSSE] Connection established');
       setIsConnected(true);
     };
-
-    eventSource.addEventListener('INITIAL', (event) => {
-      console.log('[BadaniaSzkolenieSSE] Received initial data');
-      try {
-        const data = JSON.parse(event.data) as BadanieSzkolenieDto[];
-        setBadaniaSzkolenia(data);
-      } catch (error) {
-        console.error('[BadaniaSzkolenieSSE] Error parsing initial data:', error);
-      }
-    });
 
     eventSource.addEventListener('CREATE', (event) => {
       console.log('[BadaniaSzkolenieSSE] Received CREATE event');
@@ -110,6 +125,12 @@ export const BadaniaSzkolenieProvider: React.FC<{ children: React.ReactNode }> =
     return eventSource;
   }, [token]);
 
+  // Fetch initial data when token changes
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
+
+  // Connect SSE for real-time updates
   useEffect(() => {
     const eventSource = connectSSE();
 
@@ -179,6 +200,7 @@ export const BadaniaSzkolenieProvider: React.FC<{ children: React.ReactNode }> =
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useBadaniaSzkolenia = () => {
   const context = useContext(BadaniaSzkolenieContext);
   if (context === undefined) {

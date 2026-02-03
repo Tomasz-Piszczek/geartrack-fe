@@ -45,11 +45,13 @@ export const API_ENDPOINTS = {
     UPDATE_ROLE: (id: string) => `/api/users/${id}/role`,
   },
   URLOPY: {
+    BASE: '/api/urlopy',
     BY_EMPLOYEE: (employeeId: string) => `/api/urlopy/${employeeId}`,
     BY_ID: (id: string) => `/api/urlopy/${id}`,
     STREAM: '/api/urlopy/stream',
   },
   BADANIA_SZKOLENIA: {
+    BASE: '/api/badania-szkolenia',
     BY_EMPLOYEE: (employeeId: string) => `/api/badania-szkolenia/${employeeId}`,
     BY_ID: (id: string) => `/api/badania-szkolenia/${id}`,
     CATEGORIES: '/api/badania-szkolenia/categories',
