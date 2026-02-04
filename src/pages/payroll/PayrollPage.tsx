@@ -2,14 +2,24 @@ import React, {useEffect, useState} from 'react';
 import {HiSave} from 'react-icons/hi';
 import {ChevronDown, Plus, X, Trash2, Check, Info, AlertCircle} from 'lucide-react';
 import {useMutation, useQuery} from '@tanstack/react-query';
-import {payrollApi, type PayrollDeductionDto, type PayrollRecordDto, type DailyBreakdownDto, type UrlopBreakdownDto} from '../../api/payroll';
-
+import {payrollApi, type PayrollDeductionDto, type PayrollRecordDto, type DailyBreakdownDto} from '../../api/payroll';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
 import Autocomplete from '../../components/common/Autocomplete';
 import {Tooltip} from '../../components/common/Tooltip';
 import {toast} from '../../lib/toast';
+
+interface ConflictItem {
+  employeeName: string;
+  conflictDates: string[];
+}
+
+interface ConflictResponse {
+  message: string;
+  status: number;
+  conflicts: ConflictItem[];
+}
 
 const URLOP_DISPLAY_NAMES: Record<string, string> = {
   'URLOP_WYPOCZYNKOWY': 'Urlop Wypoczynkowy',
@@ -26,7 +36,7 @@ const PayrollPage: React.FC = () => {
   const [showEditDeductionModal, setShowEditDeductionModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
-  const [conflictData, setConflictData] = useState<any>(null);
+  const [conflictData, setConflictData] = useState<ConflictResponse | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<PayrollRecordDto | null>(null);
   const [selectedDeduction, setSelectedDeduction] = useState<PayrollDeductionDto | null>(null);
   const [deductionForm, setDeductionForm] = useState({
@@ -71,9 +81,10 @@ const PayrollPage: React.FC = () => {
     queryFn: async () => {
       try {
         return await payrollApi.getPayrollRecords(selectedYear, selectedMonth);
-      } catch (err: any) {
-        if (err.status === 409 && err.message) {
-          setConflictData(err);
+      } catch (err: unknown) {
+        const error = err as ConflictResponse;
+        if (error.status === 409 && error.message) {
+          setConflictData(error);
           setShowConflictModal(true);
           throw err;
         }
@@ -132,10 +143,10 @@ const PayrollPage: React.FC = () => {
       const savedTotal = (savedCash ?? 0) + (record.bankTransfer || 0);
 
       // Only show discrepancy if saved total is not 0 and there's a difference
-      const hasCalcDiscrepancy = record.payrollRecordId && savedTotal !== 0 && Math.abs(calculatedCash - savedCash) > 0.01;
+      const hasCalcDiscrepancy = !!(record.payrollRecordId && savedTotal !== 0 && Math.abs(calculatedCash - savedCash) > 0.01);
 
       // Only show hours discrepancy if lastSavedHours is not 0 and there's a difference
-      const hasHoursDiscrepancy = record.hasDiscrepancy && (record.lastSavedHours ?? 0) !== 0;
+      const hasHoursDiscrepancy = !!(record.hasDiscrepancy && (record.lastSavedHours ?? 0) !== 0);
 
       return {
         ...record,
@@ -371,7 +382,6 @@ const PayrollPage: React.FC = () => {
 
   const renderWorkingHoursTooltip = (record: PayrollRecordDto) => {
     const totalWorkHours = record.dailyBreakdown?.reduce((sum, day) => sum + day.roundedHours, 0) || 0;
-    const totalUrlopHours = record.urlopBreakdown?.reduce((sum, urlop) => sum + urlop.totalHours, 0) || 0;
 
     const hourlyRate = record.hourlyRate || 0;
     const bonus = record.bonus || 0;
@@ -882,7 +892,7 @@ const PayrollPage: React.FC = () => {
         <Modal.Body className="bg-section-grey">
           <div className="text-white space-y-4">
             <p className="font-semibold">Znaleziono konflikty między godzinami pracy a urlopami:</p>
-            {conflictData?.conflicts && conflictData.conflicts.map((conflict: any, idx: number) => (
+            {conflictData?.conflicts && conflictData.conflicts.map((conflict: ConflictItem, idx: number) => (
               <div key={idx} className="bg-section-grey-light rounded-lg overflow-hidden">
                 <button
                   onClick={() => setExpandedConflicts(prev => ({

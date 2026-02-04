@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiPlus, HiSearch, HiUser, HiAcademicCap } from 'react-icons/hi';
 import Button from '../../components/common/Button';
@@ -8,13 +8,14 @@ import Pagination from '../../components/common/Pagination';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { employeesApi } from '../../api/employees';
-import type { EmployeeDto, PaginationParams } from '../../types';
+import type { EmployeeDto, PaginationParams, UrlopDto, BadanieSzkolenieDto } from '../../types';
 import { QUERY_KEYS, VALIDATION } from '../../constants';
 import { toast } from '../../lib/toast';
 import Modal from '../../components/common/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useUrlopy } from '../../context/UrlopContext';
 import { useBadaniaSzkolenia } from '../../context/BadaniaSzkolenieContext';
+import { Tooltip } from '../../components/common/Tooltip';
 
 interface EmployeeFormData {
   firstName: string;
@@ -142,34 +143,133 @@ const EmployeesPage: React.FC = () => {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
-  const hasPendingUrlopy = (employeeId: string) => {
-    return urlopy.some(u => u.employeeId === employeeId && u.status === 'PENDING');
-  };
-
-  const hasExpiredBadania = (employeeId: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return badaniaSzkolenia.some(b => {
-      const badanieDate = new Date(b.date);
-      badanieDate.setHours(0, 0, 0, 0);
-      return b.employeeId === employeeId && b.status === 'OCZEKUJACY' && badanieDate < today;
-    });
-  };
-
-  const hasExpiringSoonBadania = (employeeId: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const sevenDaysFromNow = new Date(today);
-    sevenDaysFromNow.setDate(today.getDate() + 7);
-    return badaniaSzkolenia.some(b => {
-      const badanieDate = new Date(b.date);
-      badanieDate.setHours(0, 0, 0, 0);
-      return b.employeeId === employeeId && b.status === 'OCZEKUJACY' && badanieDate >= today && badanieDate <= sevenDaysFromNow;
-    });
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pl-PL');
+  };
+
+  type NotificationColor = 'green' | 'orange' | 'red';
+
+  interface NotificationItem {
+    type: 'urlop' | 'badanie';
+    color: NotificationColor;
+    message: string;
+    date: string;
+    daysRemaining: number;
+  }
+
+  const getEmployeeNotifications = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return (employeeId: string): NotificationItem[] => {
+      const notifications: NotificationItem[] = [];
+
+      // Check urlops (pending) - use fromDate
+      const pendingUrlopy = urlopy.filter(u => u.employeeId === employeeId && u.status === 'PENDING');
+      pendingUrlopy.forEach((urlop: UrlopDto) => {
+        const fromDate = new Date(urlop.fromDate);
+        fromDate.setHours(0, 0, 0, 0);
+        const daysRemaining = Math.ceil((fromDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        let color: NotificationColor;
+        if (daysRemaining < 0) {
+          color = 'red';
+        } else if (daysRemaining <= 7) {
+          color = 'orange';
+        } else {
+          color = 'green';
+        }
+
+        const categoryNames: Record<string, string> = {
+          'URLOP_WYPOCZYNKOWY': 'Urlop wypoczynkowy',
+          'URLOP_MACIERZYNSKI': 'Urlop macierzyński',
+          'URLOP_BEZPLATNY': 'Urlop bezpłatny',
+        };
+
+        notifications.push({
+          type: 'urlop',
+          color,
+          message: `${categoryNames[urlop.category] || urlop.category} do zatwierdzenia`,
+          date: urlop.fromDate,
+          daysRemaining,
+        });
+      });
+
+      // Check badania/szkolenia (OCZEKUJACY) - use date
+      const pendingBadania = badaniaSzkolenia.filter(b => b.employeeId === employeeId && b.status === 'OCZEKUJACY');
+      pendingBadania.forEach((badanie: BadanieSzkolenieDto) => {
+        const badanieDate = new Date(badanie.date);
+        badanieDate.setHours(0, 0, 0, 0);
+        const daysRemaining = Math.ceil((badanieDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        let color: NotificationColor;
+        if (daysRemaining < 0) {
+          color = 'red';
+        } else if (daysRemaining <= 7) {
+          color = 'orange';
+        } else {
+          color = 'green';
+        }
+
+        notifications.push({
+          type: 'badanie',
+          color,
+          message: badanie.category,
+          date: badanie.date,
+          daysRemaining,
+        });
+      });
+
+      return notifications;
+    };
+  }, [urlopy, badaniaSzkolenia]);
+
+  const getNotificationsByColor = (employeeId: string, color: NotificationColor): NotificationItem[] => {
+    return getEmployeeNotifications(employeeId).filter(n => n.color === color);
+  };
+
+  const renderNotificationTooltip = (notifications: NotificationItem[]) => {
+    if (notifications.length === 0) return null;
+
+    const urlops = notifications.filter(n => n.type === 'urlop');
+    const badania = notifications.filter(n => n.type === 'badanie');
+
+    return (
+      <div className="text-sm text-white max-w-xs">
+        {urlops.length > 0 && (
+          <div className="mb-2">
+            <div className="font-semibold mb-1">Urlopy:</div>
+            {urlops.map((n, idx) => (
+              <div key={idx} className="ml-2">
+                • {n.message} ({formatDate(n.date)})
+                {n.daysRemaining < 0
+                  ? <span className="text-red-400 ml-1">(przeterminowany)</span>
+                  : n.daysRemaining === 0
+                    ? <span className="text-orange-400 ml-1">(dzisiaj)</span>
+                    : <span className="text-gray-400 ml-1">(za {n.daysRemaining} dni)</span>
+                }
+              </div>
+            ))}
+          </div>
+        )}
+        {badania.length > 0 && (
+          <div>
+            <div className="font-semibold mb-1">Badania/Szkolenia:</div>
+            {badania.map((n, idx) => (
+              <div key={idx} className="ml-2">
+                • {n.message} ({formatDate(n.date)})
+                {n.daysRemaining < 0
+                  ? <span className="text-red-400 ml-1">(wygasło)</span>
+                  : n.daysRemaining === 0
+                    ? <span className="text-orange-400 ml-1">(wygasa dzisiaj)</span>
+                    : <span className="text-gray-400 ml-1">(wygasa za {n.daysRemaining} dni)</span>
+                }
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -219,21 +319,37 @@ const EmployeesPage: React.FC = () => {
             >
               {isAdmin() && (
                 <div className="absolute top-3 right-3 flex gap-1">
-                  {hasPendingUrlopy(employee.uuid!) && (
-                    <div className="flex items-center justify-center w-6 h-6 bg-green-500 rounded-full animate-pulse">
-                      <span className="text-white text-xs font-bold">!</span>
-                    </div>
-                  )}
-                  {hasExpiredBadania(employee.uuid!) && (
-                    <div className="flex items-center justify-center w-6 h-6 bg-red-500 rounded-full animate-pulse">
-                      <span className="text-white text-xs font-bold">!</span>
-                    </div>
-                  )}
-                  {hasExpiringSoonBadania(employee.uuid!) && (
-                    <div className="flex items-center justify-center w-6 h-6 bg-orange-500 rounded-full animate-pulse">
-                      <span className="text-white text-xs font-bold">!</span>
-                    </div>
-                  )}
+                  {(() => {
+                    const redNotifications = getNotificationsByColor(employee.uuid!, 'red');
+                    const orangeNotifications = getNotificationsByColor(employee.uuid!, 'orange');
+                    const greenNotifications = getNotificationsByColor(employee.uuid!, 'green');
+
+                    return (
+                      <>
+                        {redNotifications.length > 0 && (
+                          <Tooltip content={renderNotificationTooltip(redNotifications)}>
+                            <div className="flex items-center justify-center w-6 h-6 bg-red-500 rounded-full animate-pulse cursor-pointer">
+                              <span className="text-white text-xs font-bold">!</span>
+                            </div>
+                          </Tooltip>
+                        )}
+                        {orangeNotifications.length > 0 && (
+                          <Tooltip content={renderNotificationTooltip(orangeNotifications)}>
+                            <div className="flex items-center justify-center w-6 h-6 bg-orange-500 rounded-full animate-pulse cursor-pointer">
+                              <span className="text-white text-xs font-bold">!</span>
+                            </div>
+                          </Tooltip>
+                        )}
+                        {greenNotifications.length > 0 && (
+                          <Tooltip content={renderNotificationTooltip(greenNotifications)}>
+                            <div className="flex items-center justify-center w-6 h-6 bg-green-500 rounded-full animate-pulse cursor-pointer">
+                              <span className="text-white text-xs font-bold">!</span>
+                            </div>
+                          </Tooltip>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               )}
               <div className="flex flex-col items-center text-center">

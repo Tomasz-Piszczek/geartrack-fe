@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface TooltipProps {
   content: React.ReactNode;
@@ -50,6 +51,20 @@ export const Tooltip: React.FC<TooltipProps> = ({ content, children, className =
     }, 200);
   };
 
+  const tooltipContent = isVisible ? (
+    <div
+      ref={tooltipRef}
+      className={`fixed z-[9999] ${className}`}
+      style={{ top: `${position.top}px`, left: `${position.left}px` }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="bg-[#343434] border border-white/10 rounded shadow-lg p-4 max-w-md">
+        {content}
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div
       ref={triggerRef}
@@ -58,20 +73,7 @@ export const Tooltip: React.FC<TooltipProps> = ({ content, children, className =
       onMouseLeave={handleMouseLeave}
     >
       {children}
-
-      {isVisible && (
-        <div
-          ref={tooltipRef}
-          className={`fixed z-50 ${className}`}
-          style={{ top: `${position.top}px`, left: `${position.left}px` }}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          <div className="bg-[#343434] border border-white/10 rounded shadow-lg p-4 max-w-md">
-            {content}
-          </div>
-        </div>
-      )}
+      {createPortal(tooltipContent, document.body)}
     </div>
   );
 };
