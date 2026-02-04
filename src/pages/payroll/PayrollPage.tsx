@@ -2,8 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {HiSave} from 'react-icons/hi';
 import {ChevronDown, Plus, X, Trash2, Check} from 'lucide-react';
 import {useMutation, useQuery} from '@tanstack/react-query';
-import {payrollApi, type PayrollDeductionDto, type PayrollRecordDto} from '../../api/payroll';
-import { biServiceApi, type DailyHoursDto } from '../../api/bi-service';
+import {payrollApi, type PayrollDeductionDto, type PayrollRecordDto, type DailyHoursDto, type DailyUrlopDto} from '../../api/payroll';
 
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
@@ -11,6 +10,7 @@ import Modal from '../../components/common/Modal';
 import Autocomplete from '../../components/common/Autocomplete';
 import {toast} from '../../lib/toast';
 import { OvertimeIndicator } from '../../components/OvertimeIndicator';
+import { SalaryBreakdownTooltip } from '../../components/SalaryBreakdownTooltip';
 
 const PayrollPage: React.FC = () => {
   const currentDate = new Date();
@@ -37,6 +37,8 @@ const PayrollPage: React.FC = () => {
   const [hoveredSummary, setHoveredSummary] = useState<string | null>(null);
   const [editingHours, setEditingHours] = useState<Record<string, string>>({});
   const [dailyHoursMap, setDailyHoursMap] = useState<Record<string, DailyHoursDto[]>>({});
+  const [dailyUrlopyMap, setDailyUrlopyMap] = useState<Record<string, DailyUrlopDto[]>>({});
+  const [conflictDatesMap, setConflictDatesMap] = useState<Record<string, string[]>>({});
 
   const months = [
     { value: 1, label: 'Styczeń' },
@@ -115,7 +117,7 @@ const PayrollPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const fetchHoursFromBiAnalytics = async () => {
+    const fetchWorkingHours = async () => {
       if (!records) return;
 
       const employeeNamesToFetch = records
@@ -124,22 +126,34 @@ const PayrollPage: React.FC = () => {
 
       let hoursMap: Record<string, number> = {};
       let dailyHoursData: Record<string, DailyHoursDto[]> = {};
+      let dailyUrlopyData: Record<string, DailyUrlopDto[]> = {};
+      let conflictDatesData: Record<string, string[]> = {};
 
       if (employeeNamesToFetch.length > 0) {
         try {
-          const hoursDataList = await biServiceApi.getEmployeeHours(employeeNamesToFetch, selectedYear, selectedMonth);
-          hoursMap = hoursDataList.reduce((acc, hoursData) => {
+          const workingHoursDataList = await payrollApi.getWorkingHours(employeeNamesToFetch, selectedYear, selectedMonth);
+          hoursMap = workingHoursDataList.reduce((acc, hoursData) => {
             const roundedTotal = calculateRoundedTotalHours(hoursData.dailyHours);
             acc[hoursData.employeeName] = roundedTotal;
             return acc;
           }, {} as Record<string, number>);
-          dailyHoursData = hoursDataList.reduce((acc, hoursData) => {
+          dailyHoursData = workingHoursDataList.reduce((acc, hoursData) => {
             acc[hoursData.employeeName] = hoursData.dailyHours;
             return acc;
           }, {} as Record<string, DailyHoursDto[]>);
+          dailyUrlopyData = workingHoursDataList.reduce((acc, hoursData) => {
+            acc[hoursData.employeeName] = hoursData.dailyUrlopy;
+            return acc;
+          }, {} as Record<string, DailyUrlopDto[]>);
+          conflictDatesData = workingHoursDataList.reduce((acc, hoursData) => {
+            acc[hoursData.employeeName] = hoursData.conflictDates;
+            return acc;
+          }, {} as Record<string, string[]>);
           setDailyHoursMap(dailyHoursData);
+          setDailyUrlopyMap(dailyUrlopyData);
+          setConflictDatesMap(conflictDatesData);
         } catch (error) {
-          console.error('Failed to fetch hours for employees:', error);
+          console.error('Failed to fetch working hours for employees:', error);
         }
       }
 
@@ -158,7 +172,7 @@ const PayrollPage: React.FC = () => {
       setPayrollData(updatedRecords);
     };
 
-    fetchHoursFromBiAnalytics();
+    fetchWorkingHours();
   }, [records, selectedYear, selectedMonth]);
 
   const parseTimeToDecimal = (timeString: string): number => {
@@ -420,7 +434,15 @@ const PayrollPage: React.FC = () => {
               <tbody>
                 {payrollData.map((record, index) => (
                   <tr key={record.employeeId} className="border-b border-lighter-border hover:bg-section-grey-light/50">
-                    <td className="px-4 py-3 text-white text-center">{record.employeeName}</td>
+                    <td className="px-4 py-3 text-white text-center">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {record.employeeName}
+                        <SalaryBreakdownTooltip
+                          record={record}
+                          dailyUrlopy={dailyUrlopyMap[record.employeeName]}
+                        />
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <Input
                         type="number"
@@ -460,6 +482,8 @@ const PayrollPage: React.FC = () => {
                         {dailyHoursMap[record.employeeName] && dailyHoursMap[record.employeeName].length > 0 && (
                           <OvertimeIndicator
                             dailyHours={dailyHoursMap[record.employeeName]}
+                            dailyUrlopy={dailyUrlopyMap[record.employeeName]}
+                            conflictDates={conflictDatesMap[record.employeeName]}
                             roundDailyHours={roundDailyHours}
                             calculateActualTotalHours={calculateActualTotalHours}
                             calculateRoundedTotalHours={calculateRoundedTotalHours}

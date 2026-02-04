@@ -24,6 +24,28 @@ export interface PayrollRecordDto {
   payrollDeductions?: PayrollDeductionDto[];
 }
 
+export interface DailyHoursDto {
+  date: string;
+  hours: number;
+}
+
+export interface DailyUrlopDto {
+  date: string;
+  urlopName: string;
+  hours: number;
+  rate: number;
+}
+
+export interface EmployeeWorkingHoursDto {
+  employeeName: string;
+  year: number;
+  month: number;
+  hours: number;
+  dailyHours: DailyHoursDto[];
+  dailyUrlopy: DailyUrlopDto[];
+  conflictDates: string[];
+}
+
 export const payrollApi = {
   getPayrollRecords: async (year: number, month: number): Promise<PayrollRecordDto[]> => {
     const response = await apiClient.get(`/api/payroll/${year}/${month}`);
@@ -45,6 +67,15 @@ export const payrollApi = {
 
   getEmployeeDeductions: async (employeeId: string): Promise<PayrollDeductionDto[]> => {
     const response = await apiClient.get(`/api/payroll/employees/${employeeId}/deductions`);
+    return response.data;
+  },
+
+  getWorkingHours: async (employeeNames: string[], year: number, month: number): Promise<EmployeeWorkingHoursDto[]> => {
+    const response = await apiClient.post<EmployeeWorkingHoursDto[]>(
+      '/api/payroll/working-hours',
+      employeeNames,
+      { params: { year, month } }
+    );
     return response.data;
   },
 };
