@@ -245,3 +245,16 @@ export interface BadanieSzkolenieDto {
   category: string;
   status: BadanieSzkolenieStatus;
 }
+
+export interface EmployeeUrlopDaysDto {
+  id?: string;
+  employeeId?: string;
+  year: number;
+  days: number;
+}
+
+export interface VacationSummaryDto {
+  remainingDays: number | null;
+  isConfigured: boolean;
+  missingYears: number[];
+}

@@ -1,6 +1,6 @@
 import apiClient from '../lib/api-client';
 import { API_ENDPOINTS } from '../constants';
-import type { EmployeeDto, PagedResponse, PaginationParams, AssignToolDto } from '../types';
+import type { EmployeeDto, PagedResponse, PaginationParams, AssignToolDto, VacationSummaryDto, EmployeeUrlopDaysDto } from '../types';
 
 export const employeesApi = {
   getAll: async (params?: PaginationParams): Promise<PagedResponse<EmployeeDto>> => {
@@ -55,5 +55,20 @@ export const employeesApi = {
 
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(API_ENDPOINTS.EMPLOYEES.BY_ID(id));
+  },
+
+  getVacationSummary: async (id: string): Promise<VacationSummaryDto> => {
+    const response = await apiClient.get<VacationSummaryDto>(
+      `${API_ENDPOINTS.EMPLOYEES.BY_ID(id)}/vacation-summary`
+    );
+    return response.data;
+  },
+
+  saveUrlopDays: async (employeeId: string, urlopDays: EmployeeUrlopDaysDto[]): Promise<EmployeeUrlopDaysDto[]> => {
+    const response = await apiClient.post<EmployeeUrlopDaysDto[]>(
+      `${API_ENDPOINTS.EMPLOYEES.BY_ID(employeeId)}/urlop-days`,
+      urlopDays
+    );
+    return response.data;
   },
 };

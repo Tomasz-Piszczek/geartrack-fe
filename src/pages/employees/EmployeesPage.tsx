@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiPlus, HiSearch, HiUser, HiAcademicCap } from 'react-icons/hi';
+import { HiPlus, HiSearch, HiUser, HiAcademicCap, HiCalendar } from 'react-icons/hi';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
@@ -8,7 +8,7 @@ import Pagination from '../../components/common/Pagination';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { employeesApi } from '../../api/employees';
-import type { EmployeeDto, PaginationParams, UrlopDto, BadanieSzkolenieDto } from '../../types';
+import type { EmployeeDto, PaginationParams, UrlopDto, BadanieSzkolenieDto, VacationSummaryDto, EmployeeUrlopDaysDto } from '../../types';
 import { QUERY_KEYS, VALIDATION } from '../../constants';
 import { toast } from '../../lib/toast';
 import Modal from '../../components/common/Modal';
@@ -23,6 +23,10 @@ interface EmployeeFormData {
   hourlyRate: number;
 }
 
+interface VacationDaysFormData {
+  [key: string]: number;
+}
+
 
 const EmployeesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,6 +38,9 @@ const EmployeesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [showUrlopDaysInEdit, setShowUrlopDaysInEdit] = useState(false);
+  const [editUrlopDaysForm, setEditUrlopDaysForm] = useState<VacationDaysFormData>({});
+  const [vacationSummary, setVacationSummary] = useState<VacationSummaryDto | null>(null);
   const queryClient = useQueryClient();
 
   const paginationParams: PaginationParams = {
@@ -101,14 +108,31 @@ const EmployeesPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleOpenModal = (employee?: EmployeeDto) => {
+  const currentYear = new Date().getFullYear();
+  const previousYear = currentYear - 1;
+
+  const handleOpenModal = async (employee?: EmployeeDto) => {
     setEditingEmployee(employee || null);
+    setShowUrlopDaysInEdit(false);
+    setVacationSummary(null);
+    setEditUrlopDaysForm({
+      [`year_${previousYear}`]: 0,
+      [`year_${currentYear}`]: 0,
+    });
+
     if (employee) {
       reset({
         firstName: employee.firstName,
         lastName: employee.lastName,
         hourlyRate: employee.hourlyRate,
       });
+      if (isAdmin() && employee.uuid) {
+        try {
+          const summary = await employeesApi.getVacationSummary(employee.uuid);
+          setVacationSummary(summary);
+        } catch {
+        }
+      }
     } else {
       reset({
         firstName: '',
@@ -122,16 +146,37 @@ const EmployeesPage: React.FC = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingEmployee(null);
+    setShowUrlopDaysInEdit(false);
+    setVacationSummary(null);
     reset();
   };
 
+  const handleEditUrlopDaysChange = (year: number, value: string) => {
+    setEditUrlopDaysForm(prev => ({
+      ...prev,
+      [`year_${year}`]: parseInt(value) || 0,
+    }));
+  };
 
-  const onSubmit = (data: EmployeeFormData) => {
+  const onSubmit = async (data: EmployeeFormData) => {
     if (editingEmployee) {
       updateMutation.mutate({
         ...editingEmployee,
         ...data,
       });
+
+      if (showUrlopDaysInEdit && editingEmployee.uuid) {
+        const urlopDaysList: EmployeeUrlopDaysDto[] = [
+          { year: previousYear, days: editUrlopDaysForm[`year_${previousYear}`] || 0 },
+          { year: currentYear, days: editUrlopDaysForm[`year_${currentYear}`] || 0 },
+        ];
+        try {
+          await employeesApi.saveUrlopDays(editingEmployee.uuid, urlopDaysList);
+          queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.VACATION_SUMMARY, editingEmployee.uuid] });
+        } catch {
+          toast.error('Nie udało się zapisać dni urlopu');
+        }
+      }
     } else {
       createMutation.mutate(data);
     }
@@ -164,7 +209,6 @@ const EmployeesPage: React.FC = () => {
     return (employeeId: string): NotificationItem[] => {
       const notifications: NotificationItem[] = [];
 
-      // Check urlops (pending) - use fromDate
       const pendingUrlopy = urlopy.filter(u => u.employeeId === employeeId && u.status === 'PENDING');
       pendingUrlopy.forEach((urlop: UrlopDto) => {
         const fromDate = new Date(urlop.fromDate);
@@ -195,7 +239,6 @@ const EmployeesPage: React.FC = () => {
         });
       });
 
-      // Check badania/szkolenia (OCZEKUJACY) - use date
       const pendingBadania = badaniaSzkolenia.filter(b => b.employeeId === employeeId && b.status === 'OCZEKUJACY');
       pendingBadania.forEach((badanie: BadanieSzkolenieDto) => {
         const badanieDate = new Date(badanie.date);
@@ -421,18 +464,61 @@ const EmployeesPage: React.FC = () => {
             />
 
             {isAdmin() && (
-              <Input
-                id="hourlyRate"
-                label="Stawka godzinowa (zł)"
-                type="number"
-                step="0.01"
-                {...register('hourlyRate', { 
-                  required: VALIDATION.REQUIRED,
-                  min: { value: 0, message: VALIDATION.POSITIVE_NUMBER }
-                })}
-                error={errors.hourlyRate?.message}
-                className="bg-section-grey-light"
-              />
+              <>
+                <Input
+                  id="hourlyRate"
+                  label="Stawka godzinowa (zł)"
+                  type="number"
+                  step="0.01"
+                  {...register('hourlyRate', {
+                    required: VALIDATION.REQUIRED,
+                    min: { value: 0, message: VALIDATION.POSITIVE_NUMBER }
+                  })}
+                  error={errors.hourlyRate?.message}
+                  className="bg-section-grey-light"
+                />
+
+                {editingEmployee && (
+                  <div className="border-t border-lighter-border pt-4 mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowUrlopDaysInEdit(!showUrlopDaysInEdit)}
+                      className="flex items-center gap-2 text-surface-grey-dark hover:text-white transition-colors w-full"
+                    >
+                      <HiCalendar className="w-5 h-5" />
+                      <span>Edytuj dni urlopu</span>
+                      <span className={`ml-auto transform transition-transform ${showUrlopDaysInEdit ? 'rotate-180' : ''}`}>
+                        ▼
+                      </span>
+                    </button>
+
+                    {showUrlopDaysInEdit && (
+                      <div className="mt-4 space-y-3">
+                        <Input
+                          id={`edit_vacation_days_${previousYear}`}
+                          label={`Dni urlopu w roku ${previousYear}`}
+                          type="number"
+                          min="0"
+                          max="365"
+                          value={editUrlopDaysForm[`year_${previousYear}`] || ''}
+                          onChange={(e) => handleEditUrlopDaysChange(previousYear, e.target.value)}
+                          className="bg-section-grey-light"
+                        />
+                        <Input
+                          id={`edit_vacation_days_${currentYear}`}
+                          label={`Dni urlopu w roku ${currentYear}`}
+                          type="number"
+                          min="0"
+                          max="365"
+                          value={editUrlopDaysForm[`year_${currentYear}`] || ''}
+                          onChange={(e) => handleEditUrlopDaysChange(currentYear, e.target.value)}
+                          className="bg-section-grey-light"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </form>
         </Modal.Body>

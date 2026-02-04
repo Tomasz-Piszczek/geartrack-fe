@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { HiArrowLeft, HiUser, HiCurrencyDollar, HiPencil, HiPlus } from 'react-icons/hi';
+import { HiArrowLeft, HiUser, HiCurrencyDollar, HiPencil, HiPlus, HiCalendar } from 'react-icons/hi';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
@@ -15,6 +15,7 @@ import EmployeeToolsSection from './components/EmployeeToolsSection';
 import EmployeeUrlopSection, { type EmployeeUrlopSectionRef } from './components/EmployeeUrlopSection';
 import EmployeeBadaniaSzkoleniaSection, { type EmployeeBadaniaSzkoleniaSectionRef } from './components/EmployeeBadaniaSzkoleniaSection';
 import EmployeeDeductionsSection from './components/EmployeeDeductionsSection';
+import type { EmployeeUrlopDaysDto } from '../../types';
 
 interface EmployeeFormData {
   firstName: string;
@@ -22,11 +23,19 @@ interface EmployeeFormData {
   hourlyRate: number;
 }
 
+interface VacationDaysFormData {
+  [key: string]: number;
+}
+
 const EmployeeDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showVacationDaysModal, setShowVacationDaysModal] = useState(false);
+  const [vacationDaysForm, setVacationDaysForm] = useState<VacationDaysFormData>({});
+  const [showUrlopDaysInEdit, setShowUrlopDaysInEdit] = useState(false);
+  const [editUrlopDaysForm, setEditUrlopDaysForm] = useState<VacationDaysFormData>({});
   const queryClient = useQueryClient();
   const urlopSectionRef = useRef<EmployeeUrlopSectionRef>(null);
   const badaniaSzkoleniaSectionRef = useRef<EmployeeBadaniaSzkoleniaSectionRef>(null);
@@ -35,6 +44,38 @@ const EmployeeDetailPage: React.FC = () => {
     queryKey: [QUERY_KEYS.EMPLOYEES, id],
     queryFn: () => employeesApi.getById(id!),
     enabled: !!id,
+  });
+
+  const { data: vacationSummary, isLoading: isLoadingVacation } = useQuery({
+    queryKey: [QUERY_KEYS.VACATION_SUMMARY, id],
+    queryFn: () => employeesApi.getVacationSummary(id!),
+    enabled: !!id && isAdmin(),
+  });
+
+  const currentYear = new Date().getFullYear();
+  const previousYear = currentYear - 1;
+
+  useEffect(() => {
+    if (vacationSummary && !vacationSummary.isConfigured && isAdmin()) {
+      const initialForm: VacationDaysFormData = {};
+      vacationSummary.missingYears.forEach(year => {
+        initialForm[`year_${year}`] = 26;
+      });
+      setVacationDaysForm(initialForm);
+      setShowVacationDaysModal(true);
+    }
+  }, [vacationSummary, isAdmin]);
+
+  const saveVacationDaysMutation = useMutation({
+    mutationFn: (data: EmployeeUrlopDaysDto[]) => employeesApi.saveUrlopDays(id!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.VACATION_SUMMARY, id] });
+      toast.success('Dni urlopu zostały zapisane');
+      setShowVacationDaysModal(false);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Nie udało się zapisać dni urlopu');
+    },
   });
 
   const {
@@ -65,25 +106,69 @@ const EmployeeDetailPage: React.FC = () => {
         hourlyRate: employee.hourlyRate,
       });
     }
+    setEditUrlopDaysForm({
+      [`year_${previousYear}`]: 0,
+      [`year_${currentYear}`]: 0,
+    });
+    setShowUrlopDaysInEdit(false);
     setShowEditModal(true);
   };
 
   const handleCloseEditModal = () => {
     setShowEditModal(false);
+    setShowUrlopDaysInEdit(false);
     resetEdit();
   };
 
-  const onSubmitEdit = (data: EmployeeFormData) => {
+  const onSubmitEdit = async (data: EmployeeFormData) => {
     if (employee) {
       updateEmployeeMutation.mutate({
         ...employee,
         ...data,
       });
+
+      if (showUrlopDaysInEdit) {
+        const urlopDaysList: EmployeeUrlopDaysDto[] = [
+          { year: previousYear, days: editUrlopDaysForm[`year_${previousYear}`] || 0 },
+          { year: currentYear, days: editUrlopDaysForm[`year_${currentYear}`] || 0 },
+        ];
+        try {
+          await employeesApi.saveUrlopDays(id!, urlopDaysList);
+          queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.VACATION_SUMMARY, id] });
+        } catch {
+          toast.error('Nie udało się zapisać dni urlopu');
+        }
+      }
     }
+  };
+
+  const handleEditUrlopDaysChange = (year: number, value: string) => {
+    setEditUrlopDaysForm(prev => ({
+      ...prev,
+      [`year_${year}`]: parseInt(value) || 0,
+    }));
   };
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  };
+
+  const handleSaveVacationDays = () => {
+    if (!vacationSummary) return;
+
+    const urlopDaysList: EmployeeUrlopDaysDto[] = vacationSummary.missingYears.map(year => ({
+      year,
+      days: vacationDaysForm[`year_${year}`] || 0,
+    }));
+
+    saveVacationDaysMutation.mutate(urlopDaysList);
+  };
+
+  const handleVacationDaysChange = (year: number, value: string) => {
+    setVacationDaysForm(prev => ({
+      ...prev,
+      [`year_${year}`]: parseInt(value) || 0,
+    }));
   };
 
   if (isLoadingEmployee) {
@@ -146,9 +231,22 @@ const EmployeeDetailPage: React.FC = () => {
             </h2>
 
             {isAdmin() && (
-              <div className="flex items-center gap-2 text-surface-grey-dark mb-6">
-                <HiCurrencyDollar className="w-5 h-5" />
-                <span className="text-lg">{employee.hourlyRate} PLN/h</span>
+              <div className="space-y-2 mb-6">
+                <div className="flex items-center gap-2 text-surface-grey-dark">
+                  <HiCurrencyDollar className="w-5 h-5" />
+                  <span className="text-lg">{employee.hourlyRate} PLN/h</span>
+                </div>
+                {!isLoadingVacation && vacationSummary?.isConfigured && vacationSummary.remainingDays !== null && (
+                  <div className="flex items-center gap-2 text-surface-grey-dark">
+                    <HiCalendar className="w-5 h-5" />
+                    <span className="text-lg">
+                      <span className={vacationSummary.remainingDays <= 0 ? 'text-red-400' : vacationSummary.remainingDays <= 5 ? 'text-orange-400' : 'text-green-400'}>
+                        {vacationSummary.remainingDays}
+                      </span>
+                      {' '}dni urlopu
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -208,7 +306,51 @@ const EmployeeDetailPage: React.FC = () => {
         isAdmin={isAdmin()}
       />
 
-      {/* Edit Employee Modal */}
+      <Modal show={showVacationDaysModal} onClose={() => setShowVacationDaysModal(false)}>
+        <Modal.Header className="bg-section-grey border-lighter-border">
+          <span className="text-white">Uzupełnij dane pracownika</span>
+        </Modal.Header>
+        <Modal.Body className="bg-section-grey">
+          <div className="space-y-4">
+            <p className="text-surface-grey-dark mb-4">
+              Podaj liczbę dni urlopu przysługujących pracownikowi w danym roku:
+            </p>
+            {vacationSummary?.missingYears.map(year => (
+              <Input
+                key={year}
+                id={`vacation_days_${year}`}
+                label={`Dni urlopu w roku ${year}`}
+                type="number"
+                min="0"
+                max="365"
+                value={vacationDaysForm[`year_${year}`] || ''}
+                onChange={(e) => handleVacationDaysChange(year, e.target.value)}
+                className="bg-section-grey-light"
+              />
+            ))}
+          </div>
+        </Modal.Body>
+        <Modal.Footer className="bg-section-grey border-lighter-border">
+          <Button
+            color="primary"
+            onClick={handleSaveVacationDays}
+            disabled={saveVacationDaysMutation.isPending}
+          >
+            {saveVacationDaysMutation.isPending ? (
+              <div className="flex items-center gap-2">
+                <div className="spinner w-4 h-4"></div>
+                Zapisywanie...
+              </div>
+            ) : (
+              'Zapisz'
+            )}
+          </Button>
+          <Button color="gray" onClick={() => setShowVacationDaysModal(false)}>
+            Anuluj
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
       <Modal show={showEditModal} onClose={handleCloseEditModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
@@ -234,18 +376,59 @@ const EmployeeDetailPage: React.FC = () => {
             />
 
             {isAdmin() && (
-              <Input
-                id="hourlyRate"
-                label="Stawka godzinowa (zł)"
-                type="number"
-                step="0.01"
-                {...registerEdit('hourlyRate', {
-                  required: VALIDATION.REQUIRED,
-                  min: { value: 0, message: VALIDATION.POSITIVE_NUMBER }
-                })}
-                error={editErrors.hourlyRate?.message}
-                className="bg-section-grey-light"
-              />
+              <>
+                <Input
+                  id="hourlyRate"
+                  label="Stawka godzinowa (zł)"
+                  type="number"
+                  step="0.01"
+                  {...registerEdit('hourlyRate', {
+                    required: VALIDATION.REQUIRED,
+                    min: { value: 0, message: VALIDATION.POSITIVE_NUMBER }
+                  })}
+                  error={editErrors.hourlyRate?.message}
+                  className="bg-section-grey-light"
+                />
+
+                <div className="border-t border-lighter-border pt-4 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowUrlopDaysInEdit(!showUrlopDaysInEdit)}
+                    className="flex items-center gap-2 text-surface-grey-dark hover:text-white transition-colors"
+                  >
+                    <HiCalendar className="w-5 h-5" />
+                    <span>Edytuj dni urlopu</span>
+                    <span className={`ml-auto transform transition-transform ${showUrlopDaysInEdit ? 'rotate-180' : ''}`}>
+                      ▼
+                    </span>
+                  </button>
+
+                  {showUrlopDaysInEdit && (
+                    <div className="mt-4 space-y-3">
+                      <Input
+                        id={`edit_vacation_days_${previousYear}`}
+                        label={`Dni urlopu w roku ${previousYear}`}
+                        type="number"
+                        min="0"
+                        max="365"
+                        value={editUrlopDaysForm[`year_${previousYear}`] || ''}
+                        onChange={(e) => handleEditUrlopDaysChange(previousYear, e.target.value)}
+                        className="bg-section-grey-light"
+                      />
+                      <Input
+                        id={`edit_vacation_days_${currentYear}`}
+                        label={`Dni urlopu w roku ${currentYear}`}
+                        type="number"
+                        min="0"
+                        max="365"
+                        value={editUrlopDaysForm[`year_${currentYear}`] || ''}
+                        onChange={(e) => handleEditUrlopDaysChange(currentYear, e.target.value)}
+                        className="bg-section-grey-light"
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </form>
         </Modal.Body>

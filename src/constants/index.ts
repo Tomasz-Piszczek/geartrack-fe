@@ -72,6 +72,7 @@ export const QUERY_KEYS = {
   USERS: 'users',
   URLOPY: 'urlopy',
   BADANIA_SZKOLENIA: 'badania-szkolenia',
+  VACATION_SUMMARY: 'vacation-summary',
 } as const;
 
 export const STORAGE_KEYS = {
