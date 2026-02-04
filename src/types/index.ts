@@ -70,6 +70,8 @@ export interface ToolDto {
 
 export interface AssignToolDto {
   uuid?: string;
+  toolId?: string;
+  employeeId?: string;
   quantity: number;
   condition: ToolCondition;
   assignedAt?: string;
@@ -86,10 +88,16 @@ export interface ApiResponse<T> {
   status?: number;
 }
 
+export interface ConflictData {
+  employeeName: string;
+  conflictDates: string[];
+}
+
 export interface ApiError {
   message: string;
   status?: number;
   errorCode?: string;
+  conflicts?: ConflictData[];
 }
 
 export interface User {
@@ -211,6 +219,8 @@ export interface AssignUserRequest {
 
 export type UrlopStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
 
+export type UrlopCategory = 'URLOP_WYPOCZYNKOWY' | 'URLOP_MACIERZYNSKI' | 'URLOP_BEZPLATNY';
+
 export interface UrlopDto {
   id?: string;
   employeeId: string;
@@ -220,6 +230,8 @@ export interface UrlopDto {
   toDate: string;
   note?: string;
   status: UrlopStatus;
+  category: UrlopCategory;
+  categoryRate?: number;
 }
 
 export type BadanieSzkolenieStatus = 'OCZEKUJACY' | 'UKONCZONY';

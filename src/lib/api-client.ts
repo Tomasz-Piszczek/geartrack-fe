@@ -125,6 +125,17 @@ apiClient.interceptors.response.use(
       apiError.message = ERROR_MESSAGES.NOT_FOUND;
     } else if (error.response?.status === 400) {
       apiError.message = ERROR_MESSAGES.VALIDATION_ERROR;
+    } else if (error.response?.status === 409) {
+      // Pass through full response data for conflict errors
+      if (error.response?.data && typeof error.response.data === 'object') {
+        const data = error.response.data as Record<string, unknown>;
+        if ('message' in data) {
+          apiError.message = data.message as string;
+        }
+        if ('conflicts' in data) {
+          apiError.conflicts = data.conflicts as Array<{ employeeName: string; conflictDates: string[] }>;
+        }
+      }
     } else if (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK') {
       apiError.message = ERROR_MESSAGES.NETWORK_ERROR;
     } else if (error.response?.data && typeof error.response.data === 'object' && 'message' in error.response.data) {

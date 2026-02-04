@@ -38,8 +38,10 @@ export const toolsApi = {
     return response.data;
   },
 
-  unassign: async (toolId: string, employeeId: string): Promise<void> => {
-    await apiClient.delete(API_ENDPOINTS.TOOLS.UNASSIGN(toolId, employeeId));
+  unassign: async (toolId: string, employeeId: string, quantity: number): Promise<void> => {
+    await apiClient.delete(API_ENDPOINTS.TOOLS.UNASSIGN(toolId, employeeId), {
+      params: { quantity }
+    });
   },
 
   getEmployeesAssignedToTool: async (toolId: string): Promise<AssignToolDto[]> => {

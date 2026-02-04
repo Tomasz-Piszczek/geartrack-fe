@@ -80,8 +80,8 @@ const EmployeeToolsSection: React.FC<EmployeeToolsSectionProps> = ({ employeeId,
   });
 
   const unassignToolMutation = useMutation({
-    mutationFn: ({ toolId, employeeId }: { toolId: string; employeeId: string }) =>
-      toolsApi.unassign(toolId, employeeId),
+    mutationFn: ({ toolId, employeeId, quantity }: { toolId: string; employeeId: string; quantity: number }) =>
+      toolsApi.unassign(toolId, employeeId, quantity),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, employeeId, 'tools'] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
@@ -159,8 +159,14 @@ const EmployeeToolsSection: React.FC<EmployeeToolsSectionProps> = ({ employeeId,
     assignToolMutation.mutate({ toolId: data.toolId, employeeId, assignment: { quantity: data.quantity, condition: data.condition, assignedAt: data.assignedAt } });
   };
 
-  const onSubmitToolRemoval = () => {
-    if (selectedToolForRemoval) unassignToolMutation.mutate({ toolId: selectedToolForRemoval.uuid!, employeeId });
+  const onSubmitToolRemoval = (data: RemoveToolFormData) => {
+    if (selectedToolForRemoval) {
+      unassignToolMutation.mutate({
+        toolId: selectedToolForRemoval.toolId!,
+        employeeId,
+        quantity: data.quantity
+      });
+    }
   };
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();

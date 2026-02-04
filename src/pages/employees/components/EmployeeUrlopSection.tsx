@@ -9,7 +9,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { urlopyApi } from '../../../api/urlopy';
 import { VALIDATION } from '../../../constants';
-import type { UrlopDto, UrlopStatus } from '../../../types/index';
+import type { UrlopDto, UrlopStatus, UrlopCategory } from '../../../types/index';
 import { toast } from '../../../lib/toast';
 import { useUrlopy } from '../../../context/UrlopContext';
 
@@ -17,6 +17,7 @@ interface UrlopFormData {
   fromDate: string;
   toDate: string;
   note?: string;
+  category: UrlopCategory;
 }
 
 interface EmployeeUrlopSectionProps {
@@ -92,6 +93,7 @@ const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSe
       fromDate: today,
       toDate: today,
       note: '',
+      category: 'URLOP_WYPOCZYNKOWY',
     });
     setShowUrlopModal(true);
   };
@@ -106,6 +108,7 @@ const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSe
       fromDate: urlop.fromDate,
       toDate: urlop.toDate,
       note: urlop.note || '',
+      category: urlop.category,
     });
     setShowUrlopModal(true);
   };
@@ -134,6 +137,7 @@ const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSe
           toDate: data.toDate,
           note: data.note,
           status: 'PENDING',
+          category: data.category,
         },
       });
     }
@@ -188,6 +192,15 @@ const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSe
     return statusLabels[status];
   };
 
+  const getCategoryLabel = (category: UrlopCategory): string => {
+    const categoryLabels: Record<UrlopCategory, string> = {
+      'URLOP_WYPOCZYNKOWY': 'Wypoczynkowy',
+      'URLOP_MACIERZYNSKI': 'Macierzyński',
+      'URLOP_BEZPLATNY': 'Bezpłatny'
+    };
+    return categoryLabels[category];
+  };
+
   return (
     <div className="mt-8">
       <div className="flex justify-between items-center mb-6">
@@ -210,6 +223,7 @@ const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSe
                 <Table.Row>
                   <Table.HeadCell className="bg-section-grey-dark text-white text-center">Data Od</Table.HeadCell>
                   <Table.HeadCell className="bg-section-grey-dark text-white text-center">Data Do</Table.HeadCell>
+                  <Table.HeadCell className="bg-section-grey-dark text-white text-center">Kategoria</Table.HeadCell>
                   <Table.HeadCell className="bg-section-grey-dark text-white text-center">Status</Table.HeadCell>
                   <Table.HeadCell className="bg-section-grey-dark text-white text-center">Akcje</Table.HeadCell>
                 </Table.Row>
@@ -229,6 +243,9 @@ const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSe
                     </Table.Cell>
                     <Table.Cell className="text-white text-center">
                       {formatDate(urlop.toDate)}
+                    </Table.Cell>
+                    <Table.Cell className="text-white text-center">
+                      {getCategoryLabel(urlop.category)}
                     </Table.Cell>
                     <Table.Cell className="text-center">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -357,6 +374,23 @@ const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSe
               error={urlopErrors.toDate?.message}
               className="bg-section-grey-light"
             />
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Kategoria
+              </label>
+              <select
+                {...registerUrlop('category', { required: VALIDATION.REQUIRED })}
+                className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
+              >
+                <option value="URLOP_WYPOCZYNKOWY">Wypoczynkowy</option>
+                <option value="URLOP_MACIERZYNSKI">Macierzyński</option>
+                <option value="URLOP_BEZPLATNY">Bezpłatny</option>
+              </select>
+              {urlopErrors.category && (
+                <p className="mt-1 text-sm text-red-400">{urlopErrors.category.message}</p>
+              )}
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-white mb-2">
