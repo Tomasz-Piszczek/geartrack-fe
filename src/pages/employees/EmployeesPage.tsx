@@ -40,7 +40,7 @@ const EmployeesPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
   const [showUrlopDaysInEdit, setShowUrlopDaysInEdit] = useState(false);
   const [editUrlopDaysForm, setEditUrlopDaysForm] = useState<VacationDaysFormData>({});
-  const [vacationSummary, setVacationSummary] = useState<VacationSummaryDto | null>(null);
+  const [, setVacationSummary] = useState<VacationSummaryDto | null>(null);
   const queryClient = useQueryClient();
 
   const paginationParams: PaginationParams = {
@@ -130,8 +130,7 @@ const EmployeesPage: React.FC = () => {
         try {
           const summary = await employeesApi.getVacationSummary(employee.uuid);
           setVacationSummary(summary);
-        } catch {
-        }
+        } catch { /* empty */ }
       }
     } else {
       reset({
