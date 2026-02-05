@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HiPlus, HiPencil, HiTrash, HiSearch, HiUserAdd, HiDocumentText } from 'react-icons/hi';
+import { HiPlus, HiPencil, HiTrash, HiSearch, HiUserAdd, HiDocumentText, HiInformationCircle } from 'react-icons/hi';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
@@ -7,11 +7,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { machinesApi } from '../../api/machines';
 import { employeesApi } from '../../api/employees';
-import type { MachineDto, CreateMachineInspectionDto } from '../../types';
+import type { MachineDto, CreateMachineInspectionDto, MachineInspectionDto } from '../../types';
 import { QUERY_KEYS, VALIDATION } from '../../constants';
 import { toast } from '../../lib/toast';
 import Table from '../../components/common/Table';
 import Modal from '../../components/common/Modal';
+import { useMachineInspections } from '../../context/MachineInspectionContext';
+
+const getStatusLabel = (status: string | undefined): string => {
+  switch (status) {
+    case 'SCHEDULED': return 'Oczekuje';
+    case 'COMPLETED': return 'Wykonano';
+    default: return 'Nieznany';
+  }
+};
 
 interface MachineFormData {
   name: string;
@@ -21,6 +30,7 @@ interface MachineFormData {
 interface InspectionFormData {
   inspectionDate: string;
   notes: string;
+  performedBy: string;
 }
 
 const MachinesPage: React.FC = () => {
@@ -31,10 +41,12 @@ const MachinesPage: React.FC = () => {
   const [editingMachine, setEditingMachine] = useState<MachineDto | null>(null);
   const [assigningMachine, setAssigningMachine] = useState<MachineDto | null>(null);
   const [inspectingMachine, setInspectingMachine] = useState<MachineDto | null>(null);
+  const [editingInspection, setEditingInspection] = useState<MachineInspectionDto | null>(null);
   const [viewingMachine, setViewingMachine] = useState<MachineDto | null>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
+  const { getMachineStatus } = useMachineInspections();
 
   const { data: machines = [], isLoading } = useQuery({
     queryKey: [QUERY_KEYS.MACHINES],
@@ -119,11 +131,55 @@ const MachinesPage: React.FC = () => {
       machinesApi.createInspection(machineId, inspection),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
-      toast.success('Inspection added successfully');
+      toast.success('Inspekcja dodana pomyślnie');
       handleCloseInspectionModal();
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to add inspection');
+      toast.error(error.message || 'Nie udało się dodać inspekcji');
+    },
+  });
+
+  const completeInspectionMutation = useMutation({
+    mutationFn: (inspection: MachineInspectionDto) =>
+      machinesApi.updateInspection(inspection.uuid!, {
+        inspectionDate: inspection.inspectionDate,
+        notes: inspection.notes,
+        status: 'COMPLETED',
+        performedBy: inspection.performedBy!,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES, viewingMachine?.uuid, 'inspections'] });
+      toast.success('Inspekcja zakończona');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Nie udało się zakończyć inspekcji');
+    },
+  });
+
+  const updateInspectionMutation = useMutation({
+    mutationFn: ({ inspectionId, data }: { inspectionId: string; data: CreateMachineInspectionDto }) =>
+      machinesApi.updateInspection(inspectionId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES, viewingMachine?.uuid, 'inspections'] });
+      toast.success('Inspekcja zaktualizowana');
+      handleCloseInspectionModal();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Nie udało się zaktualizować inspekcji');
+    },
+  });
+
+  const deleteInspectionMutation = useMutation({
+    mutationFn: machinesApi.deleteInspection,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES, viewingMachine?.uuid, 'inspections'] });
+      toast.success('Inspekcja usunięta');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Nie udało się usunąć inspekcji');
     },
   });
 
@@ -166,19 +222,41 @@ const MachinesPage: React.FC = () => {
     setSelectedEmployeeId('');
   };
 
-  const handleOpenInspectionModal = (machine: MachineDto) => {
+  const handleOpenInspectionModal = (machine: MachineDto, inspection?: MachineInspectionDto) => {
+    // Close history modal if open (when editing from history)
+    setShowInspectionHistoryModal(false);
     setInspectingMachine(machine);
-    resetInspection({
-      inspectionDate: new Date().toISOString().split('T')[0],
-      notes: '',
-    });
+    setEditingInspection(inspection || null);
+    if (inspection) {
+      resetInspection({
+        inspectionDate: inspection.inspectionDate,
+        notes: inspection.notes || '',
+        performedBy: inspection.performedBy || '',
+      });
+    } else {
+      resetInspection({
+        inspectionDate: new Date().toISOString().split('T')[0],
+        notes: '',
+        performedBy: '',
+      });
+    }
     setShowInspectionModal(true);
   };
 
   const handleCloseInspectionModal = () => {
+    const wasEditing = editingInspection !== null;
+    const machineToReopen = inspectingMachine;
+
     setShowInspectionModal(false);
     setInspectingMachine(null);
+    setEditingInspection(null);
     resetInspection();
+
+    // Re-open history modal if we were editing from it
+    if (wasEditing && machineToReopen) {
+      setViewingMachine(machineToReopen);
+      setShowInspectionHistoryModal(true);
+    }
   };
 
   const handleOpenInspectionHistoryModal = (machine: MachineDto) => {
@@ -212,15 +290,32 @@ const MachinesPage: React.FC = () => {
   };
 
   const onInspectionSubmit = (data: InspectionFormData) => {
-    if (inspectingMachine) {
+    if (editingInspection) {
+      updateInspectionMutation.mutate({
+        inspectionId: editingInspection.uuid!,
+        data: {
+          inspectionDate: data.inspectionDate,
+          notes: data.notes || undefined,
+          status: editingInspection.status,
+          performedBy: data.performedBy,
+        }
+      });
+    } else if (inspectingMachine) {
       inspectionMutation.mutate({
         machineId: inspectingMachine.uuid!,
         inspection: {
           inspectionDate: data.inspectionDate,
           notes: data.notes || undefined,
           status: 'SCHEDULED',
+          performedBy: data.performedBy,
         }
       });
+    }
+  };
+
+  const handleDeleteInspection = (inspectionId: string) => {
+    if (window.confirm('Czy na pewno chcesz usunąć tę inspekcję?')) {
+      deleteInspectionMutation.mutate(inspectionId);
     }
   };
 
@@ -284,9 +379,21 @@ const MachinesPage: React.FC = () => {
                 </Table.Cell>
               </Table.Row>
             ) : (
-              filteredMachines.map((machine) => (
+              filteredMachines.map((machine) => {
+                const status = getMachineStatus(machine.uuid!);
+                return (
                 <Table.Row key={machine.uuid} className="hover:bg-section-grey-light cursor-pointer" onClick={() => handleOpenInspectionHistoryModal(machine)}>
-                  <Table.Cell className="text-white">{machine.name}</Table.Cell>
+                  <Table.Cell className="text-white">
+                    <div className="flex items-center gap-2">
+                      {machine.name}
+                      {status === 'overdue' && (
+                        <HiInformationCircle className="w-5 h-5 text-red-500" title="Inspekcja przeterminowana" />
+                      )}
+                      {status === 'due-soon' && (
+                        <HiInformationCircle className="w-5 h-5 text-orange-500" title="Inspekcja wkrótce" />
+                      )}
+                    </div>
+                  </Table.Cell>
                   <Table.Cell className="text-white">{machine.factoryNumber}</Table.Cell>
                   <Table.Cell className="text-white">
                     {machine.employeeName || 'Nieprzypisana'}
@@ -346,7 +453,7 @@ const MachinesPage: React.FC = () => {
                     </div>
                   </Table.Cell>
                 </Table.Row>
-              ))
+              );})
             )}
           </Table.Body>
         </Table>
@@ -443,11 +550,11 @@ const MachinesPage: React.FC = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Add Inspection Modal */}
+      {/* Add/Edit Inspection Modal */}
       <Modal show={showInspectionModal} onClose={handleCloseInspectionModal}>
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
-            Dodaj inspekcję dla: {inspectingMachine?.name}
+            {editingInspection ? 'Edytuj inspekcję' : 'Dodaj inspekcję'} - {inspectingMachine?.name}
           </span>
         </Modal.Header>
         <Modal.Body className="bg-section-grey">
@@ -460,6 +567,27 @@ const MachinesPage: React.FC = () => {
               error={inspectionErrors.inspectionDate?.message}
               className="bg-section-grey-light"
             />
+
+            <div>
+              <label htmlFor="performedBy" className="block text-sm font-medium text-white mb-2">
+                Wykonał
+              </label>
+              <input
+                id="performedBy"
+                list="employees-list"
+                {...registerInspection('performedBy', { required: VALIDATION.REQUIRED })}
+                className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-green"
+                placeholder="Wybierz lub wpisz imię i nazwisko..."
+              />
+              <datalist id="employees-list">
+                {employees.map((employee) => (
+                  <option key={employee.uuid} value={`${employee.firstName} ${employee.lastName}`} />
+                ))}
+              </datalist>
+              {inspectionErrors.performedBy && (
+                <p className="mt-1 text-sm text-red-400">{inspectionErrors.performedBy.message}</p>
+              )}
+            </div>
 
             <div>
               <label htmlFor="notes" className="block text-sm font-medium text-white mb-2">
@@ -482,15 +610,15 @@ const MachinesPage: React.FC = () => {
           <Button
             color="primary"
             onClick={handleInspectionSubmit(onInspectionSubmit)}
-            disabled={inspectionMutation.isPending}
+            disabled={inspectionMutation.isPending || updateInspectionMutation.isPending}
           >
-            {inspectionMutation.isPending ? (
+            {inspectionMutation.isPending || updateInspectionMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <div className="spinner w-4 h-4"></div>
-                Dodawanie...
+                {editingInspection ? 'Aktualizowanie...' : 'Dodawanie...'}
               </div>
             ) : (
-              'Dodaj inspekcję'
+              editingInspection ? 'Zapisz zmiany' : 'Dodaj inspekcję'
             )}
           </Button>
           <Button color="gray" onClick={handleCloseInspectionModal}>
@@ -500,13 +628,13 @@ const MachinesPage: React.FC = () => {
       </Modal>
 
       {/* Inspection History Modal */}
-      <Modal show={showInspectionHistoryModal} onClose={handleCloseInspectionHistoryModal}>
+      <Modal show={showInspectionHistoryModal} onClose={handleCloseInspectionHistoryModal} size="5xl">
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
             Historia inspekcji - {viewingMachine?.name}
           </span>
         </Modal.Header>
-        <Modal.Body className="bg-section-grey">
+        <Modal.Body className="bg-section-grey max-h-[70vh] overflow-y-auto">
           {isLoadingInspections ? (
             <div className="text-center text-white py-4">Ładowanie historii inspekcji...</div>
           ) : inspectionHistory.length === 0 ? (
@@ -516,55 +644,77 @@ const MachinesPage: React.FC = () => {
               <p className="text-sm text-surface-grey">Ta maszyna nie ma jeszcze historii inspekcji</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="bg-section-grey-light p-4 rounded-lg">
-                  <h4 className="text-white font-medium mb-2">Łączne inspekcje</h4>
-                  <p className="text-2xl font-bold text-dark-green">{inspectionHistory.length}</p>
-                </div>
-                <div className="bg-section-grey-light p-4 rounded-lg">
-                  <h4 className="text-white font-medium mb-2">Ostatnia inspekcja</h4>
-                  <p className="text-white">
-                    {inspectionHistory.length > 0 
-                      ? new Date(inspectionHistory[0].inspectionDate).toLocaleDateString() 
-                      : 'Nigdy'
-                    }
-                  </p>
-                </div>
-              </div>
-              
-              <div className="table-wrapper max-h-96 overflow-y-auto">
-                <Table hoverable>
-                  <Table.Head>
-                    <Table.HeadCell className="bg-section-grey-dark text-white">Data</Table.HeadCell>
-                    <Table.HeadCell className="bg-section-grey-dark text-white">Status</Table.HeadCell>
-                    <Table.HeadCell className="bg-section-grey-dark text-white">Notatki</Table.HeadCell>
-                  </Table.Head>
-                  <Table.Body>
-                    {inspectionHistory
-                      .sort((a, b) => new Date(b.inspectionDate).getTime() - new Date(a.inspectionDate).getTime())
-                      .map((inspection) => (
-                      <Table.Row key={inspection.uuid} className="hover:bg-section-grey-light">
-                        <Table.Cell className="text-white">
-                          {new Date(inspection.inspectionDate).toLocaleDateString()}
-                        </Table.Cell>
-                        <Table.Cell className="text-white">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            inspection.status === 'COMPLETED' ? 'bg-green-900 text-green-300' :
-                            inspection.status === 'SCHEDULED' ? 'bg-blue-900 text-blue-300' :
-                            'bg-gray-900 text-gray-300'
-                          }`}>
-                            {inspection.status || 'Nieznany'}
-                          </span>
-                        </Table.Cell>
-                        <Table.Cell className="text-white max-w-xs truncate">
-                          {inspection.notes || '-'}
-                        </Table.Cell>
-                      </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table>
-              </div>
+            <div className="table-wrapper">
+              <Table hoverable>
+                <Table.Head>
+                  <Table.HeadCell className="bg-section-grey-dark text-white">Data</Table.HeadCell>
+                  <Table.HeadCell className="bg-section-grey-dark text-white">Wykonał</Table.HeadCell>
+                  <Table.HeadCell className="bg-section-grey-dark text-white">Status</Table.HeadCell>
+                  <Table.HeadCell className="bg-section-grey-dark text-white">Notatki</Table.HeadCell>
+                  <Table.HeadCell className="bg-section-grey-dark text-white">Akcje</Table.HeadCell>
+                </Table.Head>
+                <Table.Body>
+                  {inspectionHistory
+                    .sort((a, b) => new Date(b.inspectionDate).getTime() - new Date(a.inspectionDate).getTime())
+                    .map((inspection) => (
+                    <Table.Row key={inspection.uuid} className="hover:bg-section-grey-light">
+                      <Table.Cell className="text-white">
+                        {new Date(inspection.inspectionDate).toLocaleDateString()}
+                      </Table.Cell>
+                      <Table.Cell className="text-white">
+                        {inspection.performedBy || '-'}
+                      </Table.Cell>
+                      <Table.Cell className="text-white">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          inspection.status === 'COMPLETED' ? 'bg-green-900 text-green-300' :
+                          inspection.status === 'SCHEDULED' ? 'bg-blue-900 text-blue-300' :
+                          'bg-gray-900 text-gray-300'
+                        }`}>
+                          {getStatusLabel(inspection.status)}
+                        </span>
+                      </Table.Cell>
+                      <Table.Cell className="text-white">
+                        {inspection.notes ? (
+                          <div className="max-w-md">
+                            <p className="whitespace-pre-wrap break-words text-sm">
+                              {inspection.notes}
+                            </p>
+                          </div>
+                        ) : '-'}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <div className="flex gap-2">
+                          {inspection.status === 'SCHEDULED' && (
+                            <Button
+                              size="sm"
+                              color="primary"
+                              onClick={() => completeInspectionMutation.mutate(inspection)}
+                              disabled={completeInspectionMutation.isPending}
+                            >
+                              Zakończ
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            color="gray"
+                            onClick={() => handleOpenInspectionModal(viewingMachine!, inspection)}
+                          >
+                            <HiPencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            color="failure"
+                            onClick={() => handleDeleteInspection(inspection.uuid!)}
+                            disabled={deleteInspectionMutation.isPending}
+                          >
+                            <HiTrash className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table>
             </div>
           )}
         </Modal.Body>

@@ -41,6 +41,7 @@ export interface MachineInspectionDto {
   inspectionDate: string;
   notes?: string;
   status?: string;
+  performedBy?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -49,6 +50,7 @@ export interface CreateMachineInspectionDto {
   inspectionDate: string;
   notes?: string;
   status?: string;
+  performedBy: string;
 }
 
 export const ToolCondition = {

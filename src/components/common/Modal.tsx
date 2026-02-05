@@ -6,7 +6,19 @@ interface ModalProps {
   onClose: () => void;
   children: React.ReactNode;
   className?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
 }
+
+const sizeClasses = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+  xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
+  '4xl': 'max-w-4xl',
+  '5xl': 'max-w-5xl',
+};
 
 interface ModalHeaderProps {
   children: React.ReactNode;
@@ -27,12 +39,12 @@ const Modal: React.FC<ModalProps> & {
   Header: React.FC<ModalHeaderProps>;
   Body: React.FC<ModalBodyProps>;
   Footer: React.FC<ModalFooterProps>;
-} = ({ show, onClose, children, className = '' }) => {
+} = ({ show, onClose, children, className = '', size = 'md' }) => {
   if (!show) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="relative w-full max-w-md mx-4 max-h-full">
+      <div className={`relative w-full ${sizeClasses[size]} mx-4 max-h-full`}>
         <div className={`relative bg-section-grey rounded-lg shadow ${className}`}>
           <button
             onClick={onClose}

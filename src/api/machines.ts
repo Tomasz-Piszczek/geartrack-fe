@@ -63,4 +63,23 @@ export const machinesApi = {
     );
     return response.data;
   },
+
+  updateInspection: async (inspectionId: string, inspection: CreateMachineInspectionDto): Promise<MachineInspectionDto> => {
+    const response = await apiClient.put<MachineInspectionDto>(
+      API_ENDPOINTS.MACHINES.INSPECTION_BY_ID(inspectionId),
+      inspection
+    );
+    return response.data;
+  },
+
+  getScheduledInspections: async (): Promise<MachineInspectionDto[]> => {
+    const response = await apiClient.get<MachineInspectionDto[]>(
+      API_ENDPOINTS.MACHINES.SCHEDULED_INSPECTIONS
+    );
+    return response.data;
+  },
+
+  deleteInspection: async (inspectionId: string): Promise<void> => {
+    await apiClient.delete(API_ENDPOINTS.MACHINES.INSPECTION_BY_ID(inspectionId));
+  },
 };

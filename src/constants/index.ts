@@ -16,8 +16,11 @@ export const API_ENDPOINTS = {
     BY_ID: (id: string) => `/api/machines/${id}`,
     ASSIGN: (machineId: string, employeeId: string) => `/api/machines/assign/${machineId}/${employeeId}`,
     INSPECTIONS: (machineId: string) => `/api/machine-inspections/${machineId}`,
+    INSPECTION_BY_ID: (inspectionId: string) => `/api/machine-inspections/${inspectionId}`,
     MACHINE_INSPECTIONS: (machineId: string) => `/api/machine-inspections/machine/${machineId}`,
     MACHINE_INSPECTION_HISTORY: (machineId: string) => `/api/machine-inspections/machine/${machineId}/history`,
+    SCHEDULED_INSPECTIONS: '/api/machine-inspections/scheduled',
+    STREAM: '/api/machine-inspections/stream',
   },
   TOOLS: {
     BASE: '/api/tools',
@@ -62,6 +65,7 @@ export const API_ENDPOINTS = {
 export const QUERY_KEYS = {
   EMPLOYEES: 'employees',
   MACHINES: 'machines',
+  MACHINE_INSPECTIONS: 'machine-inspections',
   TOOLS: 'tools',
   USER: 'user',
   PAYROLL: 'payroll',

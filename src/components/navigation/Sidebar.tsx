@@ -12,12 +12,14 @@ import Brand from './Brand';
 import { useAuth } from '../../context/AuthContext';
 import { useUrlopy } from '../../context/UrlopContext';
 import { useBadaniaSzkolenia } from '../../context/BadaniaSzkolenieContext';
+import { useMachineInspections } from '../../context/MachineInspectionContext';
 
 const MainSidebar: React.FC = () => {
   const location = useLocation();
   const { isUserOrSuperUser, isAdmin } = useAuth();
   const { pendingCount } = useUrlopy();
   const { expiredCount, expiringSoonCount } = useBadaniaSzkolenia();
+  const { overdueCount, dueSoonCount } = useMachineInspections();
   const active = 'border-r-[4px] border-r-main bg-gradient-hover';
 
   const allNavigationItems = [
@@ -116,6 +118,20 @@ const MainSidebar: React.FC = () => {
                     {isAdmin() && expiringSoonCount > 0 && (
                       <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-orange-500 rounded-full text-white text-xs font-bold">
                         {expiringSoonCount}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {item.path === ROUTES.MACHINES && (
+                  <div className="ml-auto flex gap-1">
+                    {overdueCount > 0 && (
+                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-red-500 rounded-full text-white text-xs font-bold">
+                        {overdueCount}
+                      </span>
+                    )}
+                    {dueSoonCount > 0 && (
+                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-orange-500 rounded-full text-white text-xs font-bold">
+                        {dueSoonCount}
                       </span>
                     )}
                   </div>

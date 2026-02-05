@@ -4,6 +4,7 @@ import { queryClient } from './lib/query-client';
 import { AuthProvider } from './context/AuthContext';
 import { UrlopProvider } from './context/UrlopContext';
 import { BadaniaSzkolenieProvider } from './context/BadaniaSzkolenieContext';
+import { MachineInspectionProvider } from './context/MachineInspectionContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './layouts/MainLayout';
 import LoginPage from './pages/auth/LoginPage';
@@ -24,7 +25,8 @@ function App() {
       <AuthProvider>
         <UrlopProvider>
           <BadaniaSzkolenieProvider>
-            <Router>
+            <MachineInspectionProvider>
+              <Router>
             <div className="min-h-screen bg-background-black">
               <Routes>
               <Route path={ROUTES.LOGIN} element={<LoginPage />} />
@@ -112,7 +114,8 @@ function App() {
             </Routes>
             <ToastContainer />
           </div>
-        </Router>
+              </Router>
+            </MachineInspectionProvider>
           </BadaniaSzkolenieProvider>
         </UrlopProvider>
       </AuthProvider>
