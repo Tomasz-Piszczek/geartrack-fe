@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import type { MachineInspectionDto } from '../types/index';
 import { API_BASE_URL, API_ENDPOINTS } from '../constants';
 import axios from 'axios';
+import { useSse } from './SseContext';
 
 interface MachineInspectionContextType {
   inspections: MachineInspectionDto[];
@@ -16,132 +17,48 @@ const MachineInspectionContext = createContext<MachineInspectionContextType | un
 
 export const MachineInspectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [inspections, setInspections] = useState<MachineInspectionDto[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('geartrack_token'));
+  const { isConnected, subscribe } = useSse();
 
-  // Monitor token changes in localStorage
-  useEffect(() => {
-    const checkToken = () => {
-      const currentToken = localStorage.getItem('geartrack_token');
-      setToken(currentToken);
-    };
-
-    checkToken();
-
-    window.addEventListener('storage', checkToken);
-    const interval = setInterval(checkToken, 1000);
-
-    return () => {
-      window.removeEventListener('storage', checkToken);
-      clearInterval(interval);
-    };
-  }, []);
-
-  // Fetch initial data via REST API
   const fetchInitialData = useCallback(async () => {
-    if (!token) {
-      console.log('[MachineInspectionData] No token, skipping initial data fetch');
-      return;
-    }
+    const token = localStorage.getItem('geartrack_token');
+    if (!token) return;
 
-    try {
-      console.log('[MachineInspectionData] Fetching initial data via REST');
-      const response = await axios.get<MachineInspectionDto[]>(
-        `${API_BASE_URL}${API_ENDPOINTS.MACHINES.SCHEDULED_INSPECTIONS}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      setInspections(response.data);
-      console.log('[MachineInspectionData] Initial data loaded successfully');
-    } catch (error) {
-      console.error('[MachineInspectionData] Error fetching initial data:', error);
-    }
-  }, [token]);
-
-  const connectSSE = useCallback(() => {
-    if (!token) {
-      console.log('[MachineInspectionSSE] No token, skipping SSE connection');
-      return null;
-    }
-
-    const sseUrl = `${API_BASE_URL}${API_ENDPOINTS.MACHINES.STREAM}?token=${encodeURIComponent(token)}`;
-    const eventSource = new EventSource(sseUrl);
-
-    eventSource.onopen = () => {
-      console.log('[MachineInspectionSSE] Connection established');
-      setIsConnected(true);
-    };
-
-    eventSource.addEventListener('CREATE', (event) => {
-      console.log('[MachineInspectionSSE] Received CREATE event');
-      try {
-        const newInspection = JSON.parse(event.data) as MachineInspectionDto;
-        if (newInspection.status === 'SCHEDULED') {
-          setInspections(prev => [...prev, newInspection]);
-        }
-      } catch (error) {
-        console.error('[MachineInspectionSSE] Error parsing CREATE data:', error);
-      }
-    });
-
-    eventSource.addEventListener('UPDATE', (event) => {
-      console.log('[MachineInspectionSSE] Received UPDATE event');
-      try {
-        const updatedInspection = JSON.parse(event.data) as MachineInspectionDto;
-        if (updatedInspection.status === 'SCHEDULED') {
-          setInspections(prev =>
-            prev.map(i => i.uuid === updatedInspection.uuid ? updatedInspection : i)
-          );
-        } else {
-          // If status changed to COMPLETED, remove from list
-          setInspections(prev => prev.filter(i => i.uuid !== updatedInspection.uuid));
-        }
-      } catch (error) {
-        console.error('[MachineInspectionSSE] Error parsing UPDATE data:', error);
-      }
-    });
-
-    eventSource.addEventListener('DELETE', (event) => {
-      console.log('[MachineInspectionSSE] Received DELETE event');
-      try {
-        const deletedInspection = JSON.parse(event.data) as MachineInspectionDto;
-        setInspections(prev => prev.filter(i => i.uuid !== deletedInspection.uuid));
-      } catch (error) {
-        console.error('[MachineInspectionSSE] Error parsing DELETE data:', error);
-      }
-    });
-
-    eventSource.onerror = (error) => {
-      console.error('[MachineInspectionSSE] Error:', error);
-      setIsConnected(false);
-      eventSource.close();
-
-      setTimeout(() => {
-        console.log('[MachineInspectionSSE] Retrying connection...');
-        connectSSE();
-      }, 5000);
-    };
-
-    return eventSource;
-  }, [token]);
+    const response = await axios.get<MachineInspectionDto[]>(
+      `${API_BASE_URL}${API_ENDPOINTS.MACHINES.SCHEDULED_INSPECTIONS}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    setInspections(response.data);
+  }, []);
 
   useEffect(() => {
     fetchInitialData();
-  }, [fetchInitialData]);
 
-  useEffect(() => {
-    const eventSource = connectSSE();
+    const unsubscribeCreate = subscribe('MACHINE_INSPECTION.CREATE', (newInspection: MachineInspectionDto) => {
+      if (newInspection.status === 'SCHEDULED') {
+        setInspections(prev => [...prev, newInspection]);
+      }
+    });
+
+    const unsubscribeUpdate = subscribe('MACHINE_INSPECTION.UPDATE', (updatedInspection: MachineInspectionDto) => {
+      if (updatedInspection.status === 'SCHEDULED') {
+        setInspections(prev =>
+          prev.map(i => i.uuid === updatedInspection.uuid ? updatedInspection : i)
+        );
+      } else {
+        setInspections(prev => prev.filter(i => i.uuid !== updatedInspection.uuid));
+      }
+    });
+
+    const unsubscribeDelete = subscribe('MACHINE_INSPECTION.DELETE', (deletedInspection: MachineInspectionDto) => {
+      setInspections(prev => prev.filter(i => i.uuid !== deletedInspection.uuid));
+    });
 
     return () => {
-      if (eventSource) {
-        console.log('[MachineInspectionSSE] Closing connection');
-        eventSource.close();
-      }
+      unsubscribeCreate();
+      unsubscribeUpdate();
+      unsubscribeDelete();
     };
-  }, [connectSSE]);
+  }, [fetchInitialData, subscribe]);
 
   const getInspectionsByMachineId = useCallback((machineId: string): MachineInspectionDto[] => {
     return inspections.filter(i => i.machineId === machineId);
@@ -213,11 +130,6 @@ export const MachineInspectionProvider: React.FC<{ children: React.ReactNode }> 
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useMachineInspections = () => {
-  const context = useContext(MachineInspectionContext);
-  if (context === undefined) {
-    throw new Error('useMachineInspections must be used within a MachineInspectionProvider');
-  }
-  return context;
+  return useContext(MachineInspectionContext)!;
 };

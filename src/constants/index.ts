@@ -20,7 +20,6 @@ export const API_ENDPOINTS = {
     MACHINE_INSPECTIONS: (machineId: string) => `/api/machine-inspections/machine/${machineId}`,
     MACHINE_INSPECTION_HISTORY: (machineId: string) => `/api/machine-inspections/machine/${machineId}/history`,
     SCHEDULED_INSPECTIONS: '/api/machine-inspections/scheduled',
-    STREAM: '/api/machine-inspections/stream',
   },
   TOOLS: {
     BASE: '/api/tools',
@@ -51,14 +50,15 @@ export const API_ENDPOINTS = {
     BASE: '/api/urlopy',
     BY_EMPLOYEE: (employeeId: string) => `/api/urlopy/${employeeId}`,
     BY_ID: (id: string) => `/api/urlopy/${id}`,
-    STREAM: '/api/urlopy/stream',
   },
   BADANIA_SZKOLENIA: {
     BASE: '/api/badania-szkolenia',
     BY_EMPLOYEE: (employeeId: string) => `/api/badania-szkolenia/${employeeId}`,
     BY_ID: (id: string) => `/api/badania-szkolenia/${id}`,
     CATEGORIES: '/api/badania-szkolenia/categories',
-    STREAM: '/api/badania-szkolenia/stream',
+  },
+  SSE: {
+    STREAM: '/api/sse/stream',
   },
 } as const;
 

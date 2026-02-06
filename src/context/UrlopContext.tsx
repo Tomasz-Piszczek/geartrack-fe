@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { UrlopDto } from '../types/index';
 import { API_BASE_URL, API_ENDPOINTS } from '../constants';
 import axios from 'axios';
+import { useSse } from './SseContext';
 
 interface UrlopContextType {
   urlopy: UrlopDto[];
@@ -14,130 +15,41 @@ const UrlopContext = createContext<UrlopContextType | undefined>(undefined);
 
 export const UrlopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [urlopy, setUrlopy] = useState<UrlopDto[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('geartrack_token'));
+  const { isConnected, subscribe } = useSse();
 
-  // Monitor token changes in localStorage
-  useEffect(() => {
-    const checkToken = () => {
-      const currentToken = localStorage.getItem('geartrack_token');
-      setToken(currentToken);
-    };
+  const fetchInitialData = useCallback(async () => {
+    const token = localStorage.getItem('geartrack_token');
+    if (!token) return;
 
-    // Check immediately
-    checkToken();
-
-    // Listen for storage events (token changes from other tabs)
-    window.addEventListener('storage', checkToken);
-
-    // Poll for token changes in same tab (since storage events don't fire in same tab)
-    const interval = setInterval(checkToken, 1000);
-
-    return () => {
-      window.removeEventListener('storage', checkToken);
-      clearInterval(interval);
-    };
+    const response = await axios.get<UrlopDto[]>(`${API_BASE_URL}${API_ENDPOINTS.URLOPY.BASE}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    setUrlopy(response.data);
   }, []);
 
-  // Fetch initial data via REST API
-  const fetchInitialData = useCallback(async () => {
-    if (!token) {
-      console.log('[UrlopData] No token, skipping initial data fetch');
-      return;
-    }
-
-    try {
-      console.log('[UrlopData] Fetching initial data via REST');
-      const response = await axios.get<UrlopDto[]>(`${API_BASE_URL}${API_ENDPOINTS.URLOPY.BASE}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      setUrlopy(response.data);
-      console.log('[UrlopData] Initial data loaded successfully');
-    } catch (error) {
-      console.error('[UrlopData] Error fetching initial data:', error);
-    }
-  }, [token]);
-
-  const connectSSE = useCallback(() => {
-    if (!token) {
-      console.log('[UrlopSSE] No token, skipping SSE connection');
-      return null;
-    }
-
-    // Pass token as query parameter since EventSource doesn't support custom headers
-    const sseUrl = `${API_BASE_URL}${API_ENDPOINTS.URLOPY.STREAM}?token=${encodeURIComponent(token)}`;
-    const eventSource = new EventSource(sseUrl);
-
-    eventSource.onopen = () => {
-      console.log('[UrlopSSE] Connection established');
-      setIsConnected(true);
-    };
-
-    eventSource.addEventListener('CREATE', (event) => {
-      console.log('[UrlopSSE] Received CREATE event');
-      try {
-        const newUrlop = JSON.parse(event.data) as UrlopDto;
-        setUrlopy(prev => [...prev, newUrlop]);
-      } catch (error) {
-        console.error('[UrlopSSE] Error parsing CREATE data:', error);
-      }
-    });
-
-    eventSource.addEventListener('UPDATE', (event) => {
-      console.log('[UrlopSSE] Received UPDATE event');
-      try {
-        const updatedUrlop = JSON.parse(event.data) as UrlopDto;
-        setUrlopy(prev =>
-          prev.map(u => u.id === updatedUrlop.id ? updatedUrlop : u)
-        );
-      } catch (error) {
-        console.error('[UrlopSSE] Error parsing UPDATE data:', error);
-      }
-    });
-
-    eventSource.addEventListener('DELETE', (event) => {
-      console.log('[UrlopSSE] Received DELETE event');
-      try {
-        const deletedUrlop = JSON.parse(event.data) as UrlopDto;
-        setUrlopy(prev => prev.filter(u => u.id !== deletedUrlop.id));
-      } catch (error) {
-        console.error('[UrlopSSE] Error parsing DELETE data:', error);
-      }
-    });
-
-    eventSource.onerror = (error) => {
-      console.error('[UrlopSSE] Error:', error);
-      setIsConnected(false);
-      eventSource.close();
-
-      // Retry connection after 5 seconds
-      setTimeout(() => {
-        console.log('[UrlopSSE] Retrying connection...');
-        connectSSE();
-      }, 5000);
-    };
-
-    return eventSource;
-  }, [token]);
-
-  // Fetch initial data when token changes
   useEffect(() => {
     fetchInitialData();
-  }, [fetchInitialData]);
 
-  // Connect SSE for real-time updates
-  useEffect(() => {
-    const eventSource = connectSSE();
+    const unsubscribeCreate = subscribe('URLOP.CREATE', (newUrlop: UrlopDto) => {
+      setUrlopy(prev => [...prev, newUrlop]);
+    });
+
+    const unsubscribeUpdate = subscribe('URLOP.UPDATE', (updatedUrlop: UrlopDto) => {
+      setUrlopy(prev =>
+        prev.map(u => u.id === updatedUrlop.id ? updatedUrlop : u)
+      );
+    });
+
+    const unsubscribeDelete = subscribe('URLOP.DELETE', (deletedUrlop: UrlopDto) => {
+      setUrlopy(prev => prev.filter(u => u.id !== deletedUrlop.id));
+    });
 
     return () => {
-      if (eventSource) {
-        console.log('[UrlopSSE] Closing connection');
-        eventSource.close();
-      }
+      unsubscribeCreate();
+      unsubscribeUpdate();
+      unsubscribeDelete();
     };
-  }, [connectSSE]);
+  }, [fetchInitialData, subscribe]);
 
   const getUrlopByEmployeeId = useCallback((employeeId: string): UrlopDto[] => {
     return urlopy.filter(u => u.employeeId === employeeId);
@@ -159,11 +71,6 @@ export const UrlopProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useUrlopy = () => {
-  const context = useContext(UrlopContext);
-  if (context === undefined) {
-    throw new Error('useUrlopy must be used within a UrlopProvider');
-  }
-  return context;
+  return useContext(UrlopContext)!;
 };

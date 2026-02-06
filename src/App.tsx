@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/query-client';
 import { AuthProvider } from './context/AuthContext';
+import { SseProvider } from './context/SseContext';
 import { UrlopProvider } from './context/UrlopContext';
 import { BadaniaSzkolenieProvider } from './context/BadaniaSzkolenieContext';
 import { MachineInspectionProvider } from './context/MachineInspectionContext';
@@ -23,10 +24,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <UrlopProvider>
-          <BadaniaSzkolenieProvider>
-            <MachineInspectionProvider>
-              <Router>
+        <SseProvider>
+          <UrlopProvider>
+            <BadaniaSzkolenieProvider>
+              <MachineInspectionProvider>
+                <Router>
             <div className="min-h-screen bg-background-black">
               <Routes>
               <Route path={ROUTES.LOGIN} element={<LoginPage />} />
@@ -114,10 +116,11 @@ function App() {
             </Routes>
             <ToastContainer />
           </div>
-              </Router>
-            </MachineInspectionProvider>
-          </BadaniaSzkolenieProvider>
-        </UrlopProvider>
+                </Router>
+              </MachineInspectionProvider>
+            </BadaniaSzkolenieProvider>
+          </UrlopProvider>
+        </SseProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

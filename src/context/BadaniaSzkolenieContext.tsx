@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import type { BadanieSzkolenieDto } from '../types/index';
 import { API_BASE_URL, API_ENDPOINTS } from '../constants';
 import axios from 'axios';
+import { useSse } from './SseContext';
 
 interface BadaniaSzkolenieContextType {
   badaniaSzkolenia: BadanieSzkolenieDto[];
@@ -16,131 +17,42 @@ const BadaniaSzkolenieContext = createContext<BadaniaSzkolenieContextType | unde
 
 export const BadaniaSzkolenieProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [badaniaSzkolenia, setBadaniaSzkolenia] = useState<BadanieSzkolenieDto[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('geartrack_token'));
+  const { isConnected, subscribe } = useSse();
 
-  // Monitor token changes in localStorage
-  useEffect(() => {
-    const checkToken = () => {
-      const currentToken = localStorage.getItem('geartrack_token');
-      setToken(currentToken);
-    };
+  const fetchInitialData = useCallback(async () => {
+    const token = localStorage.getItem('geartrack_token');
+    if (!token) return;
 
-    // Check immediately
-    checkToken();
-
-    // Listen for storage events (token changes from other tabs)
-    window.addEventListener('storage', checkToken);
-
-    // Poll for token changes in same tab (since storage events don't fire in same tab)
-    const interval = setInterval(checkToken, 1000);
-
-    return () => {
-      window.removeEventListener('storage', checkToken);
-      clearInterval(interval);
-    };
+    const response = await axios.get<BadanieSzkolenieDto[]>(
+      `${API_BASE_URL}${API_ENDPOINTS.BADANIA_SZKOLENIA.BASE}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    setBadaniaSzkolenia(response.data);
   }, []);
 
-  // Fetch initial data via REST API
-  const fetchInitialData = useCallback(async () => {
-    if (!token) {
-      console.log('[BadaniaSzkolenieData] No token, skipping initial data fetch');
-      return;
-    }
-
-    try {
-      console.log('[BadaniaSzkolenieData] Fetching initial data via REST');
-      const response = await axios.get<BadanieSzkolenieDto[]>(
-        `${API_BASE_URL}${API_ENDPOINTS.BADANIA_SZKOLENIA.BASE}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      setBadaniaSzkolenia(response.data);
-      console.log('[BadaniaSzkolenieData] Initial data loaded successfully');
-    } catch (error) {
-      console.error('[BadaniaSzkolenieData] Error fetching initial data:', error);
-    }
-  }, [token]);
-
-  const connectSSE = useCallback(() => {
-    if (!token) {
-      console.log('[BadaniaSzkolenieSSE] No token, skipping SSE connection');
-      return null;
-    }
-
-    const sseUrl = `${API_BASE_URL}${API_ENDPOINTS.BADANIA_SZKOLENIA.STREAM}?token=${encodeURIComponent(token)}`;
-    const eventSource = new EventSource(sseUrl);
-
-    eventSource.onopen = () => {
-      console.log('[BadaniaSzkolenieSSE] Connection established');
-      setIsConnected(true);
-    };
-
-    eventSource.addEventListener('CREATE', (event) => {
-      console.log('[BadaniaSzkolenieSSE] Received CREATE event');
-      try {
-        const newBadanie = JSON.parse(event.data) as BadanieSzkolenieDto;
-        setBadaniaSzkolenia(prev => [...prev, newBadanie]);
-      } catch (error) {
-        console.error('[BadaniaSzkolenieSSE] Error parsing CREATE data:', error);
-      }
-    });
-
-    eventSource.addEventListener('UPDATE', (event) => {
-      console.log('[BadaniaSzkolenieSSE] Received UPDATE event');
-      try {
-        const updatedBadanie = JSON.parse(event.data) as BadanieSzkolenieDto;
-        setBadaniaSzkolenia(prev =>
-          prev.map(b => b.id === updatedBadanie.id ? updatedBadanie : b)
-        );
-      } catch (error) {
-        console.error('[BadaniaSzkolenieSSE] Error parsing UPDATE data:', error);
-      }
-    });
-
-    eventSource.addEventListener('DELETE', (event) => {
-      console.log('[BadaniaSzkolenieSSE] Received DELETE event');
-      try {
-        const deletedBadanie = JSON.parse(event.data) as BadanieSzkolenieDto;
-        setBadaniaSzkolenia(prev => prev.filter(b => b.id !== deletedBadanie.id));
-      } catch (error) {
-        console.error('[BadaniaSzkolenieSSE] Error parsing DELETE data:', error);
-      }
-    });
-
-    eventSource.onerror = (error) => {
-      console.error('[BadaniaSzkolenieSSE] Error:', error);
-      setIsConnected(false);
-      eventSource.close();
-
-      setTimeout(() => {
-        console.log('[BadaniaSzkolenieSSE] Retrying connection...');
-        connectSSE();
-      }, 5000);
-    };
-
-    return eventSource;
-  }, [token]);
-
-  // Fetch initial data when token changes
   useEffect(() => {
     fetchInitialData();
-  }, [fetchInitialData]);
 
-  // Connect SSE for real-time updates
-  useEffect(() => {
-    const eventSource = connectSSE();
+    const unsubscribeCreate = subscribe('BADANIE_SZKOLENIE.CREATE', (newBadanie: BadanieSzkolenieDto) => {
+      setBadaniaSzkolenia(prev => [...prev, newBadanie]);
+    });
+
+    const unsubscribeUpdate = subscribe('BADANIE_SZKOLENIE.UPDATE', (updatedBadanie: BadanieSzkolenieDto) => {
+      setBadaniaSzkolenia(prev =>
+        prev.map(b => b.id === updatedBadanie.id ? updatedBadanie : b)
+      );
+    });
+
+    const unsubscribeDelete = subscribe('BADANIE_SZKOLENIE.DELETE', (deletedBadanie: BadanieSzkolenieDto) => {
+      setBadaniaSzkolenia(prev => prev.filter(b => b.id !== deletedBadanie.id));
+    });
 
     return () => {
-      if (eventSource) {
-        console.log('[BadaniaSzkolenieSSE] Closing connection');
-        eventSource.close();
-      }
+      unsubscribeCreate();
+      unsubscribeUpdate();
+      unsubscribeDelete();
     };
-  }, [connectSSE]);
+  }, [fetchInitialData, subscribe]);
 
   const getBadaniaSzkoleniaByEmployeeId = useCallback((employeeId: string): BadanieSzkolenieDto[] => {
     return badaniaSzkolenia.filter(b => b.employeeId === employeeId);
@@ -200,11 +112,6 @@ export const BadaniaSzkolenieProvider: React.FC<{ children: React.ReactNode }> =
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useBadaniaSzkolenia = () => {
-  const context = useContext(BadaniaSzkolenieContext);
-  if (context === undefined) {
-    throw new Error('useBadaniaSzkolenia must be used within a BadaniaSzkolenieProvider');
-  }
-  return context;
+  return useContext(BadaniaSzkolenieContext)!;
 };
