@@ -78,8 +78,8 @@ export const BadaniaSzkolenieProvider: React.FC<{ children: React.ReactNode }> =
   const { expiredCount, expiringSoonCount } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const sevenDaysFromNow = new Date(today);
-    sevenDaysFromNow.setDate(today.getDate() + 7);
+    const twentyDaysFromNow = new Date(today);
+    twentyDaysFromNow.setDate(today.getDate() + 20);
 
     const expired = badaniaSzkolenia.filter(b => {
       const badanieDate = new Date(b.date);
@@ -90,7 +90,7 @@ export const BadaniaSzkolenieProvider: React.FC<{ children: React.ReactNode }> =
     const expiringSoon = badaniaSzkolenia.filter(b => {
       const badanieDate = new Date(b.date);
       badanieDate.setHours(0, 0, 0, 0);
-      return b.status === 'OCZEKUJACY' && badanieDate >= today && badanieDate <= sevenDaysFromNow;
+      return b.status === 'OCZEKUJACY' && badanieDate >= today && badanieDate <= twentyDaysFromNow;
     }).length;
 
     return { expiredCount: expired, expiringSoonCount: expiringSoon };

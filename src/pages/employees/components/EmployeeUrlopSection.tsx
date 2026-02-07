@@ -50,7 +50,7 @@ const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSe
     mutationFn: ({ employeeId, urlop }: { employeeId: string; urlop: Omit<UrlopDto, 'id'> }) =>
       urlopyApi.create(employeeId, urlop),
     onSuccess: () => {
-      toast.success('Urlop created successfully');
+      toast.success('Urlop został utworzony');
       handleCloseUrlopModal();
     },
     onError: (error: Error) => {
@@ -62,7 +62,7 @@ const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSe
     mutationFn: ({ id, urlop }: { id: string; urlop: UrlopDto }) =>
       urlopyApi.update(id, urlop),
     onSuccess: () => {
-      toast.success('Urlop updated successfully');
+      toast.success('Urlop został zaktualizowany');
       handleCloseUrlopModal();
     },
     onError: (error: Error) => {
@@ -73,7 +73,7 @@ const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSe
   const deleteUrlopMutation = useMutation({
     mutationFn: urlopyApi.delete,
     onSuccess: () => {
-      toast.success('Urlop deleted successfully');
+      toast.success('Urlop został usunięty');
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete urlop');

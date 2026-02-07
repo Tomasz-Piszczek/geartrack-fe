@@ -406,14 +406,22 @@ const PayrollPage: React.FC = () => {
         <div className="mb-3">
           <div className="font-semibold mb-1">Dzienne godziny:</div>
           <div className="space-y-0.5 max-h-48 overflow-y-auto">
-            {record.dailyBreakdown?.map((day, idx) => (
-              <div
-                key={idx}
-                className={day.actualHours > 10 ? 'text-red-400' : ''}
-              >
-                {day.date} {formatHours(day.actualHours)} ({day.roundedHours}h)
-              </div>
-            ))}
+            {record.dailyBreakdown?.map((day, idx) => {
+              const startTime = day.startTime ? new Date(day.startTime).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '';
+              const endTime = day.endTime ? new Date(day.endTime).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '';
+              return (
+                <div
+                  key={idx}
+                  className={day.actualHours > 10 ? 'text-red-400' : ''}
+                >
+                  {startTime && endTime ? (
+                    <>wejście: {startTime} wyjście: {endTime} - {formatDateOnly(day.date)} ({formatHours(day.actualHours)} - {day.roundedHours}h)</>
+                  ) : (
+                    <>{day.date} {formatHours(day.actualHours)} ({day.roundedHours}h)</>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -472,11 +480,19 @@ const PayrollPage: React.FC = () => {
           <div className="border-t border-gray-600 pt-2">
             <div className="font-semibold mb-1">Dzienne godziny pracy:</div>
             <div className="space-y-0.5 max-h-32 overflow-y-auto">
-              {record.dailyBreakdown?.map((day, idx) => (
-                <div key={idx} className={day.actualHours > 10 ? 'text-red-400' : ''}>
-                  {day.date} {formatHours(day.actualHours)} ({day.roundedHours}h)
-                </div>
-              ))}
+              {record.dailyBreakdown?.map((day, idx) => {
+                const startTime = day.startTime ? new Date(day.startTime).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '';
+                const endTime = day.endTime ? new Date(day.endTime).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '';
+                return (
+                  <div key={idx} className={day.actualHours > 10 ? 'text-red-400' : ''}>
+                    {startTime && endTime ? (
+                      <>wejście: {startTime} wyjście: {endTime} - {formatDateOnly(day.date)} ({formatHours(day.actualHours)} - {day.roundedHours}h)</>
+                    ) : (
+                      <>{day.date} {formatHours(day.actualHours)} ({day.roundedHours}h)</>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

@@ -12,6 +12,8 @@ export interface DailyBreakdownDto {
   date: string;
   actualHours: number;
   roundedHours: number;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface UrlopBreakdownDto {
@@ -44,6 +46,12 @@ export interface PayrollRecordDto {
   calculatedCashAmount?: number;
 }
 
+export interface EmployeeWorkingHoursDto {
+  totalHours: number;
+  dailyBreakdown: DailyBreakdownDto[];
+  urlopBreakdown: UrlopBreakdownDto[];
+}
+
 export const payrollApi = {
   getPayrollRecords: async (year: number, month: number): Promise<PayrollRecordDto[]> => {
     const response = await apiClient.get(`/api/payroll/${year}/${month}`);
@@ -65,6 +73,11 @@ export const payrollApi = {
 
   getEmployeeDeductions: async (employeeId: string): Promise<PayrollDeductionDto[]> => {
     const response = await apiClient.get(`/api/payroll/employees/${employeeId}/deductions`);
+    return response.data;
+  },
+
+  getEmployeeWorkingHours: async (employeeName: string, year: number, month: number): Promise<EmployeeWorkingHoursDto> => {
+    const response = await apiClient.get(`/api/payroll/employee-hours/${encodeURIComponent(employeeName)}/${year}/${month}`);
     return response.data;
   },
 };

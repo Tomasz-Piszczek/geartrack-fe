@@ -48,7 +48,7 @@ const ToolsPage: React.FC = () => {
     mutationFn: toolsApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
-      toast.success('Tool created successfully');
+      toast.success('Narzędzie zostało utworzone');
       handleCloseModal();
     },
     onError: (error: Error) => {
@@ -60,7 +60,7 @@ const ToolsPage: React.FC = () => {
     mutationFn: toolsApi.update,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
-      toast.success('Tool updated successfully');
+      toast.success('Narzędzie zostało zaktualizowane');
       handleCloseModal();
     },
     onError: (error: Error) => {
@@ -73,7 +73,7 @@ const ToolsPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES] });
-      toast.success('Tool deleted successfully');
+      toast.success('Narzędzie zostało usunięte');
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete tool');

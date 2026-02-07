@@ -67,8 +67,8 @@ export const MachineInspectionProvider: React.FC<{ children: React.ReactNode }> 
   const getMachineStatus = useCallback((machineId: string): 'overdue' | 'due-soon' | 'ok' => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const sevenDaysFromNow = new Date(today);
-    sevenDaysFromNow.setDate(today.getDate() + 7);
+    const twentyDaysFromNow = new Date(today);
+    twentyDaysFromNow.setDate(today.getDate() + 20);
 
     const machineInspections = inspections.filter(i => i.machineId === machineId);
 
@@ -85,7 +85,7 @@ export const MachineInspectionProvider: React.FC<{ children: React.ReactNode }> 
       const inspectionDate = new Date(inspection.inspectionDate);
       inspectionDate.setHours(0, 0, 0, 0);
 
-      if (inspectionDate >= today && inspectionDate <= sevenDaysFromNow) {
+      if (inspectionDate >= today && inspectionDate <= twentyDaysFromNow) {
         return 'due-soon';
       }
     }
@@ -96,8 +96,8 @@ export const MachineInspectionProvider: React.FC<{ children: React.ReactNode }> 
   const { overdueCount, dueSoonCount } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const sevenDaysFromNow = new Date(today);
-    sevenDaysFromNow.setDate(today.getDate() + 7);
+    const twentyDaysFromNow = new Date(today);
+    twentyDaysFromNow.setDate(today.getDate() + 20);
 
     const overdue = inspections.filter(i => {
       const inspectionDate = new Date(i.inspectionDate);
@@ -108,7 +108,7 @@ export const MachineInspectionProvider: React.FC<{ children: React.ReactNode }> 
     const dueSoon = inspections.filter(i => {
       const inspectionDate = new Date(i.inspectionDate);
       inspectionDate.setHours(0, 0, 0, 0);
-      return inspectionDate >= today && inspectionDate <= sevenDaysFromNow;
+      return inspectionDate >= today && inspectionDate <= twentyDaysFromNow;
     }).length;
 
     return { overdueCount: overdue, dueSoonCount: dueSoon };

@@ -57,7 +57,7 @@ const EmployeeBadaniaSzkoleniaSection = forwardRef<EmployeeBadaniaSzkoleniaSecti
     mutationFn: ({ employeeId, badanie }: { employeeId: string; badanie: Omit<BadanieSzkolenieDto, 'id' | 'status'> }) =>
       badaniaSzkoleniaApi.create(employeeId, badanie),
     onSuccess: async () => {
-      toast.success('Badanie/Szkolenie created successfully');
+      toast.success('Badanie/Szkolenie zostało utworzone');
       handleCloseModal();
       const cats = await badaniaSzkoleniaApi.getCategories();
       setCategories(cats);
@@ -71,7 +71,7 @@ const EmployeeBadaniaSzkoleniaSection = forwardRef<EmployeeBadaniaSzkoleniaSecti
     mutationFn: ({ id, badanie }: { id: string; badanie: BadanieSzkolenieDto }) =>
       badaniaSzkoleniaApi.update(id, badanie),
     onSuccess: async () => {
-      toast.success('Badanie/Szkolenie updated successfully');
+      toast.success('Badanie/Szkolenie zostało zaktualizowane');
       handleCloseModal();
       const cats = await badaniaSzkoleniaApi.getCategories();
       setCategories(cats);
@@ -84,7 +84,7 @@ const EmployeeBadaniaSzkoleniaSection = forwardRef<EmployeeBadaniaSzkoleniaSecti
   const deleteMutation = useMutation({
     mutationFn: badaniaSzkoleniaApi.delete,
     onSuccess: () => {
-      toast.success('Badanie/Szkolenie deleted successfully');
+      toast.success('Badanie/Szkolenie zostało usunięte');
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete badanie/szkolenie');

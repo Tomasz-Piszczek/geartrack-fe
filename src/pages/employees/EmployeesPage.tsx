@@ -72,7 +72,7 @@ const EmployeesPage: React.FC = () => {
     mutationFn: employeesApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES] });
-      toast.success('Employee created successfully');
+      toast.success('Pracownik został utworzony');
       handleCloseModal();
     },
     onError: (error: Error) => {
@@ -84,7 +84,7 @@ const EmployeesPage: React.FC = () => {
     mutationFn: employeesApi.update,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES] });
-      toast.success('Employee updated successfully');
+      toast.success('Pracownik został zaktualizowany');
       handleCloseModal();
     },
     onError: (error: Error) => {

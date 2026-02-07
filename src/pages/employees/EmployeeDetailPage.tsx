@@ -1,27 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { HiArrowLeft, HiUser, HiCurrencyDollar, HiPencil, HiPlus, HiCalendar } from 'react-icons/hi';
+import { HiArrowLeft, HiUser, HiCurrencyDollar, HiPlus, HiCalendar } from 'react-icons/hi';
+import { Clock } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
 import Modal from '../../components/common/Modal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
 import { employeesApi } from '../../api/employees';
-import { QUERY_KEYS, ROUTES, VALIDATION } from '../../constants';
+import { QUERY_KEYS, ROUTES } from '../../constants';
 import { toast } from '../../lib/toast';
 import { useAuth } from '../../context/AuthContext';
 import EmployeeToolsSection from './components/EmployeeToolsSection';
 import EmployeeUrlopSection, { type EmployeeUrlopSectionRef } from './components/EmployeeUrlopSection';
 import EmployeeBadaniaSzkoleniaSection, { type EmployeeBadaniaSzkoleniaSectionRef } from './components/EmployeeBadaniaSzkoleniaSection';
 import EmployeeDeductionsSection from './components/EmployeeDeductionsSection';
+import EmployeeWorkingHoursModal from './components/EmployeeWorkingHoursModal';
 import type { EmployeeUrlopDaysDto } from '../../types';
-
-interface EmployeeFormData {
-  firstName: string;
-  lastName: string;
-  hourlyRate: number;
-}
 
 interface VacationDaysFormData {
   [key: string]: number;
@@ -31,11 +26,9 @@ const EmployeeDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showVacationDaysModal, setShowVacationDaysModal] = useState(false);
+  const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false);
   const [vacationDaysForm, setVacationDaysForm] = useState<VacationDaysFormData>({});
-  const [showUrlopDaysInEdit, setShowUrlopDaysInEdit] = useState(false);
-  const [editUrlopDaysForm, setEditUrlopDaysForm] = useState<VacationDaysFormData>({});
   const queryClient = useQueryClient();
   const urlopSectionRef = useRef<EmployeeUrlopSectionRef>(null);
   const badaniaSzkoleniaSectionRef = useRef<EmployeeBadaniaSzkoleniaSectionRef>(null);
@@ -77,77 +70,6 @@ const EmployeeDetailPage: React.FC = () => {
       toast.error(error.message || 'Nie udało się zapisać dni urlopu');
     },
   });
-
-  const {
-    register: registerEdit,
-    handleSubmit: handleSubmitEdit,
-    formState: { errors: editErrors },
-    reset: resetEdit,
-  } = useForm<EmployeeFormData>();
-
-  const updateEmployeeMutation = useMutation({
-    mutationFn: employeesApi.update,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, id] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES] });
-      toast.success('Employee updated successfully');
-      handleCloseEditModal();
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to update employee');
-    },
-  });
-
-  const handleOpenEditModal = () => {
-    if (employee) {
-      resetEdit({
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        hourlyRate: employee.hourlyRate,
-      });
-    }
-    setEditUrlopDaysForm({
-      [`year_${previousYear}`]: 0,
-      [`year_${currentYear}`]: 0,
-    });
-    setShowUrlopDaysInEdit(false);
-    setShowEditModal(true);
-  };
-
-  const handleCloseEditModal = () => {
-    setShowEditModal(false);
-    setShowUrlopDaysInEdit(false);
-    resetEdit();
-  };
-
-  const onSubmitEdit = async (data: EmployeeFormData) => {
-    if (employee) {
-      updateEmployeeMutation.mutate({
-        ...employee,
-        ...data,
-      });
-
-      if (showUrlopDaysInEdit) {
-        const urlopDaysList: EmployeeUrlopDaysDto[] = [
-          { year: previousYear, days: editUrlopDaysForm[`year_${previousYear}`] || 0 },
-          { year: currentYear, days: editUrlopDaysForm[`year_${currentYear}`] || 0 },
-        ];
-        try {
-          await employeesApi.saveUrlopDays(id!, urlopDaysList);
-          queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.VACATION_SUMMARY, id] });
-        } catch {
-          toast.error('Nie udało się zapisać dni urlopu');
-        }
-      }
-    }
-  };
-
-  const handleEditUrlopDaysChange = (year: number, value: string) => {
-    setEditUrlopDaysForm(prev => ({
-      ...prev,
-      [`year_${year}`]: parseInt(value) || 0,
-    }));
-  };
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -252,14 +174,6 @@ const EmployeeDetailPage: React.FC = () => {
 
             <div className="w-full space-y-3">
               <Button
-                color="gray"
-                onClick={handleOpenEditModal}
-                className="bg-green-900 hover:bg-green-800 text-green-300 w-full"
-              >
-                <HiPencil className="w-4 h-4 mr-2" />
-                Edytuj Pracownika
-              </Button>
-              <Button
                 color="primary"
                 onClick={() => urlopSectionRef.current?.openAddModal()}
                 className="w-full"
@@ -274,6 +188,14 @@ const EmployeeDetailPage: React.FC = () => {
               >
                 <HiPlus className="w-4 h-4 mr-2" />
                 Dodaj Badanie lub Szkolenie
+              </Button>
+              <Button
+                color="primary"
+                onClick={() => setShowWorkingHoursModal(true)}
+                className="w-full"
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                Sprawdź godziny
               </Button>
             </div>
           </div>
@@ -351,107 +273,13 @@ const EmployeeDetailPage: React.FC = () => {
         </Modal.Footer>
       </Modal>
 
-      <Modal show={showEditModal} onClose={handleCloseEditModal}>
-        <Modal.Header className="bg-section-grey border-lighter-border">
-          <span className="text-white">
-            Edytuj pracownika
-          </span>
-        </Modal.Header>
-        <Modal.Body className="bg-section-grey">
-          <form onSubmit={handleSubmitEdit(onSubmitEdit)} className="space-y-4">
-            <Input
-              id="firstName"
-              label="Imię"
-              {...registerEdit('firstName', { required: VALIDATION.REQUIRED })}
-              error={editErrors.firstName?.message}
-              className="bg-section-grey-light"
-            />
-
-            <Input
-              id="lastName"
-              label="Nazwisko"
-              {...registerEdit('lastName', { required: VALIDATION.REQUIRED })}
-              error={editErrors.lastName?.message}
-              className="bg-section-grey-light"
-            />
-
-            {isAdmin() && (
-              <>
-                <Input
-                  id="hourlyRate"
-                  label="Stawka godzinowa (zł)"
-                  type="number"
-                  step="0.01"
-                  {...registerEdit('hourlyRate', {
-                    required: VALIDATION.REQUIRED,
-                    min: { value: 0, message: VALIDATION.POSITIVE_NUMBER }
-                  })}
-                  error={editErrors.hourlyRate?.message}
-                  className="bg-section-grey-light"
-                />
-
-                <div className="border-t border-lighter-border pt-4 mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowUrlopDaysInEdit(!showUrlopDaysInEdit)}
-                    className="flex items-center gap-2 text-surface-grey-dark hover:text-white transition-colors"
-                  >
-                    <HiCalendar className="w-5 h-5" />
-                    <span>Edytuj dni urlopu</span>
-                    <span className={`ml-auto transform transition-transform ${showUrlopDaysInEdit ? 'rotate-180' : ''}`}>
-                      ▼
-                    </span>
-                  </button>
-
-                  {showUrlopDaysInEdit && (
-                    <div className="mt-4 space-y-3">
-                      <Input
-                        id={`edit_vacation_days_${previousYear}`}
-                        label={`Dni urlopu w roku ${previousYear}`}
-                        type="number"
-                        min="0"
-                        max="365"
-                        value={editUrlopDaysForm[`year_${previousYear}`] || ''}
-                        onChange={(e) => handleEditUrlopDaysChange(previousYear, e.target.value)}
-                        className="bg-section-grey-light"
-                      />
-                      <Input
-                        id={`edit_vacation_days_${currentYear}`}
-                        label={`Dni urlopu w roku ${currentYear}`}
-                        type="number"
-                        min="0"
-                        max="365"
-                        value={editUrlopDaysForm[`year_${currentYear}`] || ''}
-                        onChange={(e) => handleEditUrlopDaysChange(currentYear, e.target.value)}
-                        className="bg-section-grey-light"
-                      />
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </form>
-        </Modal.Body>
-        <Modal.Footer className="bg-section-grey border-lighter-border">
-          <Button
-            color="primary"
-            onClick={handleSubmitEdit(onSubmitEdit)}
-            disabled={updateEmployeeMutation.isPending}
-          >
-            {updateEmployeeMutation.isPending ? (
-              <div className="flex items-center gap-2">
-                <div className="spinner w-4 h-4"></div>
-                Aktualizowanie...
-              </div>
-            ) : (
-              'Aktualizuj'
-            )}
-          </Button>
-          <Button color="gray" onClick={handleCloseEditModal}>
-            Anuluj
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      {employee && (
+        <EmployeeWorkingHoursModal
+          show={showWorkingHoursModal}
+          onClose={() => setShowWorkingHoursModal(false)}
+          employeeName={`${employee.firstName} ${employee.lastName}`}
+        />
+      )}
     </div>
   );
 };

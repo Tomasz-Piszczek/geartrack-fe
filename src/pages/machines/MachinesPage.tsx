@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HiPlus, HiPencil, HiTrash, HiSearch, HiUserAdd, HiDocumentText, HiInformationCircle } from 'react-icons/hi';
+import { HiPlus, HiPencil, HiTrash, HiSearch, HiUserAdd, HiDocumentText, HiInformationCircle, HiPrinter } from 'react-icons/hi';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
@@ -82,7 +82,7 @@ const MachinesPage: React.FC = () => {
     mutationFn: machinesApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
-      toast.success('Machine created successfully');
+      toast.success('Maszyna została utworzona');
       handleCloseModal();
     },
     onError: (error: Error) => {
@@ -94,7 +94,7 @@ const MachinesPage: React.FC = () => {
     mutationFn: machinesApi.update,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
-      toast.success('Machine updated successfully');
+      toast.success('Maszyna została zaktualizowana');
       handleCloseModal();
     },
     onError: (error: Error) => {
@@ -106,7 +106,7 @@ const MachinesPage: React.FC = () => {
     mutationFn: machinesApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
-      toast.success('Machine deleted successfully');
+      toast.success('Maszyna została usunięta');
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete machine');
@@ -118,7 +118,7 @@ const MachinesPage: React.FC = () => {
       machinesApi.assign(machineId, employeeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MACHINES] });
-      toast.success('Machine assigned successfully');
+      toast.success('Maszyna została przypisana');
       handleCloseAssignModal();
     },
     onError: (error: Error) => {
@@ -267,6 +267,46 @@ const MachinesPage: React.FC = () => {
   const handleCloseInspectionHistoryModal = () => {
     setShowInspectionHistoryModal(false);
     setViewingMachine(null);
+  };
+
+  const handlePrintInspectionNotes = (inspection: MachineInspectionDto) => {
+    const printContent = `
+      <!DOCTYPE html>
+      <html lang="pl">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          @media print {
+            body { margin: 0; padding: 20px; }
+            @page { margin: 1cm; }
+          }
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #000;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+          }
+        </style>
+      </head>
+      <body>${inspection.notes || ''}
+        <script>
+          window.onload = function() {
+            window.print();
+            window.onafterprint = function() {
+              window.close();
+            };
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+    }
   };
 
   const onSubmit = (data: MachineFormData) => {
@@ -628,7 +668,7 @@ const MachinesPage: React.FC = () => {
       </Modal>
 
       {/* Inspection History Modal */}
-      <Modal show={showInspectionHistoryModal} onClose={handleCloseInspectionHistoryModal} size="5xl">
+      <Modal show={showInspectionHistoryModal} onClose={handleCloseInspectionHistoryModal} size="5xl" className="!max-w-7xl">
         <Modal.Header className="bg-section-grey border-lighter-border">
           <span className="text-white">
             Historia inspekcji - {viewingMachine?.name}
@@ -696,8 +736,17 @@ const MachinesPage: React.FC = () => {
                           )}
                           <Button
                             size="sm"
+                            color="primary"
+                            onClick={() => handlePrintInspectionNotes(inspection)}
+                            title="Drukuj notatki"
+                          >
+                            <HiPrinter className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
                             color="gray"
                             onClick={() => handleOpenInspectionModal(viewingMachine!, inspection)}
+                            title="Edytuj inspekcję"
                           >
                             <HiPencil className="w-4 h-4" />
                           </Button>
@@ -706,6 +755,7 @@ const MachinesPage: React.FC = () => {
                             color="failure"
                             onClick={() => handleDeleteInspection(inspection.uuid!)}
                             disabled={deleteInspectionMutation.isPending}
+                            title="Usuń inspekcję"
                           >
                             <HiTrash className="w-4 h-4" />
                           </Button>

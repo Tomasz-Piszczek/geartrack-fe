@@ -71,7 +71,7 @@ const EmployeeToolsSection: React.FC<EmployeeToolsSectionProps> = ({ employeeId,
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, employeeId, 'tools'] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS, 'quantities'] });
-      toast.success('Tool assigned successfully');
+      toast.success('Narzędzie zostało przypisane');
       handleCloseAssignToolModal();
     },
     onError: (error: Error) => {
@@ -86,7 +86,7 @@ const EmployeeToolsSection: React.FC<EmployeeToolsSectionProps> = ({ employeeId,
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EMPLOYEES, employeeId, 'tools'] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TOOLS, 'quantities'] });
-      toast.success('Tool removed successfully');
+      toast.success('Narzędzie zostało usunięte');
       handleCloseRemoveToolModal();
     },
     onError: (error: Error) => {
