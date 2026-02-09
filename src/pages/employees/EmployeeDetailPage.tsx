@@ -45,8 +45,6 @@ const EmployeeDetailPage: React.FC = () => {
     enabled: !!id && isAdmin(),
   });
 
-  const currentYear = new Date().getFullYear();
-  const previousYear = currentYear - 1;
 
   useEffect(() => {
     if (vacationSummary && !vacationSummary.isConfigured && isAdmin()) {

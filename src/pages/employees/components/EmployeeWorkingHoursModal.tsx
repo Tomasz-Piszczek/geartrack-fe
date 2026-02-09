@@ -3,7 +3,7 @@ import { ChevronDown, Clock } from 'lucide-react';
 import Modal from '../../../components/common/Modal';
 import Button from '../../../components/common/Button';
 import { useQuery } from '@tanstack/react-query';
-import { payrollApi, type EmployeeWorkingHoursDto } from '../../../api/payroll';
+import { payrollApi } from '../../../api/payroll';
 
 interface EmployeeWorkingHoursModalProps {
   show: boolean;
