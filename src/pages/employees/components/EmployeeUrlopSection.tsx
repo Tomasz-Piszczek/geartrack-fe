@@ -195,7 +195,11 @@ const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSe
   const getCategoryLabel = (category: UrlopCategory): string => {
     const categoryLabels: Record<UrlopCategory, string> = {
       'URLOP_WYPOCZYNKOWY': 'Wypoczynkowy',
+      'URLOP_NA_ŻĄDANIE': 'Na żądanie',
       'URLOP_MACIERZYNSKI': 'Macierzyński',
+      'URLOP_OJCOWSKI': 'Ojcowski',
+      'URLOP_RODZICIELSKI': 'Rodzicielski',
+      'URLOP_WYCHOWAWCZY': 'Wychowawczy',
       'URLOP_BEZPLATNY': 'Bezpłatny'
     };
     return categoryLabels[category];
@@ -384,7 +388,11 @@ const EmployeeUrlopSection = forwardRef<EmployeeUrlopSectionRef, EmployeeUrlopSe
                 className="w-full p-3 bg-section-grey-light border border-lighter-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-dark-green"
               >
                 <option value="URLOP_WYPOCZYNKOWY">Wypoczynkowy</option>
+                <option value="URLOP_NA_ŻĄDANIE">Na żądanie</option>
                 <option value="URLOP_MACIERZYNSKI">Macierzyński</option>
+                <option value="URLOP_OJCOWSKI">Ojcowski</option>
+                <option value="URLOP_RODZICIELSKI">Rodzicielski</option>
+                <option value="URLOP_WYCHOWAWCZY">Wychowawczy</option>
                 <option value="URLOP_BEZPLATNY">Bezpłatny</option>
               </select>
               {urlopErrors.category && (

@@ -221,7 +221,7 @@ export interface AssignUserRequest {
 
 export type UrlopStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
 
-export type UrlopCategory = 'URLOP_WYPOCZYNKOWY' | 'URLOP_MACIERZYNSKI' | 'URLOP_BEZPLATNY';
+export type UrlopCategory = 'URLOP_WYPOCZYNKOWY' | 'URLOP_NA_ŻĄDANIE' | 'URLOP_MACIERZYNSKI' | 'URLOP_OJCOWSKI' | 'URLOP_RODZICIELSKI' | 'URLOP_WYCHOWAWCZY' | 'URLOP_BEZPLATNY';
 
 export interface UrlopDto {
   id?: string;

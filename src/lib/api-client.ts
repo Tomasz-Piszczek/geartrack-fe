@@ -124,7 +124,12 @@ apiClient.interceptors.response.use(
     } else if (error.response?.status === 404) {
       apiError.message = ERROR_MESSAGES.NOT_FOUND;
     } else if (error.response?.status === 400) {
-      apiError.message = ERROR_MESSAGES.VALIDATION_ERROR;
+      // Check if backend sent a specific message
+      if (error.response?.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        apiError.message = error.response.data.message as string;
+      } else {
+        apiError.message = ERROR_MESSAGES.VALIDATION_ERROR;
+      }
     } else if (error.response?.status === 409) {
       // Pass through full response data for conflict errors
       if (error.response?.data && typeof error.response.data === 'object') {
