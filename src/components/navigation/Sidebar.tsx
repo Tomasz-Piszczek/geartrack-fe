@@ -5,7 +5,8 @@ import {
   HiUsers,
   HiDesktopComputer,
   HiDocumentText,
-  HiCurrencyDollar
+  HiCurrencyDollar,
+  HiChartBar
 } from 'react-icons/hi';
 import { ROUTES } from '../../constants';
 import Brand from './Brand';
@@ -48,12 +49,17 @@ const MainSidebar: React.FC = () => {
       label: 'Wyceny',
       icon: HiDocumentText,
     },
+    {
+      path: ROUTES.WORKER_ANALYTICS,
+      label: 'Analiza Pracowników',
+      icon: HiChartBar,
+    },
   ];
 
   // Filter navigation items based on user role
-  // USER and SUPER_USER cannot see Wypłaty (Payroll) and Maszyny (Machines)
-  const navigationItems = isUserOrSuperUser() 
-    ? allNavigationItems.filter(item => item.path !== ROUTES.PAYROLL && item.path !== ROUTES.MACHINES)
+  // USER and SUPER_USER cannot see Wypłaty (Payroll), Maszyny (Machines), and Analiza Pracowników (Worker Analytics)
+  const navigationItems = isUserOrSuperUser()
+    ? allNavigationItems.filter(item => item.path !== ROUTES.PAYROLL && item.path !== ROUTES.MACHINES && item.path !== ROUTES.WORKER_ANALYTICS)
     : allNavigationItems;
 
   const sidebarItemStyle = `

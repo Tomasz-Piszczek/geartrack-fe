@@ -61,6 +61,11 @@ export const ToolCondition = {
 
 export type ToolCondition = typeof ToolCondition[keyof typeof ToolCondition];
 
+export interface ToolGroupDto {
+  uuid?: string;
+  name: string;
+}
+
 export interface ToolDto {
   uuid?: string;
   name: string;
@@ -68,6 +73,8 @@ export interface ToolDto {
   quantity: number;
   value: number;
   availableQuantity?: number;
+  groupId?: string;
+  groupName?: string;
 }
 
 export interface AssignToolDto {

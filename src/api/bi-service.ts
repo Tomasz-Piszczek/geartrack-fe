@@ -44,15 +44,77 @@ export interface DailyHoursDto {
 
 export interface EmployeeHoursDto {
   employeeName: string;
-  year: number;
-  month: number;
+  year: number | null;
+  month: number | null;
   hours: number;
   dailyHours: DailyHoursDto[];
 }
 
+export interface WorkerTimeDto {
+  workerId: string;
+  resourceId: string;
+  minutesWorked: number;
+}
+
+export interface JobDto {
+  id: number;
+  numerZlecenia: string;
+  date: string;
+  productTypeId: string;
+  quantity: number;
+  workers: WorkerTimeDto[];
+  totalMinutes: number;
+}
+
+export interface DailyWorkerDetailDto {
+  date: string;
+  productionHours: number;
+  internalHours: number;
+  idleHours: number;
+  attendanceHours: number;
+  wasCapped: boolean;
+}
+
+export interface WorkerStatsDto {
+  workerId: string;
+  resourceId: string;
+  speedIndex: number | null;
+  presence: number;
+  production: number;
+  internalWork: number;
+  idle: number;
+  jobCount: number;
+  dailyDetails: DailyWorkerDetailDto[];
+}
+
+export interface WorkerAnalyticsRequestDto {
+  dateFrom?: string;
+  dateTo?: string;
+  selectedProducts?: string[];
+  excludedWorkers?: string[];
+  soloOnly?: boolean;
+  ignoreInternalWork?: boolean;
+}
+
+export interface CappedDayDto {
+  workerId: string;
+  date: string;
+  originalHours: number;
+  cappedHours: number;
+}
+
+export interface WorkerAnalyticsResponseDto {
+  jobs: JobDto[];
+  workerStats: WorkerStatsDto[];
+  benchmarks: Record<string, number>;
+  allWorkerIds: string[];
+  allProductIds: string[];
+  cappedDays: CappedDayDto[];
+}
+
 const biServiceClient = axios.create({
   baseURL: BI_SERVICE_URL,
-  timeout: 10000,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -133,16 +195,23 @@ export const biServiceApi = {
     return response.data;
   },
 
-  getEmployeeHours: async (employeeNames: string[], year: number, month: number): Promise<EmployeeHoursDto[]> => {
+  getEmployeeHours: async (employeeNames: string[], year?: number, month?: number): Promise<EmployeeHoursDto[]> => {
+    const params: Record<string, string> = {};
+    if (year !== undefined) params.year = year.toString();
+    if (month !== undefined) params.month = month.toString();
+
     const response = await biServiceClient.post<EmployeeHoursDto[]>(
       API_ENDPOINTS.BI.EMPLOYEE_HOURS,
       employeeNames,
-      {
-        params: {
-          year,
-          month,
-        },
-      }
+      { params }
+    );
+    return response.data;
+  },
+
+  getWorkerAnalytics: async (request: WorkerAnalyticsRequestDto): Promise<WorkerAnalyticsResponseDto> => {
+    const response = await biServiceClient.post<WorkerAnalyticsResponseDto>(
+      API_ENDPOINTS.BI.WORKER_ANALYTICS,
+      request
     );
     return response.data;
   },

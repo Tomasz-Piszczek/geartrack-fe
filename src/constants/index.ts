@@ -29,10 +29,15 @@ export const API_ENDPOINTS = {
     EMPLOYEES: (toolId: string) => `/api/tools/${toolId}/employees`,
     MARK_USED: (employeeToolId: string) => `/api/tools/mark-used/${employeeToolId}`,
   },
+  TOOL_GROUPS: {
+    BASE: '/api/tool-groups',
+    BY_ID: (id: string) => `/api/tool-groups/${id}`,
+  },
   BI: {
     CONTRACTORS: '/api/contractors',
     PRODUCTS: '/api/products',
     EMPLOYEE_HOURS: '/api/employees/hours',
+    WORKER_ANALYTICS: '/api/analytics/worker-analytics',
   },
   ORGANIZATIONS: {
     BASE: '/api/organizations',
@@ -67,6 +72,7 @@ export const QUERY_KEYS = {
   MACHINES: 'machines',
   MACHINE_INSPECTIONS: 'machine-inspections',
   TOOLS: 'tools',
+  TOOL_GROUPS: 'tool-groups',
   USER: 'user',
   PAYROLL: 'payroll',
   CONTRACTORS: 'contractors',
@@ -77,6 +83,7 @@ export const QUERY_KEYS = {
   URLOPY: 'urlopy',
   BADANIA_SZKOLENIA: 'badania-szkolenia',
   VACATION_SUMMARY: 'vacation-summary',
+  WORKER_ANALYTICS: 'worker-analytics',
 } as const;
 
 export const STORAGE_KEYS = {
@@ -94,6 +101,7 @@ export const ROUTES = {
   EMPLOYEE_DETAIL: '/employees/:id',
   PAYROLL: '/payroll',
   QUOTES: '/quotes',
+  WORKER_ANALYTICS: '/analytics/workers',
 } as const;
 
 export const VALIDATION = {

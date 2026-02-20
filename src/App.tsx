@@ -17,6 +17,7 @@ import PayrollPage from './pages/payroll/PayrollPage';
 import QuotesListPage from './pages/quotes/QuotesListPage';
 import QuoteCreatePage from './pages/quotes/QuoteCreatePage';
 import QuoteEditPage from './pages/quotes/QuoteEditPage';
+import WorkerAnalyticsPage from './pages/analytics/WorkerAnalyticsPage';
 import ToastContainer from './components/common/ToastContainer';
 import { ROUTES } from './constants';
 
@@ -108,6 +109,16 @@ function App() {
                   <ProtectedRoute>
                     <MainLayout>
                       <QuoteEditPage />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.WORKER_ANALYTICS}
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <WorkerAnalyticsPage />
                     </MainLayout>
                   </ProtectedRoute>
                 }
