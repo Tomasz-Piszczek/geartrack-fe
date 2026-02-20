@@ -54,9 +54,18 @@ export interface QuoteListDto {
   createdByEmail?: string;
 }
 
+export interface QuoteAttachmentDto {
+  uuid: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  createdAt: string;
+}
+
 export interface QuoteDetailsDto extends QuoteListDto {
   materials?: QuoteMaterialDto[];
   productionActivities?: QuoteProductionActivityDto[];
+  attachments?: QuoteAttachmentDto[];
 }
 
 export interface NextQuoteNumberDto {
@@ -117,5 +126,27 @@ export const quotesApi = {
   getNextQuoteNumber: async (): Promise<NextQuoteNumberDto> => {
     const response = await apiClient.get('/api/quotes/next-number');
     return response.data;
+  },
+
+  uploadAttachment: async (quoteId: string, file: File): Promise<QuoteAttachmentDto> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post(`/api/quotes/${quoteId}/attachments`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  downloadAttachment: async (quoteId: string, attachmentId: string): Promise<Blob> => {
+    const response = await apiClient.get(`/api/quotes/${quoteId}/attachments/${attachmentId}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  deleteAttachment: async (quoteId: string, attachmentId: string): Promise<void> => {
+    await apiClient.delete(`/api/quotes/${quoteId}/attachments/${attachmentId}`);
   },
 };

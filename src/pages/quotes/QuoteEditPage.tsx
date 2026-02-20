@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { quotesApi } from '../../api/quotes';
-import type { CreateQuoteDto, UpdateQuoteDto } from '../../api/quotes';
+import type { CreateQuoteDto, UpdateQuoteDto, QuoteAttachmentDto } from '../../api/quotes';
 import { QuoteProvider } from './context/QuoteContext';
 import QuoteFormWithActions from './components/QuoteFormWithActions';
+import AttachmentUpload from './components/AttachmentUpload';
 import Button from '../../components/common/Button';
 import { toast } from '../../lib/toast';
 
@@ -12,6 +13,8 @@ const QuoteEditPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [attachments, setAttachments] = useState<QuoteAttachmentDto[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   const { data: quote, isLoading } = useQuery({
     queryKey: ['quote', id],
@@ -19,12 +22,28 @@ const QuoteEditPage: React.FC = () => {
     enabled: !!id,
   });
 
+  useEffect(() => {
+    if (quote?.attachments) {
+      setAttachments(quote.attachments);
+    }
+  }, [quote]);
+
   const handleSubmit = async (data: CreateQuoteDto | UpdateQuoteDto) => {
     if (!id) return;
-    
+
     setIsSubmitting(true);
     try {
       await quotesApi.updateQuote(id, { ...data, uuid: id });
+
+      // Upload pending files after updating the quote
+      if (pendingFiles.length > 0) {
+        const uploadPromises = pendingFiles.map(file =>
+          quotesApi.uploadAttachment(id, file)
+        );
+        await Promise.all(uploadPromises);
+        setPendingFiles([]);
+      }
+
       toast.success('Wycena została zaktualizowana pomyślnie');
       navigate('/quotes');
     } catch {
@@ -59,6 +78,13 @@ const QuoteEditPage: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-white">Edytuj wycenę</h1>
         <div className="flex gap-4">
+          <AttachmentUpload
+            quoteId={id}
+            attachments={attachments}
+            onAttachmentsChange={setAttachments}
+            pendingFiles={pendingFiles}
+            onPendingFilesChange={setPendingFiles}
+          />
           <Button
             color="gray"
             onClick={handleCancel}

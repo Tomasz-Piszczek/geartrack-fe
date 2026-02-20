@@ -4,12 +4,18 @@ export const WORKER_COLORS: Record<string, string> = {};
 export const COLOR_PALETTE = ["#7c9357", "#60a5fa", "#f59e0b", "#ec4899", "#a78bfa", "#34d399", "#fb923c", "#818cf8"];
 export const TEAM_COLORS = ["#7c9357", "#60a5fa", "#f59e0b", "#ec4899", "#a78bfa", "#34d399", "#fb923c", "#818cf8"];
 
-export function getWorkerColor(workerId: string, workers: WorkerInfo[]): string {
-  if (!WORKER_COLORS[workerId]) {
-    const idx = workers.findIndex(w => w.id === workerId);
-    WORKER_COLORS[workerId] = COLOR_PALETTE[idx % COLOR_PALETTE.length];
+export function getWorkerColor(idOrCompositeId: string, workers: WorkerInfo[]): string {
+  if (!WORKER_COLORS[idOrCompositeId]) {
+    // Handle both plain workerId and composite "workerId|resourceId" format
+    const workerId = idOrCompositeId.includes("|") ? idOrCompositeId.split("|")[0] : idOrCompositeId;
+    let idx = workers.findIndex(w => w.id === workerId);
+    // If not found, use a hash of the string to get consistent colors
+    if (idx === -1) {
+      idx = Math.abs(idOrCompositeId.split("").reduce((a, c) => a + c.charCodeAt(0), 0));
+    }
+    WORKER_COLORS[idOrCompositeId] = COLOR_PALETTE[idx % COLOR_PALETTE.length];
   }
-  return WORKER_COLORS[workerId];
+  return WORKER_COLORS[idOrCompositeId];
 }
 
 export function formatDateLabel(dateStr: string): string {

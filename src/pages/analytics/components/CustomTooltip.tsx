@@ -9,6 +9,17 @@ interface CustomTooltipProps {
   showCombinedLine?: boolean;
 }
 
+// Helper to format composite ID (workerId|resourceId) as display name
+function formatCompositeId(compositeId: string, getName: (id: string) => string): string {
+  if (compositeId.includes("|")) {
+    const [workerId, resourceId] = compositeId.split("|");
+    const workerName = getName(workerId);
+    const resourceName = getName(resourceId);
+    return workerId === resourceId ? workerName : `${workerName} (${resourceName})`;
+  }
+  return getName(compositeId);
+}
+
 export default function CustomTooltip({ active, payload, label, mode, getName }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
 
@@ -24,10 +35,10 @@ export default function CustomTooltip({ active, payload, label, mode, getName }:
         const isCombinedLine = p.dataKey.startsWith("combined_");
         const isSecondaryLine = isIdleLine || isInternalLine || isCombinedLine;
 
-        let workerId = p.dataKey;
-        if (isIdleLine) workerId = p.dataKey.replace("idle_", "");
-        if (isInternalLine) workerId = p.dataKey.replace("internal_", "");
-        if (isCombinedLine) workerId = p.dataKey.replace("combined_", "");
+        let compositeId = p.dataKey;
+        if (isIdleLine) compositeId = p.dataKey.replace("idle_", "");
+        if (isInternalLine) compositeId = p.dataKey.replace("internal_", "");
+        if (isCombinedLine) compositeId = p.dataKey.replace("combined_", "");
 
         let formattedValue: string;
         if (mode === "teams") {
@@ -40,14 +51,15 @@ export default function CustomTooltip({ active, payload, label, mode, getName }:
 
         let displayName: string;
         if (mode === "workers") {
+          const baseName = formatCompositeId(compositeId, getName);
           if (isIdleLine) {
-            displayName = `${getName(workerId)} (bezczynnosc)`;
+            displayName = `${baseName} (bezczynnosc)`;
           } else if (isInternalLine) {
-            displayName = `${getName(workerId)} (prace wew.)`;
+            displayName = `${baseName} (prace wew.)`;
           } else if (isCombinedLine) {
-            displayName = `${getName(workerId)} (polaczone)`;
+            displayName = `${baseName} (polaczone)`;
           } else {
-            displayName = getName(workerId);
+            displayName = baseName;
           }
         } else {
           displayName = p.dataKey.split("+").map(getName).join(" + ");

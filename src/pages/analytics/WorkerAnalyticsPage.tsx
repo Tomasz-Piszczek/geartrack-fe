@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Calendar, Check, User, RefreshCw, BarChart3, AlertTriangle } from "lucide-react";
-import { biServiceApi, type JobDto, type WorkerTimeDto, type WorkerAnalyticsRequestDto } from "../../api/bi-service";
+import { biServiceApi, type JobDto, type WorkerTimeDto, type WorkerAnalyticsRequestDto, type WorkerStatsDto } from "../../api/bi-service";
 import { QUERY_KEYS } from "../../constants";
 import type { TransformedJob, TeamInfo } from "./types";
 import {
@@ -164,13 +164,28 @@ export default function WorkerAnalyticsPage() {
 
   // Map of "workerId|resourceId" -> their stats (for DailyBreakdownModal)
   const workerStatsMap = useMemo(() => {
-    const map: Record<string, typeof data.workerStats[0]> = {};
+    const map: Record<string, WorkerStatsDto> = {};
     data?.workerStats?.forEach(ws => {
       const resourceId = ws.resourceId || ws.workerId;
       const compositeKey = `${ws.workerId}|${resourceId}`;
       map[compositeKey] = ws;
     });
     return map;
+  }, [data?.workerStats]);
+
+  // List of all worker+resource combinations with data (for exclusion and trend selection)
+  const workerResourceCombinations = useMemo(() => {
+    if (!data?.workerStats) return [];
+    return data.workerStats.map(ws => {
+      const resourceId = ws.resourceId || ws.workerId;
+      return {
+        compositeId: `${ws.workerId}|${resourceId}`,
+        workerId: ws.workerId,
+        resourceId: resourceId,
+        displayName: ws.workerId === resourceId ? ws.workerId : `${ws.workerId} (${resourceId})`,
+        jobCount: ws.jobCount
+      };
+    }).filter(w => w.jobCount > 0);
   }, [data?.workerStats]);
 
   const rankings = useMemo(() => {
@@ -231,34 +246,26 @@ export default function WorkerAnalyticsPage() {
 
   const maxEff = rankingsWithData[0]?.efficiency || 1;
 
-  const jobsPerWorker = useMemo(() => {
-    const m: Record<string, number> = {};
-    transformedJobs.forEach(j => j.workers.forEach(w => { m[w.workerId] = (m[w.workerId] || 0) + 1; }));
-    return m;
-  }, [transformedJobs]);
-
-  const workersWithData = useMemo(() =>
-    allWorkers.filter(w => (jobsPerWorker[w.id] || 0) > 0),
-    [allWorkers, jobsPerWorker]
+  // For trend: use composite IDs (workerId|resourceId)
+  const visibleTrendCompositeIds = useMemo(() =>
+    workerResourceCombinations
+      .filter(w => !HIDDEN_WORKERS.includes(w.workerId) && !HIDDEN_WORKERS.includes(w.resourceId))
+      .map(w => w.compositeId),
+    [workerResourceCombinations]
   );
-
-  const workersWithDataVisible = useMemo(() =>
-    workersWithData.filter(w => !HIDDEN_WORKERS.includes(w.name)),
-    [workersWithData]
-  );
-
-  const visibleWorkerIds = useMemo(() => workersWithDataVisible.map(w => w.id), [workersWithDataVisible]);
-  const activeWorkerIds = useMemo(() => [...selectedTrendWorkers].filter(id => visibleWorkerIds.includes(id)), [selectedTrendWorkers, visibleWorkerIds]);
+  const activeWorkerIds = useMemo(() => [...selectedTrendWorkers].filter(id => visibleTrendCompositeIds.includes(id)), [selectedTrendWorkers, visibleTrendCompositeIds]);
   const activeTeams = useMemo(() => teamListVisible.filter(t => selectedTrendTeams.has(t.key)), [teamListVisible, selectedTrendTeams]);
 
-  // Build a map of worker daily details for chart data
+  // Build a map of worker+resource daily details for chart data (keyed by compositeId)
   const workerDailyDetailsMap = useMemo(() => {
     const map: Record<string, Record<string, { idle: number; internal: number; production: number }>> = {};
     data?.workerStats?.forEach(ws => {
       if (!ws.dailyDetails) return;
-      map[ws.workerId] = {};
+      const resourceId = ws.resourceId || ws.workerId;
+      const compositeId = `${ws.workerId}|${resourceId}`;
+      map[compositeId] = {};
       ws.dailyDetails.forEach(d => {
-        map[ws.workerId][d.date] = {
+        map[compositeId][d.date] = {
           idle: d.idleHours,
           internal: d.internalHours,
           production: d.productionHours
@@ -277,15 +284,21 @@ export default function WorkerAnalyticsPage() {
       const bucketDates = [...new Set(bucketJobs.map(j => j.date))].sort();
       const entry: Record<string, string | number> = { week: b, _bucketKey: b, _originalDate: bucketDates[0] || "" };
 
-      activeWorkerIds.forEach(id => {
+      // activeWorkerIds now contains composite IDs (workerId|resourceId)
+      activeWorkerIds.forEach(compositeId => {
+        const [workerId, resourceId] = compositeId.split("|");
         let sumExp = 0;
         let sumAct = 0;
 
-        // Collect unique dates where this worker worked
+        // Collect unique dates where this worker+resource worked
         const workerDatesInBucket = new Set<string>();
 
         bucketJobs.forEach(j => {
-          const worker = j.workers.find(w => w.workerId === id);
+          // Find worker entries matching both workerId AND resourceId
+          const worker = j.workers.find(w =>
+            w.workerId === workerId &&
+            (w.resourceId || w.workerId) === resourceId
+          );
           if (!worker) return;
           const benchmark = benchmarks[j.productTypeId] || j.totalHours;
           const workerContribution = worker.hoursWorked / j.totalHours;
@@ -295,16 +308,16 @@ export default function WorkerAnalyticsPage() {
         });
 
         if (sumAct > 0) {
-          entry[id] = +(sumExp / sumAct).toFixed(2);
+          entry[compositeId] = +(sumExp / sumAct).toFixed(2);
         }
 
-        // Aggregate daily details for all dates in this bucket
+        // Aggregate daily details for all dates in this bucket (using composite ID)
         let totalIdle = 0;
         let totalInternal = 0;
         let totalProduction = 0;
 
         workerDatesInBucket.forEach(date => {
-          const dailyDetail = workerDailyDetailsMap[id]?.[date];
+          const dailyDetail = workerDailyDetailsMap[compositeId]?.[date];
           if (dailyDetail) {
             totalIdle += dailyDetail.idle;
             totalInternal += dailyDetail.internal;
@@ -315,9 +328,9 @@ export default function WorkerAnalyticsPage() {
         // Calculate percentages for idle/internal lines
         const totalPresence = totalProduction + totalInternal + totalIdle;
         if (totalPresence > 0) {
-          entry[`idle_${id}`] = +((totalIdle / totalPresence) * 100).toFixed(1);
-          entry[`internal_${id}`] = +((totalInternal / totalPresence) * 100).toFixed(1);
-          entry[`combined_${id}`] = +(((totalIdle + totalInternal) / totalPresence) * 100).toFixed(1);
+          entry[`idle_${compositeId}`] = +((totalIdle / totalPresence) * 100).toFixed(1);
+          entry[`internal_${compositeId}`] = +((totalInternal / totalPresence) * 100).toFixed(1);
+          entry[`combined_${compositeId}`] = +(((totalIdle + totalInternal) / totalPresence) * 100).toFixed(1);
         }
       });
       return entry;
@@ -464,18 +477,20 @@ export default function WorkerAnalyticsPage() {
 
         <div className="bg-section-grey rounded-xl p-4 border border-grey-outline mb-4 flex items-center flex-wrap gap-3">
           <span className="text-sm font-bold text-red-400">Wyklucz:</span>
-          {allWorkers.map(w => (
+          {workerResourceCombinations
+            .filter(w => !HIDDEN_WORKERS.includes(w.workerId) && !HIDDEN_WORKERS.includes(w.resourceId))
+            .map(w => (
             <button
-              key={w.id}
+              key={w.compositeId}
               className={`px-3 py-1.5 rounded-full text-sm font-semibold border-2 transition-all ${
-                excluded.has(w.id)
+                excluded.has(w.compositeId)
                   ? "border-red-500 bg-soft-red text-red-400"
                   : "border-grey-outline bg-section-grey-dark text-power-grey hover:border-dark-green"
               }`}
-              onClick={() => toggleExclude(w.id)}
+              onClick={() => toggleExclude(w.compositeId)}
             >
-              {getName(w.id)} {excluded.has(w.id) && "x"}
-              <span className="text-xs opacity-60 ml-1">({jobsPerWorker[w.id] || 0})</span>
+              {w.displayName} {excluded.has(w.compositeId) && "x"}
+              <span className="text-xs opacity-60 ml-1">({w.jobCount})</span>
             </button>
           ))}
           {excluded.size > 0 && (
@@ -784,22 +799,24 @@ export default function WorkerAnalyticsPage() {
               <div className="mb-5">
                 <p className="text-xs text-power-grey mb-3">Wybierz pracownikow do wykresu:</p>
                 <div className="flex gap-2 flex-wrap">
-                  {workersWithDataVisible.map(w => (
+                  {workerResourceCombinations
+                    .filter(w => !HIDDEN_WORKERS.includes(w.workerId) && !HIDDEN_WORKERS.includes(w.resourceId))
+                    .map(w => (
                     <button
-                      key={w.id}
-                      onClick={() => toggleTrendWorker(w.id)}
+                      key={w.compositeId}
+                      onClick={() => toggleTrendWorker(w.compositeId)}
                       className={`px-3 py-1.5 rounded-lg font-semibold text-sm border-2 transition-all ${
-                        selectedTrendWorkers.has(w.id)
+                        selectedTrendWorkers.has(w.compositeId)
                           ? "border-dark-green text-main"
                           : "border-grey-outline text-power-grey"
                       }`}
-                      style={{ borderColor: selectedTrendWorkers.has(w.id) ? getWorkerColor(w.id, allWorkers) : undefined }}
+                      style={{ borderColor: selectedTrendWorkers.has(w.compositeId) ? getWorkerColor(w.compositeId, allWorkers) : undefined }}
                     >
                       <span
                         className="inline-block w-2 h-2 rounded-full mr-2"
-                        style={{ backgroundColor: getWorkerColor(w.id, allWorkers) }}
+                        style={{ backgroundColor: getWorkerColor(w.compositeId, allWorkers) }}
                       />
-                      {getName(w.id)}
+                      {w.displayName}
                     </button>
                   ))}
                 </div>
@@ -859,28 +876,35 @@ export default function WorkerAnalyticsPage() {
                       )}
                       <Tooltip content={<CustomTooltip mode="workers" getName={getName} showIdleLine={showIdleLine} showInternalLine={showInternalLine} showCombinedLine={showCombinedLine} />} />
                       <Legend formatter={v => {
+                        // v is now a compositeId like "workerId|resourceId" or "idle_workerId|resourceId"
+                        const getDisplayName = (compositeId: string) => {
+                          const combo = workerResourceCombinations.find(c => c.compositeId === compositeId);
+                          return combo?.displayName || compositeId;
+                        };
                         if (v.startsWith("idle_")) {
-                          const workerId = v.replace("idle_", "");
-                          return <span style={{ color: getWorkerColor(workerId, allWorkers), fontSize: 13, opacity: 0.6 }}>{getName(workerId)} (bezcz.)</span>;
+                          const compositeId = v.replace("idle_", "");
+                          return <span style={{ color: getWorkerColor(compositeId, allWorkers), fontSize: 13, opacity: 0.6 }}>{getDisplayName(compositeId)} (bezcz.)</span>;
                         }
                         if (v.startsWith("internal_")) {
-                          const workerId = v.replace("internal_", "");
-                          return <span style={{ color: getWorkerColor(workerId, allWorkers), fontSize: 13, opacity: 0.6 }}>{getName(workerId)} (wew.)</span>;
+                          const compositeId = v.replace("internal_", "");
+                          return <span style={{ color: getWorkerColor(compositeId, allWorkers), fontSize: 13, opacity: 0.6 }}>{getDisplayName(compositeId)} (wew.)</span>;
                         }
                         if (v.startsWith("combined_")) {
-                          const workerId = v.replace("combined_", "");
-                          return <span style={{ color: getWorkerColor(workerId, allWorkers), fontSize: 13, opacity: 0.6 }}>{getName(workerId)} (polacz.)</span>;
+                          const compositeId = v.replace("combined_", "");
+                          return <span style={{ color: getWorkerColor(compositeId, allWorkers), fontSize: 13, opacity: 0.6 }}>{getDisplayName(compositeId)} (polacz.)</span>;
                         }
-                        return <span style={{ color: getWorkerColor(v, allWorkers), fontSize: 13 }}>{getName(v)}</span>;
+                        return <span style={{ color: getWorkerColor(v, allWorkers), fontSize: 13 }}>{getDisplayName(v)}</span>;
                       }} />
-                      {activeWorkerIds.map(id => (
+                      {activeWorkerIds.map(compositeId => {
+                        const [workerId, resourceId] = compositeId.split("|");
+                        return (
                         <Line
-                          key={id}
+                          key={compositeId}
                           type="monotone"
-                          dataKey={id}
-                          stroke={getWorkerColor(id, allWorkers)}
+                          dataKey={compositeId}
+                          stroke={getWorkerColor(compositeId, allWorkers)}
                           strokeWidth={2.5}
-                          dot={{ fill: getWorkerColor(id, allWorkers), r: 5, cursor: "pointer" }}
+                          dot={{ fill: getWorkerColor(compositeId, allWorkers), r: 5, cursor: "pointer" }}
                           activeDot={{
                             r: 8,
                             cursor: "pointer",
@@ -889,24 +913,25 @@ export default function WorkerAnalyticsPage() {
                               if (data?._bucketKey) {
                                 setModalFilterBucket(data._bucketKey);
                                 setModalFilterDate(data._originalDate || null);
-                                setSelectedWorkerModal(id);
+                                setSelectedWorkerModal(workerId);
+                                setSelectedResourceModal(resourceId);
                               }
                             }
                           }}
                           connectNulls
                           yAxisId="left"
                         />
-                      ))}
-                      {showIdleLine && activeWorkerIds.map(id => (
+                      );})}
+                      {showIdleLine && activeWorkerIds.map(compositeId => (
                         <Line
-                          key={`idle_${id}`}
+                          key={`idle_${compositeId}`}
                           type="monotone"
-                          dataKey={`idle_${id}`}
-                          stroke={getWorkerColor(id, allWorkers)}
+                          dataKey={`idle_${compositeId}`}
+                          stroke={getWorkerColor(compositeId, allWorkers)}
                           strokeWidth={1.5}
                           strokeDasharray="6 4"
                           strokeOpacity={0.5}
-                          dot={{ r: 3, fill: getWorkerColor(id, allWorkers), opacity: 0.5, cursor: "pointer" }}
+                          dot={{ r: 3, fill: getWorkerColor(compositeId, allWorkers), opacity: 0.5, cursor: "pointer" }}
                           activeDot={{
                             r: 6,
                             cursor: "pointer",
@@ -914,7 +939,7 @@ export default function WorkerAnalyticsPage() {
                               const data = (payload as { payload?: { _bucketKey?: string } })?.payload;
                               if (data?._bucketKey) {
                                 setDailyBreakdownBucket(data._bucketKey);
-                                setDailyBreakdownWorker(id);
+                                setDailyBreakdownWorker(compositeId);
                               }
                             }
                           }}
@@ -922,16 +947,16 @@ export default function WorkerAnalyticsPage() {
                           yAxisId="right"
                         />
                       ))}
-                      {showInternalLine && activeWorkerIds.map(id => (
+                      {showInternalLine && activeWorkerIds.map(compositeId => (
                         <Line
-                          key={`internal_${id}`}
+                          key={`internal_${compositeId}`}
                           type="monotone"
-                          dataKey={`internal_${id}`}
-                          stroke={getWorkerColor(id, allWorkers)}
+                          dataKey={`internal_${compositeId}`}
+                          stroke={getWorkerColor(compositeId, allWorkers)}
                           strokeWidth={1.5}
                           strokeDasharray="3 3"
                           strokeOpacity={0.5}
-                          dot={{ r: 3, fill: getWorkerColor(id, allWorkers), opacity: 0.5, cursor: "pointer" }}
+                          dot={{ r: 3, fill: getWorkerColor(compositeId, allWorkers), opacity: 0.5, cursor: "pointer" }}
                           activeDot={{
                             r: 6,
                             cursor: "pointer",
@@ -939,7 +964,7 @@ export default function WorkerAnalyticsPage() {
                               const data = (payload as { payload?: { _bucketKey?: string } })?.payload;
                               if (data?._bucketKey) {
                                 setDailyBreakdownBucket(data._bucketKey);
-                                setDailyBreakdownWorker(id);
+                                setDailyBreakdownWorker(compositeId);
                               }
                             }
                           }}
@@ -947,16 +972,16 @@ export default function WorkerAnalyticsPage() {
                           yAxisId="right"
                         />
                       ))}
-                      {showCombinedLine && activeWorkerIds.map(id => (
+                      {showCombinedLine && activeWorkerIds.map(compositeId => (
                         <Line
-                          key={`combined_${id}`}
+                          key={`combined_${compositeId}`}
                           type="monotone"
-                          dataKey={`combined_${id}`}
-                          stroke={getWorkerColor(id, allWorkers)}
+                          dataKey={`combined_${compositeId}`}
+                          stroke={getWorkerColor(compositeId, allWorkers)}
                           strokeWidth={2}
                           strokeDasharray="8 4"
                           strokeOpacity={0.6}
-                          dot={{ r: 3, fill: getWorkerColor(id, allWorkers), opacity: 0.6, cursor: "pointer" }}
+                          dot={{ r: 3, fill: getWorkerColor(compositeId, allWorkers), opacity: 0.6, cursor: "pointer" }}
                           activeDot={{
                             r: 6,
                             cursor: "pointer",
@@ -964,7 +989,7 @@ export default function WorkerAnalyticsPage() {
                               const data = (payload as { payload?: { _bucketKey?: string } })?.payload;
                               if (data?._bucketKey) {
                                 setDailyBreakdownBucket(data._bucketKey);
-                                setDailyBreakdownWorker(id);
+                                setDailyBreakdownWorker(compositeId);
                               }
                             }
                           }}
