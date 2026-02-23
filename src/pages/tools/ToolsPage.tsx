@@ -55,10 +55,7 @@ const ToolsPage: React.FC = () => {
     formState: { errors },
     reset,
     setValue,
-    watch,
   } = useForm<ToolFormData>();
-
-  const selectedGroupId = watch('groupId');
 
   const createMutation = useMutation({
     mutationFn: toolsApi.create,

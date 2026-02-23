@@ -99,11 +99,17 @@ export default function WorkerAnalyticsPage() {
         const quantity = job.quantity || 1;
         const hoursPerUnit = totalHours / quantity;
 
+        // Backend now aggregates workers, so just convert to hours per unit
         const workersList = (job.workers || []).map((w: WorkerTimeDto) => {
           const workerMinutes = w.minutesWorked || 0;
           const workerHours = workerMinutes / 60;
           const workerHoursPerUnit = workerHours / quantity;
-          return { workerId: w.workerId, resourceId: w.resourceId || w.workerId, hoursWorked: workerHoursPerUnit };
+          return {
+            workerId: w.workerId,
+            resourceId: w.resourceId || w.workerId,
+            hoursWorked: workerHoursPerUnit,
+            speedIndexContributionPercentage: w.speedIndexContributionPercentage
+          };
         });
 
         return {
@@ -675,6 +681,7 @@ export default function WorkerAnalyticsPage() {
           getName={getName}
           getProduct={getProduct}
           benchmarks={benchmarks}
+          ignoreInternalWork={ignoreInternalWork}
         />
 
         <WorkerDetailModal
@@ -693,6 +700,7 @@ export default function WorkerAnalyticsPage() {
           filterDate={modalFilterDate}
           filterBucket={modalFilterBucket}
           granularity={granularity}
+          ignoreInternalWork={ignoreInternalWork}
         />
 
         <DailyBreakdownModal

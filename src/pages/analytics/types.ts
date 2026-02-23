@@ -9,7 +9,12 @@ export interface TransformedJob {
   date: string;
   productTypeId: string;
   quantity: number;
-  workers: { workerId: string; resourceId: string; hoursWorked: number }[];
+  workers: {
+    workerId: string;
+    resourceId: string;
+    hoursWorked: number;
+    speedIndexContributionPercentage?: number;
+  }[];
   totalHours: number;
 }
 

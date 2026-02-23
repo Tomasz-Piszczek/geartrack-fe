@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X, ChevronUp, ChevronDown, ArrowUpDown } from "lucide-react";
 import type { TransformedJob } from "../types";
-import { formatWorkerWithResource } from "../utils";
+import { formatWorkerWithResource, isInternalWorkJob } from "../utils";
 
 type SortField = "zp" | "date" | "time" | "quantity" | "total";
 type SortDirection = "asc" | "desc";
@@ -13,6 +13,7 @@ interface ProductDetailModalProps {
   onClose: () => void;
   getName: (id: string) => string;
   benchmarks?: Record<string, number>;
+  ignoreInternalWork?: boolean;
 }
 
 export default function ProductDetailModal({
@@ -21,7 +22,8 @@ export default function ProductDetailModal({
   jobs,
   onClose,
   getName,
-  benchmarks = {}
+  benchmarks = {},
+  ignoreInternalWork = false
 }: ProductDetailModalProps) {
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -29,7 +31,9 @@ export default function ProductDetailModal({
   if (!productId) return null;
 
   // Filter jobs for this product
-  const productJobs = jobs.filter(j => j.productTypeId === productId);
+  const productJobs = jobs
+    .filter(j => !ignoreInternalWork || !isInternalWorkJob(j))
+    .filter(j => j.productTypeId === productId);
 
   const benchmark = benchmarks[productId];
 

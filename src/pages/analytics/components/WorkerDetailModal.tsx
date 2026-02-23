@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X, ChevronUp, ChevronDown, ArrowUpDown } from "lucide-react";
 import type { TransformedJob } from "../types";
-import { getBucketLabel, formatWorkerWithResource } from "../utils";
+import { getBucketLabel, formatWorkerWithResource, isInternalWorkJob } from "../utils";
 import ProductDetailModal from "./ProductDetailModal";
 
 type SortField = "zp" | "date" | "product" | "average" | "impact";
@@ -18,6 +18,7 @@ interface WorkerDetailModalProps {
   filterDate?: string | null;
   filterBucket?: string | null;
   granularity?: "daily" | "weekly" | "monthly";
+  ignoreInternalWork?: boolean;
 }
 
 export default function WorkerDetailModal({
@@ -30,7 +31,8 @@ export default function WorkerDetailModal({
   benchmarks = {},
   filterDate = null,
   filterBucket = null,
-  granularity = "daily"
+  granularity = "daily",
+  ignoreInternalWork = false
 }: WorkerDetailModalProps) {
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -40,9 +42,11 @@ export default function WorkerDetailModal({
 
   // If resourceId is provided, filter by both workerId AND resourceId
   const effectiveResourceId = resourceId || workerId;
-  const workerJobs = jobs.filter(j => j.workers.some(w =>
-    w.workerId === workerId && (w.resourceId || w.workerId) === effectiveResourceId
-  ));
+  const workerJobs = jobs
+    .filter(j => !ignoreInternalWork || !isInternalWorkJob(j))
+    .filter(j => j.workers.some(w =>
+      w.workerId === workerId && (w.resourceId || w.workerId) === effectiveResourceId
+    ));
 
   // Filter by bucket if provided (for weekly/monthly), or by exact date for daily
   const filteredJobs = filterBucket
@@ -51,14 +55,6 @@ export default function WorkerDetailModal({
       ? workerJobs.filter(j => j.date === filterDate)
       : workerJobs;
 
-  // Calculate total hours for this worker+resource across all their jobs (for impact calculation)
-  const totalWorkerHours = workerJobs.reduce((sum, job) => {
-    const workerEntry = job.workers.find(w =>
-      w.workerId === workerId && (w.resourceId || w.workerId) === effectiveResourceId
-    );
-    return sum + (workerEntry?.hoursWorked || 0) * job.quantity;
-  }, 0);
-
   // Prepare jobs with calculated values for sorting
   const jobsWithCalcs = filteredJobs.map(j => {
     const me = j.workers.find(w =>
@@ -66,16 +62,28 @@ export default function WorkerDetailModal({
     );
     const myHoursPerUnit = me?.hoursWorked || 0;
     const myTotalHours = myHoursPerUnit * j.quantity;
+
+    // Czas/szt = sum of ALL workers' hours per unit on this job
+    const totalHoursPerUnit = j.workers.reduce((sum, w) => sum + w.hoursWorked, 0);
+
+    // Lacznie = total hours × quantity
+    const totalJobHours = totalHoursPerUnit * j.quantity;
+
     const benchmark = benchmarks[j.productTypeId];
-    const impact = totalWorkerHours > 0 ? (myTotalHours / totalWorkerHours) * 100 : 0;
-    const efficiencyDiff = benchmark ? ((benchmark - myHoursPerUnit) / benchmark) * 100 : null;
+
+    // Get speed index contribution from backend (already calculated)
+    const speedIndexContribution = me?.speedIndexContributionPercentage || null;
+
+    const efficiencyDiff = benchmark ? ((benchmark - totalHoursPerUnit) / benchmark) * 100 : null;
 
     return {
       ...j,
       myHoursPerUnit,
       myTotalHours,
+      totalHoursPerUnit,
+      totalJobHours,
       benchmark,
-      impact,
+      speedIndexContribution,
       efficiencyDiff,
       isFaster: efficiencyDiff !== null && efficiencyDiff > 5,
       isSlower: efficiencyDiff !== null && efficiencyDiff < -5,
@@ -99,7 +107,7 @@ export default function WorkerDetailModal({
         cmp = (a.benchmark || 0) - (b.benchmark || 0);
         break;
       case "impact":
-        cmp = a.impact - b.impact;
+        cmp = (a.speedIndexContribution || 0) - (b.speedIndexContribution || 0);
         break;
     }
     return sortDirection === "asc" ? cmp : -cmp;
@@ -168,9 +176,10 @@ export default function WorkerDetailModal({
                   <SortHeader field="product">Produkt</SortHeader>
                   <th className="p-3 text-center text-power-grey font-bold">Ilosc</th>
                   <th className="p-3 text-center text-power-grey font-bold">Czas/szt</th>
+                  <th className="p-3 text-center text-power-grey font-bold">Lacznie</th>
+                  <th className="p-3 text-center text-power-grey font-bold">Czas ({getName(workerId)})</th>
                   <SortHeader field="average" align="center">Srednia/Zlecenie</SortHeader>
                   <SortHeader field="impact" align="center">Wplyw</SortHeader>
-                  <th className="p-3 text-center text-power-grey font-bold">Lacznie</th>
                   <th className="p-3 text-left text-power-grey font-bold">Brygada</th>
                 </tr>
               </thead>
@@ -194,21 +203,26 @@ export default function WorkerDetailModal({
                     <td className={`p-3 text-center font-semibold ${
                       j.isFaster ? "text-green-400" : j.isSlower ? "text-red-400" : "text-white"
                     }`}>
-                      {j.myHoursPerUnit.toFixed(2)}h
+                      {j.totalHoursPerUnit.toFixed(2)}h
                     </td>
+                    <td className="p-3 text-center text-power-grey">{j.totalJobHours.toFixed(2)}h</td>
+                    <td className="p-3 text-center text-white font-semibold">{j.myHoursPerUnit.toFixed(2)}h</td>
                     <td className="p-3 text-center text-power-grey">
                       {j.benchmark ? `${j.benchmark.toFixed(2)}h` : "-"}
                     </td>
                     <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                        j.impact >= 10 ? "bg-dark-green/20 text-dark-green" :
-                        j.impact >= 5 ? "bg-yellow-500/20 text-yellow-500" :
-                        "bg-section-grey-dark text-power-grey"
-                      }`}>
-                        {j.impact.toFixed(2)}%
-                      </span>
+                      {j.speedIndexContribution !== null ? (
+                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                          j.speedIndexContribution >= 10 ? "bg-dark-green/20 text-dark-green" :
+                          j.speedIndexContribution >= 5 ? "bg-yellow-500/20 text-yellow-500" :
+                          "bg-section-grey-dark text-power-grey"
+                        }`}>
+                          {j.speedIndexContribution.toFixed(2)}%
+                        </span>
+                      ) : (
+                        <span className="text-power-grey text-xs">-</span>
+                      )}
                     </td>
-                    <td className="p-3 text-center text-power-grey">{j.myTotalHours.toFixed(2)}h</td>
                     <td className="p-3 text-power-grey text-xs">
                       {j.workers.map(w => `${formatWorkerWithResource(w.workerId, w.resourceId, getName)} (${w.hoursWorked.toFixed(2)}h)`).join(", ")}
                     </td>
@@ -227,6 +241,7 @@ export default function WorkerDetailModal({
         onClose={() => setSelectedProductId(null)}
         getName={getName}
         benchmarks={benchmarks}
+        ignoreInternalWork={ignoreInternalWork}
       />
     </>
   );

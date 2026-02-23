@@ -18,6 +18,10 @@ export function getWorkerColor(idOrCompositeId: string, workers: WorkerInfo[]): 
   return WORKER_COLORS[idOrCompositeId];
 }
 
+export function isInternalWorkJob(job: TransformedJob): boolean {
+  return /PRACE\s*WEWN/i.test(job.productTypeId);
+}
+
 export function formatDateLabel(dateStr: string): string {
   if (!dateStr) return "unknown";
   const parts = dateStr.split("-");

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X, ChevronUp, ChevronDown, ArrowUpDown } from "lucide-react";
 import type { TeamInfo } from "../types";
-import { formatWorkerWithResource } from "../utils";
+import { formatWorkerWithResource, isInternalWorkJob } from "../utils";
 
 type SortField = "zp" | "date" | "product" | "average";
 type SortDirection = "asc" | "desc";
@@ -12,15 +12,18 @@ interface TeamDetailModalProps {
   getName: (id: string) => string;
   getProduct: (id: string) => string;
   benchmarks?: Record<string, number>;
+  ignoreInternalWork?: boolean;
 }
 
-export default function TeamDetailModal({ team, onClose, getName, getProduct, benchmarks = {} }: TeamDetailModalProps) {
+export default function TeamDetailModal({ team, onClose, getName, getProduct, benchmarks = {}, ignoreInternalWork = false }: TeamDetailModalProps) {
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   if (!team) return null;
 
-  const jobsWithCalcs = team.jobs.map(j => {
+  const filteredJobs = ignoreInternalWork ? team.jobs.filter(j => !isInternalWorkJob(j)) : team.jobs;
+
+  const jobsWithCalcs = filteredJobs.map(j => {
     const benchmark = benchmarks[j.productTypeId];
     const efficiencyDiff = benchmark ? ((benchmark - j.totalHours) / benchmark) * 100 : null;
     return {

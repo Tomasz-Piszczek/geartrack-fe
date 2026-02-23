@@ -54,6 +54,7 @@ export interface WorkerTimeDto {
   workerId: string;
   resourceId: string;
   minutesWorked: number;
+  speedIndexContributionPercentage?: number;
 }
 
 export interface JobDto {
