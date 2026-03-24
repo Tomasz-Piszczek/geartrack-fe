@@ -30,6 +30,7 @@ export interface CreateQuoteDto {
   minQuantity: number;
   totalQuantity: number;
   totalPrice?: number;
+  note?: string;
   materials: QuoteMaterialDto[];
   productionActivities: QuoteProductionActivityDto[];
 }

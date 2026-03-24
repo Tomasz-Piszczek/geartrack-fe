@@ -32,17 +32,10 @@ const MaterialsTab: React.FC = () => {
     const requestedQuantity = parseInt(quantity) || 1;
     let materialName: string;
     let materialPurchasePrice: number;
-    let maxQuantity: number;
 
     if (selectedProduct) {
       materialName = selectedProduct.name;
       materialPurchasePrice = selectedProduct.price;
-      maxQuantity = selectedProduct.quantity;
-      
-      if (requestedQuantity > maxQuantity) {
-        alert(`Maksymalna dostępna ilośc to ${maxQuantity}`);
-        return;
-      }
     } else {
       materialName = customProductName || selectedProductCode || 'Custom Product';
       materialPurchasePrice = parseFloat(purchasePrice) || 0;
@@ -227,13 +220,9 @@ const MaterialsTab: React.FC = () => {
             <div>
               <Label htmlFor="quantity">
                 Ilość
-                {selectedProduct && (
-                  <span className="text-gray-400 text-xs"> (max: {selectedProduct.quantity})</span>
-                )}
               </Label>
               <Input
                 type="number"
-                max={selectedProduct ? selectedProduct.quantity : undefined}
                 value={quantity}
                 onChange={(e) => {
                   setQuantity(e.target.value);

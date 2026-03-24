@@ -37,6 +37,7 @@ export interface QuoteState {
   productName: string;
   minQuantity: number;
   totalQuantity: number;
+  note?: string;
   activeTab: 'production' | 'materials';
   productionActivities: ProductionActivity[];
   materials: Material[];
@@ -62,6 +63,7 @@ const initialState: QuoteState = {
   productName: '',
   minQuantity: 1,
   totalQuantity: 1,
+  note: '',
   activeTab: 'production',
   productionActivities: [{
     id: 'default',
@@ -241,6 +243,7 @@ function quoteReducer(state: QuoteState, action: QuoteAction): QuoteState {
         productName: quote.productName,
         minQuantity: quote.minQuantity,
         totalQuantity: quote.totalQuantity,
+        note: quote.note,
         materials,
         productionActivities,
       };
@@ -446,6 +449,7 @@ export function QuoteProvider({ children, initialDocumentNumber, initialQuote, i
       minQuantity: state.minQuantity,
       totalQuantity: state.totalQuantity,
       totalPrice: summary.priceForTotalQty,
+      note: state.note,
       materials: materials || [],
       productionActivities: productionActivities || [],
     };

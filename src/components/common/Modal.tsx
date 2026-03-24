@@ -62,7 +62,7 @@ const Modal: React.FC<ModalProps> & {
 const ModalHeader: React.FC<ModalHeaderProps> = ({ children, className = '' }) => {
   return (
     <div className={`flex items-start justify-between p-4 border-b border-lighter-border rounded-t ${className}`}>
-      <h3 className="text-xl font-semibold text-black">
+      <h3 className="text-xl font-semibold text-white">
         {children}
       </h3>
     </div>
