@@ -64,6 +64,7 @@ export interface QuoteAttachmentDto {
 }
 
 export interface QuoteDetailsDto extends QuoteListDto {
+  note?: string;
   materials?: QuoteMaterialDto[];
   productionActivities?: QuoteProductionActivityDto[];
   attachments?: QuoteAttachmentDto[];
