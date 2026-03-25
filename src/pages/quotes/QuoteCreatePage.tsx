@@ -6,6 +6,7 @@ import type { CreateQuoteDto, QuoteAttachmentDto } from '../../api/quotes';
 import { QuoteProvider } from './context/QuoteContext';
 import QuoteFormWithActions from './components/QuoteFormWithActions';
 import AttachmentUpload from './components/AttachmentUpload';
+import NoteButtonWrapper from './components/NoteButtonWrapper';
 import Button from '../../components/common/Button';
 import { toast } from '../../lib/toast';
 
@@ -51,31 +52,31 @@ const QuoteCreatePage: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Nowa wycena</h1>
-        <div className="flex gap-4">
-          <AttachmentUpload
-            quoteId={createdQuoteId}
-            attachments={attachments}
-            onAttachmentsChange={setAttachments}
-            pendingFiles={pendingFiles}
-            onPendingFilesChange={setPendingFiles}
-          />
-          <Button
-            color="gray"
-            onClick={handleCancel}
-          >
-            Anuluj
-          </Button>
-        </div>
-      </div>
-
       <QuoteProvider
         initialDocumentNumber={nextQuoteNumber?.nextQuoteNumber}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
         isEditMode={false}
       >
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-white">Nowa wycena</h1>
+          <div className="flex gap-4">
+            <AttachmentUpload
+              quoteId={createdQuoteId}
+              attachments={attachments}
+              onAttachmentsChange={setAttachments}
+              pendingFiles={pendingFiles}
+              onPendingFilesChange={setPendingFiles}
+            />
+            <NoteButtonWrapper />
+            <Button
+              color="gray"
+              onClick={handleCancel}
+            >
+              Anuluj
+            </Button>
+          </div>
+        </div>
         <QuoteFormWithActions onSubmit={handleSubmit} isSubmitting={isSubmitting} />
       </QuoteProvider>
     </div>
