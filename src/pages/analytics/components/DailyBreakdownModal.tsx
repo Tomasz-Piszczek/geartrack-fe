@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X, ChevronUp, ChevronDown, ArrowUpDown, AlertTriangle } from "lucide-react";
-import type { DailyWorkerDetailDto, CappedDayDto } from "../../../api/bi-service";
+import type { DailyWorkerDetailDto } from "../../../api/bi-service";
 import { getBucketLabel } from "../utils";
 
 type SortField = "date" | "production" | "internal" | "idle" | "attendance";
@@ -10,7 +10,6 @@ interface DailyBreakdownModalProps {
   workerId: string | null;
   workerName: string;
   dailyDetails: DailyWorkerDetailDto[];
-  cappedDays: CappedDayDto[];
   onClose: () => void;
   filterBucket?: string | null;
   granularity?: "daily" | "weekly" | "monthly";
@@ -20,7 +19,6 @@ export default function DailyBreakdownModal({
   workerId,
   workerName,
   dailyDetails,
-  cappedDays,
   onClose,
   filterBucket = null,
   granularity = "daily"
@@ -29,12 +27,6 @@ export default function DailyBreakdownModal({
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   if (!workerId) return null;
-
-  // Create a map of capped days for quick lookup
-  const cappedDaysMap = new Map<string, CappedDayDto>();
-  cappedDays
-    .filter(cd => cd.workerId === workerId)
-    .forEach(cd => cappedDaysMap.set(cd.date, cd));
 
   // Filter by bucket if provided
   const filteredDetails = filterBucket
@@ -143,12 +135,10 @@ export default function DailyBreakdownModal({
                 <SortHeader field="internal">Prace wew.</SortHeader>
                 <SortHeader field="idle">Bezczynnosc</SortHeader>
                 <SortHeader field="attendance">Czas Pracy</SortHeader>
-                <th className="p-3 text-center text-power-grey font-bold">Status</th>
               </tr>
             </thead>
             <tbody>
               {sortedDetails.map((d, idx) => {
-                const cappedDay = cappedDaysMap.get(d.date);
                 const total = d.productionHours + d.internalHours + d.idleHours;
                 const prodPct = total > 0 ? (d.productionHours / total) * 100 : 0;
                 const intPct = total > 0 ? (d.internalHours / total) * 100 : 0;
@@ -182,17 +172,6 @@ export default function DailyBreakdownModal({
                     <td className="p-3 text-center text-white">
                       {d.attendanceHours.toFixed(1)}h
                     </td>
-                    <td className="p-3 text-center">
-                      {d.wasCapped && cappedDay ? (
-                        <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/20 text-red-400">
-                          Limit! {cappedDay.originalHours.toFixed(1)}h → {cappedDay.cappedHours.toFixed(1)}h
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded text-xs font-semibold bg-dark-green/20 text-dark-green">
-                          OK
-                        </span>
-                      )}
-                    </td>
                   </tr>
                 );
               })}
@@ -204,7 +183,6 @@ export default function DailyBreakdownModal({
                 <td className="p-3 text-center text-yellow-400 font-bold">{totals.internal.toFixed(1)}h</td>
                 <td className="p-3 text-center text-power-grey font-bold">{totals.idle.toFixed(1)}h</td>
                 <td className="p-3 text-center text-white font-bold">{totals.attendance.toFixed(1)}h</td>
-                <td className="p-3"></td>
               </tr>
             </tfoot>
           </table>

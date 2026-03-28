@@ -157,16 +157,20 @@ export default function WorkerAnalyticsPage() {
   };
 
   const benchmarks = useMemo(() => data?.benchmarks || {}, [data?.benchmarks]);
-  const cappedDays = useMemo(() => data?.cappedDays || [], [data?.cappedDays]);
 
-  // Map of workerId -> their capped days count
+  // Map of "workerId|resourceId" -> their capped days count (from dailyDetails.wasCapped)
   const workerCappedDaysCount = useMemo(() => {
     const map: Record<string, number> = {};
-    cappedDays.forEach(cd => {
-      map[cd.workerId] = (map[cd.workerId] || 0) + 1;
+    data?.workerStats?.forEach(ws => {
+      const resourceId = ws.resourceId || ws.workerId;
+      const compositeKey = `${ws.workerId}|${resourceId}`;
+      const cappedCount = ws.dailyDetails?.filter(d => d.wasCapped).length || 0;
+      if (cappedCount > 0) {
+        map[compositeKey] = cappedCount;
+      }
     });
     return map;
-  }, [cappedDays]);
+  }, [data?.workerStats]);
 
   // Map of "workerId|resourceId" -> their stats (for DailyBreakdownModal)
   const workerStatsMap = useMemo(() => {
@@ -214,8 +218,8 @@ export default function WorkerAnalyticsPage() {
           production: ws.production,
           internalWork: ws.internalWork,
           idle: ws.idle,
-          hasCappedDays: (workerCappedDaysCount[ws.workerId] || 0) > 0,
-          cappedDaysCount: workerCappedDaysCount[ws.workerId] || 0
+          hasCappedDays: (workerCappedDaysCount[compositeId] || 0) > 0,
+          cappedDaysCount: workerCappedDaysCount[compositeId] || 0
         };
       })
       .sort((a, b) => b.efficiency - a.efficiency);
@@ -572,7 +576,7 @@ export default function WorkerAnalyticsPage() {
                       {w.hasCappedDays && (
                         <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/20 text-red-400 text-xs font-semibold">
                           <AlertTriangle className="w-3 h-3" />
-                          {w.cappedDaysCount} dni
+                          {w.cappedDaysCount} dni z przekroczeniem
                         </span>
                       )}
                     </div>
@@ -711,7 +715,6 @@ export default function WorkerAnalyticsPage() {
             return `${getName(workerId)} (${getName(resourceId || workerId)})`;
           })()}
           dailyDetails={workerStatsMap[dailyBreakdownWorker || ""]?.dailyDetails || []}
-          cappedDays={cappedDays}
           onClose={() => {
             setDailyBreakdownWorker(null);
             setDailyBreakdownBucket(null);
