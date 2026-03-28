@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { X, ChevronUp, ChevronDown, ArrowUpDown, AlertTriangle } from "lucide-react";
+import { X, ChevronUp, ChevronDown, ArrowUpDown, AlertTriangle, ExternalLink } from "lucide-react";
 import type { DailyWorkerDetailDto } from "../../../api/bi-service";
 import { getBucketLabel } from "../utils";
+import WorkerDayJobsModal from "./WorkerDayJobsModal";
 
 type SortField = "date" | "production" | "internal" | "idle" | "attendance";
 type SortDirection = "asc" | "desc";
@@ -25,6 +26,7 @@ export default function DailyBreakdownModal({
 }: DailyBreakdownModalProps) {
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   if (!workerId) return null;
 
@@ -147,15 +149,19 @@ export default function DailyBreakdownModal({
                 return (
                   <tr
                     key={d.date}
-                    className={`border-b border-grey-outline ${
-                      d.wasCapped ? "bg-red-500/10" : idx % 2 === 0 ? "" : "bg-background-black/50"
+                    className={`border-b border-grey-outline cursor-pointer hover:bg-jet-color transition-colors ${
+                      d.wasCapped ? "bg-red-500/10 hover:bg-red-500/20" : idx % 2 === 0 ? "" : "bg-background-black/50"
                     }`}
+                    onClick={() => setSelectedDate(d.date)}
                   >
                     <td className="p-3 text-main font-medium">
-                      {d.date}
-                      {d.wasCapped && (
-                        <AlertTriangle className="w-4 h-4 inline ml-2 text-red-400" />
-                      )}
+                      <span className="inline-flex items-center gap-2">
+                        {d.date}
+                        {d.wasCapped && (
+                          <AlertTriangle className="w-4 h-4 text-red-400" />
+                        )}
+                        <ExternalLink className="w-3 h-3 text-power-grey opacity-50" />
+                      </span>
                     </td>
                     <td className="p-3 text-center">
                       <span className="text-green-400 font-semibold">{d.productionHours.toFixed(1)}h</span>
@@ -188,6 +194,15 @@ export default function DailyBreakdownModal({
           </table>
         </div>
       </div>
+
+      {selectedDate && (
+        <WorkerDayJobsModal
+          workerId={workerId}
+          workerName={workerName}
+          date={selectedDate}
+          onClose={() => setSelectedDate(null)}
+        />
+      )}
     </div>
   );
 }

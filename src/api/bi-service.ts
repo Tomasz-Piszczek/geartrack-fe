@@ -113,6 +113,14 @@ export interface WorkerAnalyticsResponseDto {
   cappedDays: CappedDayDto[];
 }
 
+export interface WorkerDailyJobEntryDto {
+  numerZlecenia: string;
+  productTypeId: string;
+  minutesWorked: number;
+  timeFrom: string | null;
+  timeTo: string | null;
+}
+
 const biServiceClient = axios.create({
   baseURL: BI_SERVICE_URL,
   timeout: 30000,
@@ -213,6 +221,14 @@ export const biServiceApi = {
     const response = await biServiceClient.post<WorkerAnalyticsResponseDto>(
       API_ENDPOINTS.BI.WORKER_ANALYTICS,
       request
+    );
+    return response.data;
+  },
+
+  getWorkerDailyJobs: async (workerId: string, date: string): Promise<WorkerDailyJobEntryDto[]> => {
+    const response = await biServiceClient.get<WorkerDailyJobEntryDto[]>(
+      API_ENDPOINTS.BI.WORKER_DAILY_JOBS,
+      { params: { workerId, date } }
     );
     return response.data;
   },

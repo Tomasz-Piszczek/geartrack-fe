@@ -38,6 +38,7 @@ export const API_ENDPOINTS = {
     PRODUCTS: '/api/products',
     EMPLOYEE_HOURS: '/api/employees/hours',
     WORKER_ANALYTICS: '/api/analytics/worker-analytics',
+    WORKER_DAILY_JOBS: '/api/analytics/worker-daily-jobs',
   },
   ORGANIZATIONS: {
     BASE: '/api/organizations',
