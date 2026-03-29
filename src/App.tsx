@@ -18,6 +18,7 @@ import QuotesListPage from './pages/quotes/QuotesListPage';
 import QuoteCreatePage from './pages/quotes/QuoteCreatePage';
 import QuoteEditPage from './pages/quotes/QuoteEditPage';
 import WorkerAnalyticsPage from './pages/analytics/WorkerAnalyticsPage';
+import MaterialAuditResultsPage from './pages/analytics/MaterialAuditResultsPage';
 import ToastContainer from './components/common/ToastContainer';
 import { ROUTES } from './constants';
 
@@ -109,6 +110,16 @@ function App() {
                   <ProtectedRoute>
                     <MainLayout>
                       <QuoteEditPage />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.MATERIAL_AUDIT}
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <MaterialAuditResultsPage />
                     </MainLayout>
                   </ProtectedRoute>
                 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, ChevronUp, ChevronDown, ArrowUpDown, AlertTriangle, ExternalLink } from "lucide-react";
 import type { DailyWorkerDetailDto } from "../../../api/bi-service";
+import type { TransformedJob } from "../types";
 import { getBucketLabel } from "../utils";
 import WorkerDayJobsModal from "./WorkerDayJobsModal";
 
@@ -14,6 +15,10 @@ interface DailyBreakdownModalProps {
   onClose: () => void;
   filterBucket?: string | null;
   granularity?: "daily" | "weekly" | "monthly";
+  jobs?: TransformedJob[];
+  getName?: (id: string) => string;
+  getProduct?: (id: string) => string;
+  benchmarks?: Record<string, number>;
 }
 
 export default function DailyBreakdownModal({
@@ -22,7 +27,11 @@ export default function DailyBreakdownModal({
   dailyDetails,
   onClose,
   filterBucket = null,
-  granularity = "daily"
+  granularity = "daily",
+  jobs = [],
+  getName = (id) => id,
+  getProduct = (id) => id,
+  benchmarks = {},
 }: DailyBreakdownModalProps) {
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -201,6 +210,10 @@ export default function DailyBreakdownModal({
           workerName={workerName}
           date={selectedDate}
           onClose={() => setSelectedDate(null)}
+          jobs={jobs}
+          getName={getName}
+          getProduct={getProduct}
+          benchmarks={benchmarks}
         />
       )}
     </div>

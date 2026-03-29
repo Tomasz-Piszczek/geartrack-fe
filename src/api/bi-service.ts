@@ -113,12 +113,61 @@ export interface WorkerAnalyticsResponseDto {
   cappedDays: CappedDayDto[];
 }
 
+export interface SessionDto {
+  timeFrom: string | null;
+  timeTo: string | null;
+  minutesWorked: number;
+}
+
 export interface WorkerDailyJobEntryDto {
   numerZlecenia: string;
   productTypeId: string;
   minutesWorked: number;
-  timeFrom: string | null;
-  timeTo: string | null;
+  sessions: SessionDto[];
+}
+
+export interface MaterialAuditRequestDto {
+  dateFrom: string;
+  dateTo: string;
+  offsetPercent?: number;
+  offsetNumber?: number;
+}
+
+export interface AuditMaterialEntryDto {
+  twrKod: string;
+  expectedIlosc: number | null;
+  actualIlosc: number | null;
+  ok: boolean;
+}
+
+export interface WorkerTimeEntryDto {
+  workerId: string;
+  minutesWorked: number;
+}
+
+export interface AuditOrderDto {
+  numerZlecenia: string;
+  dataZlecenia: string;
+  productTypeId: string;
+  materials: AuditMaterialEntryDto[];
+  orderOk: boolean;
+  workerTimeEntries?: WorkerTimeEntryDto[];
+}
+
+export interface WorkerAuditDto {
+  workerId: string;
+  correctOrders: AuditOrderDto[];
+  incorrectOrders: AuditOrderDto[];
+  totalOrders: number;
+  correctCount: number;
+  incorrectCount: number;
+}
+
+export interface MaterialAuditResponseDto {
+  workers: WorkerAuditDto[];
+  totalOrders: number;
+  totalCorrect: number;
+  totalIncorrect: number;
 }
 
 const biServiceClient = axios.create({
@@ -229,6 +278,14 @@ export const biServiceApi = {
     const response = await biServiceClient.get<WorkerDailyJobEntryDto[]>(
       API_ENDPOINTS.BI.WORKER_DAILY_JOBS,
       { params: { workerId, date } }
+    );
+    return response.data;
+  },
+
+  getMaterialAudit: async (request: MaterialAuditRequestDto): Promise<MaterialAuditResponseDto> => {
+    const response = await biServiceClient.post<MaterialAuditResponseDto>(
+      API_ENDPOINTS.BI.MATERIAL_AUDIT,
+      request
     );
     return response.data;
   },

@@ -412,7 +412,7 @@ export default function WorkerAnalyticsPage() {
         }
       `}</style>
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold text-main mb-6">Analiza Pracownikow</h1>
+        <h1 className="text-2xl font-bold text-main mb-6">Czas/szt</h1>
 
         <div className="flex flex-wrap gap-3 items-center mb-4">
           <div className="flex gap-2 flex-wrap">
@@ -721,6 +721,10 @@ export default function WorkerAnalyticsPage() {
           }}
           filterBucket={dailyBreakdownBucket}
           granularity={granularity}
+          jobs={transformedJobs}
+          getName={getName}
+          getProduct={getProduct}
+          benchmarks={benchmarks}
         />
 
         {view === "trend" && (

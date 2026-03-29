@@ -39,6 +39,7 @@ export const API_ENDPOINTS = {
     EMPLOYEE_HOURS: '/api/employees/hours',
     WORKER_ANALYTICS: '/api/analytics/worker-analytics',
     WORKER_DAILY_JOBS: '/api/analytics/worker-daily-jobs',
+    MATERIAL_AUDIT: '/api/analytics/material-audit',
   },
   ORGANIZATIONS: {
     BASE: '/api/organizations',
@@ -103,6 +104,7 @@ export const ROUTES = {
   PAYROLL: '/payroll',
   QUOTES: '/quotes',
   WORKER_ANALYTICS: '/analytics/workers',
+  MATERIAL_AUDIT: '/analytics/workers/material-audit',
 } as const;
 
 export const VALIDATION = {
