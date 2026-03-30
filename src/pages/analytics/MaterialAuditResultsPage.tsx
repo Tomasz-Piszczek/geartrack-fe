@@ -295,7 +295,7 @@ const MaterialAuditResultsPage: React.FC = () => {
     if (mat.twrKod && ignoredMaterials.has(mat.twrKod)) {
       return true; // Ignored materials are always considered OK
     }
-    return mat.ok;
+    return mat.ok ?? false;
   };
 
   // Helper to check if order is correct (all materials ok, considering ignored)
