@@ -354,14 +354,31 @@ const MaterialAuditResultsPage: React.FC = () => {
   }, [allProductsWithGroup, allTwrKods, allTwrKodsSet, productGroupsData]);
 
   // Flat search results — used instead of tree when user types a product name
+  // Uses allProductsData (filterQuantity=false) to include quantity=0 products, deduped by code
   const ignoredFlatSearchResults = useMemo(() => {
-    if (!ignoredSearch.trim() || !allProductsData) return [];
+    if (!ignoredSearch.trim()) return [];
     const search = ignoredSearch.toLowerCase();
-    return allProductsData.filter(
-      (p) => allTwrKodsSet.has(p.code) &&
-        (p.name.toLowerCase().includes(search) || p.code.toLowerCase().includes(search))
-    );
-  }, [ignoredSearch, allProductsData, allTwrKodsSet]);
+    const seen = new Set<string>();
+    const results: Array<{ code: string; name: string }> = [];
+
+    // First pass: match from full product list
+    (allProductsData ?? []).forEach((p) => {
+      if (!allTwrKodsSet.has(p.code) || seen.has(p.code)) return;
+      if (!p.name.toLowerCase().includes(search) && !p.code.toLowerCase().includes(search)) return;
+      seen.add(p.code);
+      results.push({ code: p.code, name: p.name });
+    });
+
+    // Second pass: twrKods not found in allProductsData — show code only as fallback
+    allTwrKods.forEach((code) => {
+      if (seen.has(code)) return;
+      if (!code.toLowerCase().includes(search)) return;
+      seen.add(code);
+      results.push({ code, name: code });
+    });
+
+    return results;
+  }, [ignoredSearch, allProductsData, allTwrKodsSet, allTwrKods]);
 
   const rootGroups = useMemo(
     () => productGroupsData?.filter((g) => !g.parentId || g.parentId === 0) ?? [],
@@ -993,9 +1010,7 @@ const MaterialAuditResultsPage: React.FC = () => {
                       {/* Options List — flat when searching, tree when not */}
                       <div className="max-h-72 overflow-y-auto">
                         {ignoredSearch.trim() ? (
-                          !allProductsData ? (
-                            <div className="px-3 py-2 text-sm text-gray-400">Ładowanie...</div>
-                          ) : ignoredFlatSearchResults.length === 0 ? (
+                          ignoredFlatSearchResults.length === 0 ? (
                             <div className="px-3 py-2 text-sm text-gray-400">Brak wyników</div>
                           ) : (
                             ignoredFlatSearchResults.map((product) => {
