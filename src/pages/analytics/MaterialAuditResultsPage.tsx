@@ -13,7 +13,147 @@ import {
   HiSearch,
   HiClock,
 } from 'react-icons/hi';
-import type { MaterialAuditResponseDto, AuditOrderDto } from '../../api/bi-service';
+import { ChevronRight, ChevronDown } from 'lucide-react';
+import type { MaterialAuditResponseDto, AuditOrderDto, ProductDto, ProductGroupDto } from '../../api/bi-service';
+import { useProducts, useProductGroups } from '../../hooks/useBiService';
+
+// productsByGroupCode: group.code → deduplicated products in that group matching twrKodsSet
+// No per-group API calls — all computed from a single useProducts(true) in main component
+
+interface IgnoredGroupNodeProps {
+  group: ProductGroupDto;
+  allGroups: ProductGroupDto[];
+  productsByGroupCode: Map<string, ProductDto[]>;
+  depth: number;
+  ignoredMaterials: Set<string>;
+  expandedGroups: Set<number>;
+  onToggleExpand: (id: number) => void;
+  onToggleMaterial: (code: string) => void;
+  onToggleGroup: (codes: string[]) => void;
+}
+
+const IgnoredGroupNode: React.FC<IgnoredGroupNodeProps> = ({
+  group, allGroups, productsByGroupCode, depth, ignoredMaterials,
+  expandedGroups, onToggleExpand, onToggleMaterial, onToggleGroup,
+}) => {
+  const isExpanded = expandedGroups.has(group.id);
+
+  const childGroups = React.useMemo(() => {
+    const seen = new Set<number>();
+    return allGroups.filter((g) => {
+      if (g.parentId !== group.id || seen.has(g.id)) return false;
+      seen.add(g.id);
+      return true;
+    });
+  }, [allGroups, group.id]);
+
+  // Collect all group codes in this subtree (this group + all descendants)
+  const descendantGroupCodes = React.useMemo(() => {
+    const codes = new Set<string>();
+    const collect = (g: ProductGroupDto) => {
+      codes.add(g.code);
+      allGroups.filter(child => child.parentId === g.id).forEach(collect);
+    };
+    collect(group);
+    return codes;
+  }, [group, allGroups]);
+
+  // All eligible codes across the entire subtree — for checkbox state and toggle
+  const allEligibleCodesInSubtree = React.useMemo(() => {
+    const seen = new Set<string>();
+    const result: string[] = [];
+    descendantGroupCodes.forEach(groupCode => {
+      (productsByGroupCode.get(groupCode) ?? []).forEach(p => {
+        if (!seen.has(p.code)) { seen.add(p.code); result.push(p.code); }
+      });
+    });
+    return result;
+  }, [descendantGroupCodes, productsByGroupCode]);
+
+  // Products rendered directly at this node (matched by group.code)
+  const eligibleProducts = React.useMemo(
+    () => productsByGroupCode.get(group.code) ?? [],
+    [productsByGroupCode, group.code]
+  );
+
+  // Hide if no products anywhere in subtree
+  if (allEligibleCodesInSubtree.length === 0) return null;
+
+  const allIgnored = allEligibleCodesInSubtree.every(c => ignoredMaterials.has(c));
+  const someIgnored = allEligibleCodesInSubtree.some(c => ignoredMaterials.has(c));
+  const paddingLeft = depth * 20 + 12;
+
+  return (
+    <div>
+      <div
+        className="flex items-center py-2 hover:bg-background-light text-white"
+        style={{ paddingLeft: `${paddingLeft}px`, paddingRight: '12px' }}
+      >
+        <input
+          type="checkbox"
+          checked={allIgnored}
+          ref={(el) => { if (el) el.indeterminate = someIgnored && !allIgnored; }}
+          onChange={() => onToggleGroup(allEligibleCodesInSubtree)}
+          onClick={(e) => e.stopPropagation()}
+          className="w-4 h-4 rounded border-gray-600 bg-[#1F1F1F] text-orange-500 focus:ring-orange-500 focus:ring-offset-0 cursor-pointer flex-shrink-0"
+        />
+        <button
+          onClick={() => onToggleExpand(group.id)}
+          className="flex items-center gap-1 flex-1 text-left ml-2 focus:outline-none"
+        >
+          <span className="mr-1 text-gray-400 hover:text-white flex-shrink-0">
+            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </span>
+          <span className={`text-sm flex-1 ${someIgnored ? 'text-orange-400' : 'text-white'}`}>
+            {group.code}
+          </span>
+        </button>
+      </div>
+
+      {isExpanded && (
+        <>
+          {childGroups.map((child) => (
+            <IgnoredGroupNode
+              key={child.id}
+              group={child}
+              allGroups={allGroups}
+              productsByGroupCode={productsByGroupCode}
+              depth={depth + 1}
+              ignoredMaterials={ignoredMaterials}
+              expandedGroups={expandedGroups}
+              onToggleExpand={onToggleExpand}
+              onToggleMaterial={onToggleMaterial}
+              onToggleGroup={onToggleGroup}
+            />
+          ))}
+          {eligibleProducts.map((product) => {
+            const isIgnored = ignoredMaterials.has(product.code);
+            return (
+              <label
+                key={product.code}
+                className="flex items-center py-2 hover:bg-background-light text-white cursor-pointer"
+                style={{ paddingLeft: `${paddingLeft + 36}px`, paddingRight: '12px' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isIgnored}
+                  onChange={() => onToggleMaterial(product.code)}
+                  className="w-4 h-4 rounded border-gray-600 bg-[#1F1F1F] text-orange-500 focus:ring-orange-500 focus:ring-offset-0 flex-shrink-0"
+                />
+                <span className={`text-sm flex-1 ml-3 ${isIgnored ? 'text-orange-400' : 'text-white'}`}>
+                  {product.name}
+                </span>
+                <span className={`text-xs font-mono ml-2 flex-shrink-0 ${isIgnored ? 'text-orange-300' : 'text-gray-400'}`}>
+                  {product.code}
+                </span>
+              </label>
+            );
+          })}
+        </>
+      )}
+    </div>
+  );
+};
 
 interface LocationState {
   auditData: MaterialAuditResponseDto;
@@ -48,9 +188,13 @@ const MaterialAuditResultsPage: React.FC = () => {
   });
   const [ignoredDropdownOpen, setIgnoredDropdownOpen] = useState(false);
   const [ignoredSearch, setIgnoredSearch] = useState('');
+  const [expandedIgnoredGroups, setExpandedIgnoredGroups] = useState<Set<number>>(new Set());
   const productTypeDropdownRef = useRef<HTMLDivElement>(null);
   const twrKodDropdownRef = useRef<HTMLDivElement>(null);
   const ignoredDropdownRef = useRef<HTMLDivElement>(null);
+  const { data: productGroupsData } = useProductGroups();
+  const { data: allProductsData } = useProducts(false);
+  const { data: allProductsWithGroup } = useProducts(true);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -178,12 +322,91 @@ const MaterialAuditResultsPage: React.FC = () => {
     return allTwrKods.filter((code) => code.toLowerCase().includes(search));
   }, [allTwrKods, twrKodSearch]);
 
-  // Filter ignored materials based on search (from audit response twrKods)
-  const filteredIgnoredOptions = useMemo(() => {
-    if (!ignoredSearch.trim()) return allTwrKods;
+  const allTwrKodsSet = useMemo(() => new Set(allTwrKods), [allTwrKods]);
+
+  // Build group.code → deduplicated products (filtered to twrKodsSet) from the single useProducts(true) call
+  const productsByGroupCode = useMemo(() => {
+    const map = new Map<string, ProductDto[]>();
+    if (!allProductsWithGroup) return map;
+    const seenCodes = new Set<string>();
+    for (const p of allProductsWithGroup) {
+      if (!allTwrKodsSet.has(p.code) || seenCodes.has(p.code)) continue;
+      seenCodes.add(p.code);
+      const key = p.group?.code ?? '__none__';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(p);
+    }
+    return map;
+  }, [allProductsWithGroup, allTwrKodsSet]);
+
+  // Codes in twrKodsSet that weren't matched to any group — shown as flat "Pozostałe" section
+  const unmatchedTwrKods = useMemo(() => {
+    if (!allProductsWithGroup) return [];
+    const knownGroupCodes = new Set(productGroupsData?.map(g => g.code) ?? []);
+    const matchedCodes = new Set<string>();
+    for (const p of allProductsWithGroup) {
+      if (allTwrKodsSet.has(p.code) && p.group?.code && knownGroupCodes.has(p.group.code)) {
+        matchedCodes.add(p.code);
+      }
+    }
+    // Also include codes that have no product entry at all (not in allProductsWithGroup)
+    return allTwrKods.filter(code => !matchedCodes.has(code));
+  }, [allProductsWithGroup, allTwrKods, allTwrKodsSet, productGroupsData]);
+
+  // Flat search results — used instead of tree when user types a product name
+  const ignoredFlatSearchResults = useMemo(() => {
+    if (!ignoredSearch.trim() || !allProductsData) return [];
     const search = ignoredSearch.toLowerCase();
-    return allTwrKods.filter((code) => code.toLowerCase().includes(search));
-  }, [allTwrKods, ignoredSearch]);
+    return allProductsData.filter(
+      (p) => allTwrKodsSet.has(p.code) &&
+        (p.name.toLowerCase().includes(search) || p.code.toLowerCase().includes(search))
+    );
+  }, [ignoredSearch, allProductsData, allTwrKodsSet]);
+
+  const rootGroups = useMemo(
+    () => productGroupsData?.filter((g) => !g.parentId || g.parentId === 0) ?? [],
+    [productGroupsData]
+  );
+
+  const filteredRootGroups = useMemo(() => {
+    if (!ignoredSearch.trim()) return rootGroups;
+    const search = ignoredSearch.toLowerCase();
+    // Include a root if any group in its subtree (by path) matches
+    const matchingRootIds = new Set(
+      productGroupsData
+        ?.filter((g) => g.code.toLowerCase().includes(search) || g.path.toLowerCase().includes(search))
+        .map((g) => {
+          let cur = g;
+          while (cur.parentId && cur.parentId !== 0) {
+            const parent = productGroupsData.find((pg) => pg.id === cur.parentId);
+            if (!parent) break;
+            cur = parent;
+          }
+          return cur.id;
+        }) ?? []
+    );
+    return rootGroups.filter((g) => matchingRootIds.has(g.id));
+  }, [rootGroups, ignoredSearch, productGroupsData]);
+
+  // Auto-expand matched groups when searching
+  useEffect(() => {
+    if (ignoredSearch.trim() && productGroupsData) {
+      const search = ignoredSearch.toLowerCase();
+      const idsToExpand = new Set<number>();
+      productGroupsData.forEach((g) => {
+        if (g.code.toLowerCase().includes(search) || g.path.toLowerCase().includes(search)) {
+          let cur = g;
+          while (cur.parentId && cur.parentId !== 0) {
+            idsToExpand.add(cur.parentId);
+            const parent = productGroupsData.find((pg) => pg.id === cur.parentId);
+            if (!parent) break;
+            cur = parent;
+          }
+        }
+      });
+      setExpandedIgnoredGroups(idsToExpand);
+    }
+  }, [ignoredSearch, productGroupsData]);
 
   const toggleProductType = (productType: string) => {
     setSelectedProductTypes((prev) => {
@@ -271,7 +494,7 @@ const MaterialAuditResultsPage: React.FC = () => {
   const selectAllFilteredIgnored = () => {
     setIgnoredMaterials((prev) => {
       const next = new Set(prev);
-      filteredIgnoredOptions.forEach((code) => next.add(code));
+      allTwrKods.forEach((code) => next.add(code));
       return next;
     });
   };
@@ -279,7 +502,17 @@ const MaterialAuditResultsPage: React.FC = () => {
   const deselectAllFilteredIgnored = () => {
     setIgnoredMaterials((prev) => {
       const next = new Set(prev);
-      filteredIgnoredOptions.forEach((code) => next.delete(code));
+      allTwrKods.forEach((code) => next.delete(code));
+      return next;
+    });
+  };
+
+  const toggleIgnoredGroup = (codes: string[]) => {
+    const allIgnored = codes.every((code) => ignoredMaterials.has(code));
+    setIgnoredMaterials((prev) => {
+      const next = new Set(prev);
+      if (allIgnored) codes.forEach((code) => next.delete(code));
+      else codes.forEach((code) => next.add(code));
       return next;
     });
   };
@@ -726,23 +959,23 @@ const MaterialAuditResultsPage: React.FC = () => {
 
                   {/* Dropdown Panel */}
                   {ignoredDropdownOpen && (
-                    <div className="absolute z-50 mt-2 w-72 bg-[#2a2a2a] border border-[#404040] rounded-xl shadow-xl overflow-hidden">
+                    <div className="absolute z-50 mt-1 w-[520px] bg-[rgb(33,37,41)] border border-gray-600 rounded-lg shadow-lg overflow-hidden">
                       {/* Search Input */}
-                      <div className="p-3 border-b border-[#404040]">
+                      <div className="p-2 border-b border-gray-600">
                         <div className="relative">
-                          <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                          <HiSearch className="absolute left-2 top-2.5 w-4 h-4 text-gray-400" />
                           <input
                             type="text"
                             value={ignoredSearch}
                             onChange={(e) => setIgnoredSearch(e.target.value)}
-                            placeholder="Szukaj kodu..."
-                            className="w-full pl-9 pr-3 py-2 bg-[#1F1F1F] border border-[#404040] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-main"
+                            placeholder="Szukaj nazwy lub kodu..."
+                            className="w-full pl-8 pr-3 py-2 bg-background-dark text-white border border-gray-600 rounded-md text-sm focus:outline-none focus:ring-0 focus:border-gray-600"
                           />
                         </div>
                       </div>
 
                       {/* Select All / Deselect All */}
-                      <div className="flex items-center justify-between px-3 py-2 border-b border-[#404040] bg-[#252525]">
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-600">
                         <button
                           onClick={selectAllFilteredIgnored}
                           className="text-xs text-main hover:text-main/80 transition-colors"
@@ -757,32 +990,91 @@ const MaterialAuditResultsPage: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* Options List */}
-                      <div className="max-h-60 overflow-y-auto">
-                        {filteredIgnoredOptions.length === 0 ? (
-                          <div className="px-3 py-4 text-center text-sm text-gray-500">
-                            Nie znaleziono materiałów
-                          </div>
+                      {/* Options List — flat when searching, tree when not */}
+                      <div className="max-h-72 overflow-y-auto">
+                        {ignoredSearch.trim() ? (
+                          !allProductsData ? (
+                            <div className="px-3 py-2 text-sm text-gray-400">Ładowanie...</div>
+                          ) : ignoredFlatSearchResults.length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-gray-400">Brak wyników</div>
+                          ) : (
+                            ignoredFlatSearchResults.map((product) => {
+                              const isIgnored = ignoredMaterials.has(product.code);
+                              return (
+                                <label
+                                  key={product.code}
+                                  className="flex items-center py-2 px-3 hover:bg-background-light text-white cursor-pointer"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isIgnored}
+                                    onChange={() => toggleIgnoredMaterial(product.code)}
+                                    className="w-4 h-4 rounded border-gray-600 bg-[#1F1F1F] text-orange-500 focus:ring-orange-500 focus:ring-offset-0 flex-shrink-0"
+                                  />
+                                  <span className={`text-sm flex-1 ml-3 ${isIgnored ? 'text-orange-400' : 'text-white'}`}>
+                                    {product.name}
+                                  </span>
+                                  <span className={`text-xs font-mono ml-2 flex-shrink-0 ${isIgnored ? 'text-orange-300' : 'text-gray-400'}`}>
+                                    {product.code}
+                                  </span>
+                                </label>
+                              );
+                            })
+                          )
                         ) : (
-                          filteredIgnoredOptions.map((code) => {
-                            const isIgnored = ignoredMaterials.has(code);
-                            return (
-                              <label
-                                key={code}
-                                className="flex items-center gap-3 px-3 py-2.5 hover:bg-[#343434] cursor-pointer transition-colors"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isIgnored}
-                                  onChange={() => toggleIgnoredMaterial(code)}
-                                  className="w-4 h-4 rounded border-gray-600 bg-[#1F1F1F] text-orange-500 focus:ring-orange-500 focus:ring-offset-0"
-                                />
-                                <span className={`text-sm font-mono ${isIgnored ? 'text-orange-400' : 'text-gray-300'}`}>
-                                  {code}
-                                </span>
-                              </label>
-                            );
-                          })
+                          !productGroupsData ? (
+                            <div className="px-3 py-2 text-sm text-gray-400">Ładowanie grup...</div>
+                          ) : (
+                            filteredRootGroups.map((group) => (
+                              <IgnoredGroupNode
+                                key={group.id}
+                                group={group}
+                                allGroups={productGroupsData}
+                                productsByGroupCode={productsByGroupCode}
+                                depth={0}
+                                ignoredMaterials={ignoredMaterials}
+                                expandedGroups={expandedIgnoredGroups}
+                                onToggleExpand={(id) => setExpandedIgnoredGroups((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(id)) next.delete(id); else next.add(id);
+                                  return next;
+                                })}
+                                onToggleMaterial={toggleIgnoredMaterial}
+                                onToggleGroup={toggleIgnoredGroup}
+                              />
+                            ))
+                          )
+                        )}
+                        {/* Flat section for products not matched to any group */}
+                        {!ignoredSearch.trim() && unmatchedTwrKods.length > 0 && (
+                          <div>
+                            <div className="px-3 py-1 text-xs text-gray-500 border-t border-gray-700 mt-1">
+                              Pozostałe ({unmatchedTwrKods.length})
+                            </div>
+                            {unmatchedTwrKods.map((code) => {
+                              const product = allProductsData?.find(p => p.code === code);
+                              const isIgnored = ignoredMaterials.has(code);
+                              return (
+                                <label
+                                  key={code}
+                                  className="flex items-center py-2 px-3 hover:bg-background-light text-white cursor-pointer"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isIgnored}
+                                    onChange={() => toggleIgnoredMaterial(code)}
+                                    className="w-4 h-4 rounded border-gray-600 bg-[#1F1F1F] text-orange-500 focus:ring-orange-500 focus:ring-offset-0 flex-shrink-0"
+                                  />
+                                  <span className={`text-sm flex-1 ml-3 ${isIgnored ? 'text-orange-400' : 'text-white'}`}>
+                                    {product?.name ?? code}
+                                  </span>
+                                  <span className={`text-xs font-mono ml-2 flex-shrink-0 ${isIgnored ? 'text-orange-300' : 'text-gray-400'}`}>
+                                    {code}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
                     </div>
