@@ -29,7 +29,7 @@ const MaterialsTab: React.FC = () => {
   const [ignoreMinQuantity, setIgnoreMinQuantity] = useState(false);
 
   const handleAddMaterial = () => {
-    const requestedQuantity = parseInt(quantity) || 1;
+    const requestedQuantity = parseFloat(quantity) || 1;
     let materialName: string;
     let materialPurchasePrice: number;
 
