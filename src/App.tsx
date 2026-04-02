@@ -20,10 +20,12 @@ import QuoteEditPage from './pages/quotes/QuoteEditPage';
 import WorkerAnalyticsPage from './pages/analytics/WorkerAnalyticsPage';
 import MaterialAuditResultsPage from './pages/analytics/MaterialAuditResultsPage';
 import ToastContainer from './components/common/ToastContainer';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import { ROUTES } from './constants';
 
 function App() {
   return (
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <SseProvider>
@@ -145,6 +147,7 @@ function App() {
         </SseProvider>
       </AuthProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
