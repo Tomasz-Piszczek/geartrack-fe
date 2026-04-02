@@ -23,11 +23,15 @@ export const BadaniaSzkolenieProvider: React.FC<{ children: React.ReactNode }> =
     const token = localStorage.getItem('geartrack_token');
     if (!token) return;
 
-    const response = await axios.get<BadanieSzkolenieDto[]>(
-      `${API_BASE_URL}${API_ENDPOINTS.BADANIA_SZKOLENIA.BASE}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    setBadaniaSzkolenia(response.data);
+    try {
+      const response = await axios.get<BadanieSzkolenieDto[]>(
+        `${API_BASE_URL}${API_ENDPOINTS.BADANIA_SZKOLENIA.BASE}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setBadaniaSzkolenia(response.data);
+    } catch {
+      // 403 for non-admin users is expected - just leave empty array
+    }
   }, []);
 
   useEffect(() => {

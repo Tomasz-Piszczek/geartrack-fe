@@ -23,11 +23,15 @@ export const MachineInspectionProvider: React.FC<{ children: React.ReactNode }> 
     const token = localStorage.getItem('geartrack_token');
     if (!token) return;
 
-    const response = await axios.get<MachineInspectionDto[]>(
-      `${API_BASE_URL}${API_ENDPOINTS.MACHINES.SCHEDULED_INSPECTIONS}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    setInspections(response.data);
+    try {
+      const response = await axios.get<MachineInspectionDto[]>(
+        `${API_BASE_URL}${API_ENDPOINTS.MACHINES.SCHEDULED_INSPECTIONS}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setInspections(response.data);
+    } catch {
+      // 403 for non-admin users is expected - just leave empty array
+    }
   }, []);
 
   useEffect(() => {
