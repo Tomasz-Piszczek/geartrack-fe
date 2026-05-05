@@ -170,6 +170,127 @@ export interface MaterialAuditResponseDto {
   totalIncorrect: number;
 }
 
+// ─── Profitability ───────────────────────────────────────────────────────────
+
+export interface DocumentElementDto {
+  dokNumer: string;
+  twrKod: string;
+  ilosc: number;
+  wartoscNetto: number;
+}
+
+export interface JobProfitabilityWorkerDto {
+  workerId: string;
+  resourceId: string;
+  minutes: number;
+  hours: number;
+  laborCost: number;
+  shareOfProfit: number;
+  sharePct: number;
+}
+
+export interface JobProfitabilityRowDto {
+  cznId: number;
+  numerZlecenia: string;
+  productTypeId: string;
+  orderQuantity: number;
+  orderDate: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  roNumer: string;
+  coBundledZpCount: number;
+  revenueAttributionConfidence: 'HIGH' | 'NO_INVOICE' | 'HIDDEN' | 'LOW';
+  revenue: number;
+  materialCost: number;
+  laborMinutes: number;
+  laborHours: number;
+  laborCost: number;
+  profit: number;
+  marginPct: number;
+  workers: JobProfitabilityWorkerDto[];
+  rwElements: DocumentElementDto[];
+  hasMaterialCost: boolean;
+  hasLaborTime: boolean;
+  fskorAdjustmentApplied: boolean;
+}
+
+export interface JobProfitabilitySummaryDto {
+  totalJobs: number;
+  withInvoiceJobs: number;
+  noInvoiceJobs: number;
+  hiddenUninvoicedJobs: number;
+  totalRevenue: number;
+  totalMaterialCost: number;
+  totalLaborCost: number;
+  totalProfit: number;
+  avgMarginPct: number;
+  top5: JobProfitabilityRowDto[];
+  bottom5: JobProfitabilityRowDto[];
+}
+
+export interface JobProfitabilityResponseDto {
+  rows: JobProfitabilityRowDto[];
+  summary: JobProfitabilitySummaryDto;
+}
+
+export type ConfidenceFilter = 'ALL' | 'WITH_INVOICE' | 'NO_INVOICE' | 'HIDDEN';
+
+export interface JobProfitabilityRequestDto {
+  dateFrom?: string;
+  dateTo?: string;
+  hourlyRate: number;
+  selectedProducts?: string[];
+  excludedWorkers?: string[];
+  ignoreInternalWork?: boolean;
+  /** Preferred. */
+  confidenceFilter?: ConfidenceFilter;
+  /** @deprecated use confidenceFilter. Server still accepts it for backwards compat. */
+  minConfidence?: 'HIGH' | 'LOW';
+  sortBy?: 'PROFIT_DESC' | 'PROFIT_ASC' | 'MARGIN_DESC' | 'MARGIN_ASC' | 'REVENUE_DESC' | 'INVOICE_DESC' | 'INVOICE_ASC';
+}
+
+export interface WorkerCashTopJobDto {
+  numerZlecenia: string;
+  productTypeId: string;
+  invoiceNumber: string;
+  myMinutes: number;
+  myShareOfProfit: number;
+}
+
+export interface WorkerCashRowDto {
+  workerId: string;
+  resourceId: string;
+  totalMinutes: number;
+  totalHours: number;
+  jobsTouched: number;
+  attributedRevenue: number;
+  attributedMaterialCost: number;
+  attributedLaborCost: number;
+  attributedProfit: number;
+  profitPerHour: number;
+  topJobs: WorkerCashTopJobDto[];
+  worstJobs: WorkerCashTopJobDto[];
+}
+
+export interface WorkerCashResponseDto {
+  rows: WorkerCashRowDto[];
+  totalAttributedProfit: number;
+  totalAttributedRevenue: number;
+  totalJobsAnalyzed: number;
+}
+
+export interface WorkerCashRequestDto {
+  dateFrom?: string;
+  dateTo?: string;
+  hourlyRate: number;
+  selectedProducts?: string[];
+  excludedWorkers?: string[];
+  ignoreInternalWork?: boolean;
+  confidenceFilter?: ConfidenceFilter;
+  /** @deprecated use confidenceFilter. */
+  minConfidence?: 'HIGH' | 'LOW';
+}
+
 const biServiceClient = axios.create({
   baseURL: BI_SERVICE_URL,
   timeout: 30000,
@@ -285,6 +406,22 @@ export const biServiceApi = {
   getMaterialAudit: async (request: MaterialAuditRequestDto): Promise<MaterialAuditResponseDto> => {
     const response = await biServiceClient.post<MaterialAuditResponseDto>(
       API_ENDPOINTS.BI.MATERIAL_AUDIT,
+      request
+    );
+    return response.data;
+  },
+
+  getJobProfitability: async (request: JobProfitabilityRequestDto): Promise<JobProfitabilityResponseDto> => {
+    const response = await biServiceClient.post<JobProfitabilityResponseDto>(
+      API_ENDPOINTS.BI.JOB_PROFITABILITY,
+      request
+    );
+    return response.data;
+  },
+
+  getWorkerCashContribution: async (request: WorkerCashRequestDto): Promise<WorkerCashResponseDto> => {
+    const response = await biServiceClient.post<WorkerCashResponseDto>(
+      API_ENDPOINTS.BI.WORKER_CASH,
       request
     );
     return response.data;

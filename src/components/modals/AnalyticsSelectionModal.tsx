@@ -1,11 +1,12 @@
 import React from 'react';
-import { HiChartBar, HiClipboardCheck, HiX } from 'react-icons/hi';
+import { HiChartBar, HiClipboardCheck, HiCurrencyDollar, HiX } from 'react-icons/hi';
 
 interface AnalyticsSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectWorkerAnalytics: () => void;
   onSelectMaterialAudit: () => void;
+  onSelectProfitability?: () => void;
 }
 
 const AnalyticsSelectionModal: React.FC<AnalyticsSelectionModalProps> = ({
@@ -13,6 +14,7 @@ const AnalyticsSelectionModal: React.FC<AnalyticsSelectionModalProps> = ({
   onClose,
   onSelectWorkerAnalytics,
   onSelectMaterialAudit,
+  onSelectProfitability,
 }) => {
   if (!isOpen) return null;
 
@@ -31,7 +33,7 @@ const AnalyticsSelectionModal: React.FC<AnalyticsSelectionModalProps> = ({
           Wybierz typ analizy
         </h2>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           {/* Worker Analytics Option */}
           <button
             onClick={onSelectWorkerAnalytics}
@@ -63,6 +65,24 @@ const AnalyticsSelectionModal: React.FC<AnalyticsSelectionModalProps> = ({
               Porównanie materiałów oczekiwanych vs wpisanych w zleceniach
             </p>
           </button>
+
+          {/* Profitability Option */}
+          {onSelectProfitability && (
+            <button
+              onClick={onSelectProfitability}
+              className="group flex flex-col items-center justify-center p-8 bg-background-card rounded-xl border-2 border-transparent hover:border-main transition-all duration-200 hover:bg-background-card/80"
+            >
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <HiCurrencyDollar className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">
+                Rentowność
+              </h3>
+              <p className="text-sm text-gray-400 text-center">
+                Zysk z każdego zlecenia i z każdego pracownika (PLN/godz.)
+              </p>
+            </button>
+          )}
         </div>
       </div>
     </div>

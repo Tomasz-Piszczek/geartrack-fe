@@ -47,6 +47,11 @@ const MainSidebar: React.FC = () => {
     setShowMaterialAuditModal(true);
   };
 
+  const handleSelectProfitability = () => {
+    setShowAnalyticsSelection(false);
+    navigate(ROUTES.PROFITABILITY);
+  };
+
   const handleMaterialAuditBack = () => {
     setShowMaterialAuditModal(false);
     setShowAnalyticsSelection(true);
@@ -241,6 +246,7 @@ const MainSidebar: React.FC = () => {
         onClose={() => setShowAnalyticsSelection(false)}
         onSelectWorkerAnalytics={handleSelectWorkerAnalytics}
         onSelectMaterialAudit={handleSelectMaterialAudit}
+        onSelectProfitability={handleSelectProfitability}
       />
 
       <MaterialAuditModal

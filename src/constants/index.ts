@@ -40,6 +40,8 @@ export const API_ENDPOINTS = {
     WORKER_ANALYTICS: '/api/analytics/worker-analytics',
     WORKER_DAILY_JOBS: '/api/analytics/worker-daily-jobs',
     MATERIAL_AUDIT: '/api/analytics/material-audit',
+    JOB_PROFITABILITY: '/api/analytics/job-profitability',
+    WORKER_CASH: '/api/analytics/worker-cash-contribution',
   },
   ORGANIZATIONS: {
     BASE: '/api/organizations',
@@ -86,6 +88,8 @@ export const QUERY_KEYS = {
   BADANIA_SZKOLENIA: 'badania-szkolenia',
   VACATION_SUMMARY: 'vacation-summary',
   WORKER_ANALYTICS: 'worker-analytics',
+  JOB_PROFITABILITY: 'job-profitability',
+  WORKER_CASH: 'worker-cash',
 } as const;
 
 export const STORAGE_KEYS = {
@@ -105,6 +109,7 @@ export const ROUTES = {
   QUOTES: '/quotes',
   WORKER_ANALYTICS: '/analytics/workers',
   MATERIAL_AUDIT: '/analytics/workers/material-audit',
+  PROFITABILITY: '/analytics/profitability',
 } as const;
 
 export const VALIDATION = {

@@ -19,6 +19,7 @@ import QuoteCreatePage from './pages/quotes/QuoteCreatePage';
 import QuoteEditPage from './pages/quotes/QuoteEditPage';
 import WorkerAnalyticsPage from './pages/analytics/WorkerAnalyticsPage';
 import MaterialAuditResultsPage from './pages/analytics/MaterialAuditResultsPage';
+import ProfitabilityPage from './pages/analytics/ProfitabilityPage';
 import ToastContainer from './components/common/ToastContainer';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { ROUTES } from './constants';
@@ -119,7 +120,7 @@ function App() {
               <Route
                 path={ROUTES.MATERIAL_AUDIT}
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requireAdmin>
                     <MainLayout>
                       <MaterialAuditResultsPage />
                     </MainLayout>
@@ -127,9 +128,19 @@ function App() {
                 }
               />
               <Route
+                path={ROUTES.PROFITABILITY}
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <MainLayout>
+                      <ProfitabilityPage />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path={ROUTES.WORKER_ANALYTICS}
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requireAdmin>
                     <MainLayout>
                       <WorkerAnalyticsPage />
                     </MainLayout>
