@@ -999,7 +999,7 @@ function WorkersView({
                 }}
                 labelFormatter={(_, payload) => {
                   if (!payload || payload.length === 0) return "";
-                  const d: any = payload[0].payload;
+                  const d = payload[0].payload as { fullName: string; resourceId: string };
                   return `${d.fullName} (${d.resourceId})`;
                 }}
               />
