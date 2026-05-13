@@ -103,17 +103,31 @@ export const quotesApi = {
       page: page.toString(),
       size: size.toString(),
     });
-    
+
     if (search) {
       params.append('search', search);
     }
-    
+
     if (createdBy) {
       params.append('createdBy', createdBy);
     }
 
     const response = await apiClient.get(`/api/quotes?${params.toString()}`);
-    return response.data;
+    const raw = response.data;
+    // Spring Boot 3.5 nests pagination metadata under `page` instead of the root.
+    if (raw?.page && raw.totalPages === undefined) {
+      const p = raw.page;
+      return {
+        content: raw.content,
+        totalElements: p.totalElements,
+        totalPages: p.totalPages,
+        number: p.number,
+        size: p.size,
+        first: p.number === 0,
+        last: p.number >= p.totalPages - 1,
+      };
+    }
+    return raw;
   },
 
   getQuote: async (id: string): Promise<QuoteDetailsDto> => {
