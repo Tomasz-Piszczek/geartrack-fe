@@ -165,4 +165,31 @@ export const quotesApi = {
   deleteAttachment: async (quoteId: string, attachmentId: string): Promise<void> => {
     await apiClient.delete(`/api/quotes/${quoteId}/attachments/${attachmentId}`);
   },
+
+  duplicateQuote: async (id: string): Promise<QuoteListDto> => {
+    const [details, nextNumber] = await Promise.all([
+      quotesApi.getQuote(id),
+      quotesApi.getNextQuoteNumber(),
+    ]);
+    const payload: CreateQuoteDto = {
+      documentNumber: nextNumber.nextQuoteNumber,
+      contractorCode: details.contractorCode,
+      contractorName: details.contractorName,
+      productCode: details.productCode,
+      productName: details.productName,
+      minQuantity: details.minQuantity,
+      totalQuantity: details.totalQuantity,
+      totalPrice: details.totalPrice,
+      note: details.note,
+      materials: (details.materials ?? []).map(({ uuid: _uuid, ...m }) => m),
+      productionActivities: (details.productionActivities ?? []).map(({ uuid: _uuid, ...a }) => a),
+    };
+    const newQuote = await quotesApi.createQuote(payload);
+    for (const attachment of details.attachments ?? []) {
+      const blob = await quotesApi.downloadAttachment(id, attachment.uuid);
+      const file = new File([blob], attachment.fileName, { type: attachment.fileType });
+      await quotesApi.uploadAttachment(newQuote.uuid, file);
+    }
+    return newQuote;
+  },
 };

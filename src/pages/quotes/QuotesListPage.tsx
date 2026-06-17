@@ -42,6 +42,11 @@ const QuotesListPage: React.FC = () => {
     }
   };
 
+  const handleDuplicate = async (id: string) => {
+    await quotesApi.duplicateQuote(id);
+    refetch();
+  };
+
   const columns = [
     {
       key: 'documentNumber',
@@ -102,6 +107,13 @@ const QuotesListPage: React.FC = () => {
             onClick={() => handleEdit(quote.uuid)}
           >
             Edytuj
+          </Button>
+          <Button
+            color="gray"
+            size="sm"
+            onClick={() => handleDuplicate(quote.uuid)}
+          >
+            Duplikuj
           </Button>
           <Button
             color="failure"
