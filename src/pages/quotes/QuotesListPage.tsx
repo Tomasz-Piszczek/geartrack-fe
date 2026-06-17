@@ -8,11 +8,13 @@ import Input from '../../components/common/Input';
 import Table from '../../components/common/Table';
 import Pagination from '../../components/common/Pagination';
 import { formatDate } from '../../utils/formatting';
+import { toast } from '../../lib/toast';
 
 const QuotesListPage: React.FC = () => {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const [createdBy, setCreatedBy] = useState('');
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const { data, isLoading, refetch } = useQuery({
@@ -43,8 +45,28 @@ const QuotesListPage: React.FC = () => {
   };
 
   const handleDuplicate = async (id: string) => {
-    await quotesApi.duplicateQuote(id);
-    refetch();
+    setDuplicatingId(id);
+    try {
+      const [details, nextNumber] = await Promise.all([
+        quotesApi.getQuote(id),
+        quotesApi.getNextQuoteNumber(),
+      ]);
+      const pendingFiles: File[] = [];
+      for (const attachment of details.attachments ?? []) {
+        const blob = await quotesApi.downloadAttachment(id, attachment.uuid);
+        pendingFiles.push(new File([blob], attachment.fileName, { type: attachment.fileType }));
+      }
+      navigate('/quotes/new', {
+        state: {
+          sourceQuote: { ...details, documentNumber: nextNumber.nextQuoteNumber },
+          pendingFiles,
+        },
+      });
+    } catch {
+      toast.error('Wystąpił błąd podczas duplikowania wyceny');
+    } finally {
+      setDuplicatingId(null);
+    }
   };
 
   const columns = [
@@ -112,8 +134,9 @@ const QuotesListPage: React.FC = () => {
             color="gray"
             size="sm"
             onClick={() => handleDuplicate(quote.uuid)}
+            disabled={duplicatingId === quote.uuid}
           >
-            Duplikuj
+            {duplicatingId === quote.uuid ? '...' : 'Duplikuj'}
           </Button>
           <Button
             color="failure"

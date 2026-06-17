@@ -418,7 +418,7 @@ export function QuoteProvider({ children, initialDocumentNumber, initialQuote, i
 
   const prepareForSubmit = (): CreateQuoteDto | UpdateQuoteDto => {
     const materials = (state.materials || []).map(material => ({
-      uuid: material.uuid,
+      uuid: isEditMode ? material.uuid : undefined,
       name: material.name,
       purchasePrice: material.purchasePrice,
       marginPercent: material.marginPercent,
@@ -428,7 +428,7 @@ export function QuoteProvider({ children, initialDocumentNumber, initialQuote, i
     }));
 
     const productionActivities = (state.productionActivities || []).map(activity => ({
-      uuid: activity.uuid,
+      uuid: isEditMode ? activity.uuid : undefined,
       name: activity.name,
       workTimeHours: activity.workTimeHours,
       workTimeMinutes: activity.workTimeMinutes,

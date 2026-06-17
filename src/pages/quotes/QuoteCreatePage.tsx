@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { quotesApi } from '../../api/quotes';
-import type { CreateQuoteDto, QuoteAttachmentDto } from '../../api/quotes';
+import type { CreateQuoteDto, QuoteAttachmentDto, QuoteDetailsDto } from '../../api/quotes';
 import { QuoteProvider } from './context/QuoteContext';
 import QuoteFormWithActions from './components/QuoteFormWithActions';
 import AttachmentUpload from './components/AttachmentUpload';
@@ -12,14 +12,19 @@ import { toast } from '../../lib/toast';
 
 const QuoteCreatePage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const sourceQuote = location.state?.sourceQuote as QuoteDetailsDto | undefined;
+  const locationPendingFiles = location.state?.pendingFiles as File[] | undefined;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachments, setAttachments] = useState<QuoteAttachmentDto[]>([]);
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>(locationPendingFiles ?? []);
   const [createdQuoteId, setCreatedQuoteId] = useState<string | undefined>();
 
   const { data: nextQuoteNumber } = useQuery({
     queryKey: ['nextQuoteNumber'],
     queryFn: quotesApi.getNextQuoteNumber,
+    enabled: !sourceQuote,
   });
 
   const handleSubmit = async (data: CreateQuoteDto) => {
@@ -53,7 +58,8 @@ const QuoteCreatePage: React.FC = () => {
   return (
     <div className="p-6">
       <QuoteProvider
-        initialDocumentNumber={nextQuoteNumber?.nextQuoteNumber}
+        initialDocumentNumber={!sourceQuote ? nextQuoteNumber?.nextQuoteNumber : undefined}
+        initialQuote={sourceQuote}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
         isEditMode={false}
