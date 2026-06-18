@@ -53,6 +53,7 @@ export interface QuoteListDto {
   updatedAt: string;
   createdBy?: string;
   createdByEmail?: string;
+  approved: boolean;
 }
 
 export interface QuoteAttachmentDto {
@@ -164,6 +165,11 @@ export const quotesApi = {
 
   deleteAttachment: async (quoteId: string, attachmentId: string): Promise<void> => {
     await apiClient.delete(`/api/quotes/${quoteId}/attachments/${attachmentId}`);
+  },
+
+  setQuoteApproval: async (id: string, approved: boolean): Promise<QuoteListDto> => {
+    const response = await apiClient.patch(`/api/quotes/${id}/approved`, { approved });
+    return response.data;
   },
 
 };

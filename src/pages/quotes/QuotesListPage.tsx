@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { quotesApi } from '../../api/quotes';
+import type { QuoteListDto } from '../../api/quotes';
 import { usersApi } from '../../api/users';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
@@ -9,6 +10,7 @@ import Table from '../../components/common/Table';
 import Pagination from '../../components/common/Pagination';
 import { formatDate } from '../../utils/formatting';
 import { toast } from '../../lib/toast';
+import { useAuth } from '../../context/AuthContext';
 
 const QuotesListPage: React.FC = () => {
   const [page, setPage] = useState(0);
@@ -16,6 +18,7 @@ const QuotesListPage: React.FC = () => {
   const [createdBy, setCreatedBy] = useState('');
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['quotes', page, search, createdBy],
@@ -69,32 +72,41 @@ const QuotesListPage: React.FC = () => {
     }
   };
 
+  const handleApprovalToggle = async (quote: QuoteListDto) => {
+    try {
+      await quotesApi.setQuoteApproval(quote.uuid, !quote.approved);
+      refetch();
+    } catch {
+      toast.error('Wystąpił błąd podczas zmiany statusu zatwierdzenia');
+    }
+  };
+
   const columns = [
     {
       key: 'documentNumber',
       label: 'Numer dokumentu',
-      render: (quote: { documentNumber: string }) => (
+      render: (quote: QuoteListDto) => (
         <span className="text-white">{quote.documentNumber}</span>
       ),
     },
     {
       key: 'contractorName',
       label: 'Kontrahent',
-      render: (quote: { contractorName: string; contractorCode: string }) => (
+      render: (quote: QuoteListDto) => (
         <div className="font-medium text-white">{quote.contractorName}</div>
       ),
     },
     {
       key: 'productName',
       label: 'Produkt',
-      render: (quote: { productName: string; productCode: string }) => (
+      render: (quote: QuoteListDto) => (
         <div className="font-medium text-white">{quote.productName}</div>
       ),
     },
     {
       key: 'totalPrice',
       label: 'Koszt',
-      render: (quote: { totalPrice?: number }) => (
+      render: (quote: QuoteListDto) => (
         <div className="text-white">
           {quote.totalPrice ? (
             <span className="font-medium">{quote.totalPrice.toFixed(2)} PLN</span>
@@ -107,22 +119,33 @@ const QuotesListPage: React.FC = () => {
     {
       key: 'createdAt',
       label: 'Data utworzenia',
-      render: (quote: { createdAt: string }) => (
+      render: (quote: QuoteListDto) => (
         <span className="text-white">{formatDate(quote.createdAt)}</span>
       ),
     },
     {
       key: 'createdBy',
       label: 'Utworzono przez',
-      render: (quote: { createdByEmail?: string }) => (
+      render: (quote: QuoteListDto) => (
         <span className="text-white">{quote.createdByEmail || '-'}</span>
       ),
     },
     {
       key: 'actions',
       label: 'Akcje',
-      render: (quote: { uuid: string }) => (
-        <div className="flex space-x-2">
+      render: (quote: QuoteListDto) => (
+        <div className="flex items-center space-x-2">
+          {isAdmin() && (
+            <label className="flex items-center gap-1.5 cursor-pointer" title={quote.approved ? 'Zatwierdzona — kliknij aby odtwierdzić' : 'Niezatwierdzona — kliknij aby zatwierdzić'}>
+              <input
+                type="checkbox"
+                checked={quote.approved}
+                onChange={() => handleApprovalToggle(quote)}
+                className="w-4 h-4 rounded accent-green-500 cursor-pointer"
+              />
+              <span className="text-xs text-gray-400">{quote.approved ? 'Zatw.' : 'Zatw.'}</span>
+            </label>
+          )}
           <Button
             color="gray"
             size="sm"
@@ -213,7 +236,10 @@ const QuotesListPage: React.FC = () => {
               </Table.Row>
             ) : (
               data.content.map((quote) => (
-                <Table.Row key={quote.uuid}>
+                <Table.Row
+                  key={quote.uuid}
+                  className={quote.approved ? 'border-b-2 border-green-500' : ''}
+                >
                   {columns.map((column, index) => (
                     <Table.Cell key={index}>{column.render(quote)}</Table.Cell>
                   ))}
@@ -234,6 +260,7 @@ const QuotesListPage: React.FC = () => {
           </div>
         )}
       </div>
+
     </div>
   );
 };
