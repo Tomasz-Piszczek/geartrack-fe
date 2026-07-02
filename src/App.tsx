@@ -20,6 +20,7 @@ import QuoteEditPage from './pages/quotes/QuoteEditPage';
 import WorkerAnalyticsPage from './pages/analytics/WorkerAnalyticsPage';
 import MaterialAuditResultsPage from './pages/analytics/MaterialAuditResultsPage';
 import ProfitabilityPage from './pages/analytics/ProfitabilityPage';
+import GrafikProdukcjiPage from './pages/grafik/GrafikProdukcjiPage';
 import ToastContainer from './components/common/ToastContainer';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { ROUTES } from './constants';
@@ -143,6 +144,16 @@ function App() {
                   <ProtectedRoute requireAdmin>
                     <MainLayout>
                       <WorkerAnalyticsPage />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.GRAFIK}
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <GrafikProdukcjiPage />
                     </MainLayout>
                   </ProtectedRoute>
                 }

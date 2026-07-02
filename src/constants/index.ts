@@ -42,6 +42,8 @@ export const API_ENDPOINTS = {
     MATERIAL_AUDIT: '/api/analytics/material-audit',
     JOB_PROFITABILITY: '/api/analytics/job-profitability',
     WORKER_CASH: '/api/analytics/worker-cash-contribution',
+    GRAFIK: '/api/grafik',
+    GRAFIK_ITEM: (czsId: number) => `/api/grafik/${czsId}`,
   },
   ORGANIZATIONS: {
     BASE: '/api/organizations',
@@ -90,6 +92,7 @@ export const QUERY_KEYS = {
   WORKER_ANALYTICS: 'worker-analytics',
   JOB_PROFITABILITY: 'job-profitability',
   WORKER_CASH: 'worker-cash',
+  GRAFIK: 'grafik',
 } as const;
 
 export const STORAGE_KEYS = {
@@ -110,6 +113,7 @@ export const ROUTES = {
   WORKER_ANALYTICS: '/analytics/workers',
   MATERIAL_AUDIT: '/analytics/workers/material-audit',
   PROFITABILITY: '/analytics/profitability',
+  GRAFIK: '/grafik',
 } as const;
 
 export const VALIDATION = {

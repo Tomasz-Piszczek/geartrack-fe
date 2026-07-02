@@ -6,7 +6,8 @@ import {
   HiDesktopComputer,
   HiDocumentText,
   HiCurrencyDollar,
-  HiChartBar
+  HiChartBar,
+  HiCalendar
 } from 'react-icons/hi';
 import { ROUTES } from '../../constants';
 import Brand from './Brand';
@@ -107,6 +108,11 @@ const MainSidebar: React.FC = () => {
       path: ROUTES.QUOTES,
       label: 'Wyceny',
       icon: HiDocumentText,
+    },
+    {
+      path: ROUTES.GRAFIK,
+      label: 'Grafik',
+      icon: HiCalendar,
     },
     {
       path: ROUTES.WORKER_ANALYTICS,

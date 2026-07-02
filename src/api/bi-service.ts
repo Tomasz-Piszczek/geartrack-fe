@@ -291,6 +291,52 @@ export interface WorkerCashRequestDto {
   minConfidence?: 'HIGH' | 'LOW';
 }
 
+// ─── Grafik produkcji (per-worker production schedule) ───────────────────────
+
+export interface GrafikEntryDto {
+  /** dbo.CtiZasobDok.CZS_ID — primary key used to update hours. */
+  czsId: number;
+  workerName: string;
+  resourceId: number;
+  orderId: number;
+  orderNumber: string;
+  /** Contractor/customer name (odbiorca on the linked RO doc); may be null/empty. */
+  contractorName?: string | null;
+  productCode: string;
+  quantity: number;
+  /** CZN_Status: 0 draft, 1/2 in progress, 3 closed. */
+  orderStatus: number;
+  plannedHours: number;
+  plannedMinutes: number;
+  timeUnit: number;
+  startTime: string;
+  endTime: string;
+  finished: number;
+}
+
+export interface AvailabilityIntervalDto {
+  from: string; // "HH:mm"
+  to: string;   // "HH:mm" ("24:00" = end of day)
+}
+
+export interface GrafikWorkerDto {
+  workerName: string;
+  totalHours: number;
+  entryCount: number;
+  entries: GrafikEntryDto[];
+  /** Availability windows on the viewed day; empty = unavailable all day. */
+  available: AvailabilityIntervalDto[];
+}
+
+export interface GrafikResponseDto {
+  from: string;
+  to: string;
+  workerCount: number;
+  orderCount: number;
+  totalHours: number;
+  workers: GrafikWorkerDto[];
+}
+
 const biServiceClient = axios.create({
   baseURL: BI_SERVICE_URL,
   timeout: 30000,
@@ -423,6 +469,35 @@ export const biServiceApi = {
     const response = await biServiceClient.post<WorkerCashResponseDto>(
       API_ENDPOINTS.BI.WORKER_CASH,
       request
+    );
+    return response.data;
+  },
+
+  getGrafik: async (from: string, to?: string): Promise<GrafikResponseDto> => {
+    const response = await biServiceClient.get<GrafikResponseDto>(
+      API_ENDPOINTS.BI.GRAFIK,
+      { params: { from, to: to ?? from } }
+    );
+    return response.data;
+  },
+
+  getGrafikDay: async (date: string): Promise<GrafikResponseDto> => {
+    const response = await biServiceClient.get<GrafikResponseDto>(
+      API_ENDPOINTS.BI.GRAFIK,
+      { params: { date } }
+    );
+    return response.data;
+  },
+
+  /** Move/resize an assignment. start/end are ISO local datetimes ('yyyy-MM-ddTHH:mm:ss'). */
+  updateGrafikAssignment: async (
+    czsId: number,
+    startTime: string,
+    endTime: string
+  ): Promise<GrafikEntryDto> => {
+    const response = await biServiceClient.put<GrafikEntryDto>(
+      API_ENDPOINTS.BI.GRAFIK_ITEM(czsId),
+      { startTime, endTime }
     );
     return response.data;
   },

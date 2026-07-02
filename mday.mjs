@@ -1,0 +1,21 @@
+import { chromium } from './node_modules/playwright/index.mjs';
+import crypto from 'node:crypto';
+const secret='my-secret-key-which-should-be-changed-in-production-and-be-base64-encoded';
+const b64=o=>Buffer.from(JSON.stringify(o)).toString('base64url');
+const now=Math.floor(Date.now()/1000);
+const h=b64({alg:'HS256',typ:'JWT'}), b=b64({sub:'tester',userId:'11111111-1111-1111-1111-111111111111',role:'ADMIN',iat:now,exp:now+86400});
+const token=`${h}.${b}.${crypto.createHmac('sha256',secret).update(h+'.'+b).digest('base64url')}`;
+const user=JSON.stringify({userId:'11111111-1111-1111-1111-111111111111',email:'tester@geartrack.local',token,role:'ADMIN'});
+const br=await chromium.launch({headless:true});
+const ctx=await br.newContext({viewport:{width:1500,height:900},deviceScaleFactor:2});
+await ctx.addInitScript(([t,u])=>{localStorage.setItem('geartrack_token',t);localStorage.setItem('geartrack_user',u);},[token,user]);
+const p=await ctx.newPage();
+await p.goto('http://localhost:5177/grafik',{waitUntil:'domcontentloaded'});
+await p.waitForTimeout(1500);
+// jump to 2026-04-23 via the date input
+await p.evaluate(()=>{const el=document.querySelector('input[type=date]');const s=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set;s.call(el,'2026-04-23');el.dispatchEvent(new Event('input',{bubbles:true}));});
+await p.waitForTimeout(1800);
+console.log('HEADER:',(await p.locator('header').innerText()).replace(/\n/g,' | '));
+await p.screenshot({path:'mday.png', fullPage:true});
+console.log('done');
+await br.close();

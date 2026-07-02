@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { biServiceApi, type ContractorDto, type ProductDto } from '../api/bi-service';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { biServiceApi, type ContractorDto, type ProductDto, type GrafikEntryDto } from '../api/bi-service';
 import { QUERY_KEYS } from '../constants';
 
 export const useContractors = () => {
@@ -29,6 +29,38 @@ export const useProductGroups = () => {
     staleTime: 10 * 60 * 1000,
     gcTime: 20 * 60 * 1000,
     retry: 2,
+  });
+};
+
+/**
+ * Grafik produkcji for a date window [from, to] (to defaults to from).
+ * `autoRefreshMs` enables periodic refetch (e.g. 15 min = 900000) so the board
+ * stays in sync with the ERP without a manual reload.
+ */
+export const useGrafik = (from: string, to?: string, autoRefreshMs?: number) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GRAFIK, from, to ?? from],
+    queryFn: () => biServiceApi.getGrafik(from, to),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 2,
+    refetchInterval: autoRefreshMs && autoRefreshMs > 0 ? autoRefreshMs : false,
+  });
+};
+
+/** Move/resize an assignment's time window (both ends snapped to 15 min server-side). */
+export const useUpdateGrafikAssignment = () => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    GrafikEntryDto,
+    unknown,
+    { czsId: number; startTime: string; endTime: string }
+  >({
+    mutationFn: ({ czsId, startTime, endTime }) =>
+      biServiceApi.updateGrafikAssignment(czsId, startTime, endTime),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GRAFIK] });
+    },
   });
 };
 
