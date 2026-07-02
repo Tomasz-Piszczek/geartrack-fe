@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useGrafik, useUpdateGrafikAssignment } from '../../hooks/useBiService';
-import type { GrafikResponseDto } from '../../api/bi-service';
+import { useGrafik, useGrafikSearch, useGrafikOrderDetail, useUpdateGrafikAssignment } from '../../hooks/useBiService';
+import type { GrafikResponseDto, GrafikSearchResultDto } from '../../api/bi-service';
+
+/** Workers hidden from the grafik view on request (not shown on the board or in search). */
+const HIDDEN_WORKERS = new Set(['piszczek paweł1', 'małgorzata jasica']);
+const isHiddenWorker = (name: string | null | undefined) =>
+  HIDDEN_WORKERS.has((name ?? '').trim().toLowerCase());
 
 /**
  * Grafik produkcji — per-worker daily production schedule (Gantt) read from
@@ -32,6 +37,7 @@ const MONO = 'ui-monospace,SFMono-Regular,Menlo,monospace';
 
 interface Assignment {
   czsId: number;
+  orderId: number;
   workerName: string;
   orderNumber: string;
   contractorName: string;
@@ -94,6 +100,14 @@ const durBlock = (mins: number) => {
   return `${h}h${m ? String(m) : ''}`;
 };
 
+const searchDateLabel = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dd = new Date(y, m - 1, d);
+  return `${PL_WEEKDAYS[dd.getDay()]}, ${d} ${PL_MONTHS[dd.getMonth()]} ${y}`;
+};
+const statusText = (s: number) => (s >= 3 ? 'Zamknięte' : s === 0 ? 'Otwarte' : 'W toku');
+const statusColor = (s: number) => (s >= 3 ? '#6b7280' : s === 0 ? '#a8853a' : '#2f7d4f');
+
 const plurZ = (n: number) => {
   if (n === 1) return '1 zlecenie';
   const l = n % 10;
@@ -121,9 +135,11 @@ const colorFor = (hue: number) => ({
 const mapResponse = (data: GrafikResponseDto): Assignment[] => {
   const out: Assignment[] = [];
   for (const w of data.workers) {
+    if (isHiddenWorker(w.workerName)) continue;
     for (const e of w.entries) {
       out.push({
         czsId: e.czsId,
+        orderId: e.orderId,
         workerName: w.workerName,
         orderNumber: e.orderNumber,
         contractorName: (e.contractorName ?? '').trim() || e.orderNumber,
@@ -145,9 +161,15 @@ const mapResponse = (data: GrafikResponseDto): Assignment[] => {
 const GrafikProdukcjiPage: React.FC = () => {
   const [date, setDate] = useState<Date>(() => new Date());
   const dateIso = toIsoDate(date);
+  const [mode, setMode] = useState<'plan' | 'actual'>('plan');
+  const isActual = mode === 'actual';
 
-  const { data, isLoading, isError, error } = useGrafik(dateIso, dateIso);
+  const { data, isLoading, isError, error } = useGrafik(dateIso, dateIso, mode);
   const updateMutation = useUpdateGrafikAssignment();
+
+  // actual-view order detail popover
+  const [detailOrder, setDetailOrder] = useState<{ orderId: number; orderNumber: string; contractorName?: string | null; product: string } | null>(null);
+  const { data: orderDetail, isLoading: detailLoading } = useGrafikOrderDetail(detailOrder?.orderId ?? null);
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const baselineRef = useRef<Map<number, { startDate: string; endDate: string; startMin: number; endMin: number }>>(new Map());
@@ -156,6 +178,21 @@ const GrafikProdukcjiPage: React.FC = () => {
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [saving, setSaving] = useState(false);
   const toastTimer = useRef<number | null>(null);
+
+  // ---- search (contractor / order number) ----
+  const [search, setSearch] = useState('');
+  const [debounced, setDebounced] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [highlightCzs, setHighlightCzs] = useState<Set<number>>(() => new Set());
+  const highlightTimer = useRef<number | null>(null);
+  const focusNonce = useRef(0);
+  const [focus, setFocus] = useState<{ date: string; czsIds: number[]; n: number } | null>(null);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(search), 220);
+    return () => window.clearTimeout(id);
+  }, [search]);
+  const { data: searchResults, isFetching: searchLoading } = useGrafikSearch(debounced);
 
   const dragRef = useRef<
     | { czsId: number; mode: DragMode; startX: number; os: number; oe: number; moved: boolean; el: HTMLElement }
@@ -199,6 +236,7 @@ const GrafikProdukcjiPage: React.FC = () => {
       mapped.forEach((a) => bl.set(a.czsId, { startDate: a.startDate, endDate: a.endDate, startMin: a.startMin, endMin: a.endMin }));
       baselineRef.current = bl;
       setEditing(null);
+      setDetailOrder(null);
     }
   }, [data]);
 
@@ -210,7 +248,33 @@ const GrafikProdukcjiPage: React.FC = () => {
 
   useEffect(() => () => {
     if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    if (highlightTimer.current) window.clearTimeout(highlightTimer.current);
   }, []);
+
+  // Jump to a search hit: switch day, then highlight + scroll its blocks into view.
+  const goToResult = (r: GrafikSearchResultDto) => {
+    const [y, m, d] = r.date.split('-').map(Number);
+    setDate(new Date(y, m - 1, d));
+    setSearch('');
+    setDebounced('');
+    setSearchOpen(false);
+    focusNonce.current += 1;
+    setFocus({ date: r.date, czsIds: r.czsIds, n: focusNonce.current });
+  };
+
+  useEffect(() => {
+    if (!focus || dateIso !== focus.date) return;
+    const ids = focus.czsIds.filter((id) => assignments.some((a) => a.czsId === id));
+    if (ids.length === 0) return; // data for that day not loaded yet
+    setFocus(null);
+    setHighlightCzs(new Set(ids));
+    if (highlightTimer.current) window.clearTimeout(highlightTimer.current);
+    highlightTimer.current = window.setTimeout(() => setHighlightCzs(new Set()), 3200);
+    window.setTimeout(() => {
+      const el = document.querySelector(`[data-czs="${ids[0]}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    }, 80);
+  }, [focus, assignments, dateIso]);
 
   // span info relative to the viewed day
   const spanOf = (a: Assignment) => ({ before: a.startDate < dateIso, after: a.endDate > dateIso });
@@ -356,7 +420,7 @@ const GrafikProdukcjiPage: React.FC = () => {
   // ---- derived view (lanes + availability gaps) ----
   const workers = useMemo(() => {
     const byName = new Map<string, Assignment[]>();
-    const order = data?.workers.map((w) => w.workerName) ?? [];
+    const order = (data?.workers.map((w) => w.workerName) ?? []).filter((n) => !isHiddenWorker(n));
     order.forEach((n) => byName.set(n, []));
     for (const a of assignments) {
       // only show blocks that still cover the viewed day (edits can move a block off it)
@@ -400,9 +464,8 @@ const GrafikProdukcjiPage: React.FC = () => {
 
   const editingAssignment = editing ? assignments.find((x) => x.czsId === editing.czsId) : undefined;
 
-  const grid =
-    `repeating-linear-gradient(90deg, #3a3a3a 0 1px, transparent 1px ${HOUR_WIDTH}px), ` +
-    `repeating-linear-gradient(90deg, #2c2c2c 0 1px, transparent 1px ${HOUR_WIDTH / 2}px)`;
+  // one vertical line per hour, at exactly the same x as the ruler labels
+  const grid = `repeating-linear-gradient(90deg, #3a3a3a 0 1px, transparent 1px ${HOUR_WIDTH}px)`;
   // stronger red for unavailable hours
   const redStripe = 'repeating-linear-gradient(45deg, rgba(255,55,55,.42) 0 8px, rgba(255,55,55,.20) 8px 16px)';
 
@@ -434,12 +497,82 @@ const GrafikProdukcjiPage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div>
-          <button onClick={onSave} disabled={changes.length === 0 || saving} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'inherit', background: '#DFFFA9', color: '#161616', cursor: changes.length === 0 || saving ? 'not-allowed' : 'pointer', opacity: changes.length === 0 || saving ? 0.4 : 1 }}>
-            {saving ? 'Zapisywanie…' : changes.length > 0 ? `Zapisz zmiany · ${changes.length}` : 'Zapisz zmiany'}
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Planowany / Rzeczywisty toggle */}
+          <div style={{ display: 'flex', background: '#2a2a2a', border: '1px solid #464646', borderRadius: 10, padding: 3 }}>
+            <button onClick={() => setMode('plan')} style={segBtn(!isActual)}>Planowany</button>
+            <button onClick={() => setMode('actual')} style={segBtn(isActual)}>Rzeczywisty</button>
+          </div>
+          {!isActual && (
+            <button onClick={onSave} disabled={changes.length === 0 || saving} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'inherit', background: '#DFFFA9', color: '#161616', cursor: changes.length === 0 || saving ? 'not-allowed' : 'pointer', opacity: changes.length === 0 || saving ? 0.4 : 1 }}>
+              {saving ? 'Zapisywanie…' : changes.length > 0 ? `Zapisz zmiany · ${changes.length}` : 'Zapisz zmiany'}
+            </button>
+          )}
         </div>
       </header>
+
+      {/* Search: contractor name or order number */}
+      <div style={{ padding: '14px 22px 0' }}>
+        <div style={{ position: 'relative', maxWidth: 560 }}>
+          <div style={{ position: 'relative' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a8a8a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setSearchOpen(true); }}
+              onFocus={() => setSearchOpen(true)}
+              onBlur={() => window.setTimeout(() => setSearchOpen(false), 160)}
+              placeholder="Szukaj kontrahenta lub numeru zlecenia…"
+              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 34px 10px 36px', borderRadius: 10, border: '1px solid #464646', background: '#2a2a2a', color: '#fff', fontSize: 14, fontFamily: 'inherit', outline: 'none' }}
+            />
+            {search && (
+              <button onMouseDown={(e) => { e.preventDefault(); setSearch(''); setDebounced(''); }} title="Wyczyść" style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', color: '#8a8a8a', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: 4 }}>✕</button>
+            )}
+          </div>
+
+          {searchOpen && debounced.trim().length >= 2 && (() => {
+            const results = (searchResults ?? [])
+              .map((r) => ({ ...r, workers: r.workers.filter((w) => !isHiddenWorker(w)) }))
+              .filter((r) => r.workers.length > 0);
+            return (
+              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 50, background: '#2a2a2a', border: '1px solid #464646', borderRadius: 12, boxShadow: '0 18px 44px rgba(0,0,0,.5)', maxHeight: 420, overflowY: 'auto', padding: 6 }}>
+                {searchLoading && results.length === 0 && (
+                  <div style={{ padding: '14px 12px', color: '#A5A7AA', fontSize: 13 }}>Szukam…</div>
+                )}
+                {!searchLoading && results.length === 0 && (
+                  <div style={{ padding: '14px 12px', color: '#A5A7AA', fontSize: 13 }}>Brak wyników dla „{debounced.trim()}".</div>
+                )}
+                {results.map((r) => (
+                  <button
+                    key={`${r.orderNumber}|${r.date}`}
+                    onMouseDown={(e) => { e.preventDefault(); goToResult(r); }}
+                    style={{ display: 'block', width: '100%', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', padding: '9px 10px', borderRadius: 8, color: '#fff', fontFamily: 'inherit' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#343434')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {r.contractorName && r.contractorName !== r.orderNumber ? r.contractorName : r.orderNumber}
+                      </span>
+                      <span style={{ flex: '0 0 auto', fontSize: 10, fontWeight: 700, color: '#fff', background: statusColor(r.orderStatus), borderRadius: 5, padding: '1px 6px' }}>{statusText(r.orderStatus)}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2, minWidth: 0 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 11, color: '#A5A7AA', flex: '0 0 auto' }}>{r.orderNumber}</span>
+                      <span style={{ fontSize: 11, color: '#8a8a8a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.productCode}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, minWidth: 0 }}>
+                      <span style={{ fontSize: 11, color: '#DFFFA9', fontWeight: 600, flex: '0 0 auto' }}>{searchDateLabel(r.date)} · {r.startTime}</span>
+                      <span style={{ fontSize: 11, color: '#8a8a8a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.workers.join(', ')}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      </div>
 
       <div style={{ padding: '18px 22px 26px' }}>
         {isLoading && <div style={{ color: '#A5A7AA', padding: 40, textAlign: 'center' }}>Ładowanie grafiku…</div>}
@@ -465,9 +598,13 @@ const GrafikProdukcjiPage: React.FC = () => {
                   </div>
                   <div style={{ position: 'relative', width: TIMELINE_W, height: 42 }}>
                     {Array.from({ length: HOUR_TO - HOUR_FROM + 1 }, (_, i) => HOUR_FROM + i).map((h) => {
+                      const isFirst = h === HOUR_FROM;
                       const isEnd = h === HOUR_TO;
+                      // centre each label on its hour gridline; clamp the first/last to the edges
+                      const pos = isEnd ? { right: 4 } : isFirst ? { left: 2 } : { left: (h - HOUR_FROM) * HOUR_WIDTH };
+                      const transform = isEnd || isFirst ? 'translateY(-50%)' : 'translate(-50%, -50%)';
                       return (
-                        <span key={h} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', fontFamily: MONO, fontSize: 11, color: '#A5A7AA', fontWeight: 600, whiteSpace: 'nowrap', ...(isEnd ? { right: 8 } : { left: (h - HOUR_FROM) * HOUR_WIDTH, paddingLeft: 7 }) }}>
+                        <span key={h} style={{ position: 'absolute', top: '50%', transform, fontFamily: MONO, fontSize: 11, color: '#A5A7AA', fontWeight: 600, whiteSpace: 'nowrap', ...pos }}>
                           {String(h).padStart(2, '0')}:00
                         </span>
                       );
@@ -496,7 +633,7 @@ const GrafikProdukcjiPage: React.FC = () => {
                           const c = colorFor(a.hue);
                           const { before, after } = spanOf(a);
                           const spanning = before || after;
-                          const canDrag = sameDay(a);
+                          const canDrag = !isActual && sameDay(a);
                           const left = (start - DS) * PM;
                           const width = Math.max((end - start) * PM, 46);
                           const top = BLOCK_TOP + lane * (BLOCK_H + LANE_GAP);
@@ -504,17 +641,21 @@ const GrafikProdukcjiPage: React.FC = () => {
                             ? `${dt(a.startDate, a.startMin)} → ${fmt(a.endMin)}`
                             : after ? `${fmt(a.startMin)} → ${dt(a.endDate, a.endMin)}` : `${fmt(a.startMin)}–${fmt(a.endMin)}`;
                           const pill = spanning ? durBlock(Math.round(a.workHours * 60)) : durBlock(a.endMin - a.startMin);
+                          const hl = highlightCzs.has(a.czsId);
                           return (
                             <div
                               key={a.czsId}
+                              data-czs={a.czsId}
                               title={spanning ? `Wielodniowe: ${dt(a.startDate, a.startMin)} → ${dt(a.endDate, a.endMin)} · kliknij aby edytować` : undefined}
-                              onPointerDown={canDrag ? (e) => startDrag(e, a.czsId, 'body') : (e) => openEditorAt(e, a.czsId)}
+                              onPointerDown={isActual ? () => setDetailOrder({ orderId: a.orderId, orderNumber: a.orderNumber, contractorName: a.contractorName, product: a.product }) : canDrag ? (e) => startDrag(e, a.czsId, 'body') : (e) => openEditorAt(e, a.czsId)}
                               style={{
                                 position: 'absolute', top, left, width, height: BLOCK_H, boxSizing: 'border-box',
-                                background: c.bg, border: `1px solid ${c.border}`, borderLeft: `3px solid ${c.spine}`,
-                                borderRadius: 8, padding: '5px 10px', color: c.text, cursor: canDrag ? 'grab' : 'pointer', overflow: 'hidden',
-                                display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,.35)',
-                                touchAction: 'none', fontSize: 12, lineHeight: 1.15, zIndex: 2,
+                                background: c.bg, border: `1px solid ${hl ? '#DFFFA9' : c.border}`, borderLeft: `3px solid ${hl ? '#DFFFA9' : c.spine}`,
+                                borderRadius: 8, padding: '5px 10px', color: c.text, cursor: 'pointer', overflow: 'hidden',
+                                display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                                boxShadow: hl ? '0 0 0 2px #DFFFA9, 0 0 18px rgba(223,255,169,.75)' : '0 1px 3px rgba(0,0,0,.35)',
+                                touchAction: 'none', fontSize: 12, lineHeight: 1.15, zIndex: hl ? 5 : 2,
+                                transition: 'box-shadow .2s ease, border-color .2s ease',
                               }}
                             >
                               {canDrag && <div onPointerDown={(e) => startDrag(e, a.czsId, 'left')} style={{ position: 'absolute', top: 0, bottom: 0, left: -1, width: 10, cursor: 'ew-resize', zIndex: 3, borderRadius: '8px 0 0 8px' }} />}
@@ -583,6 +724,46 @@ const GrafikProdukcjiPage: React.FC = () => {
         );
       })()}
 
+      {/* Order detail (actual view): who worked + materials */}
+      {detailOrder && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setDetailOrder(null)}>
+          <div style={{ width: '100%', maxWidth: 560, maxHeight: '86vh', overflowY: 'auto', background: '#232323', border: '1px solid #464646', borderRadius: 12, boxShadow: '0 24px 60px rgba(0,0,0,.5)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #343434', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{detailOrder.contractorName || detailOrder.orderNumber}</div>
+                <div style={{ fontSize: 12, color: '#8a8a8a', fontFamily: MONO, marginTop: 3 }}>{detailOrder.orderNumber} · {detailOrder.product}</div>
+              </div>
+              <button onClick={() => setDetailOrder(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#A5A7AA', lineHeight: 1, padding: '2px 4px' }}>✕</button>
+            </div>
+            <div style={{ padding: '16px 20px' }}>
+              {detailLoading && <div style={{ color: '#A5A7AA', padding: '8px 0' }}>Ładowanie szczegółów…</div>}
+              {!detailLoading && orderDetail && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', color: '#8a8a8a', textTransform: 'uppercase', marginBottom: 8 }}>Kto pracował</div>
+                  {orderDetail.workers.length === 0 && <div style={{ color: '#727272', fontSize: 13, marginBottom: 8 }}>Brak zalogowanej pracy.</div>}
+                  {orderDetail.workers.map((w, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #2c2c2c' }}>
+                      <span style={{ fontSize: 14, color: '#fff' }}>{w.workerName}</span>
+                      <span style={{ fontFamily: MONO, fontSize: 13, color: '#DFFFA9', fontWeight: 600 }}>{durText(w.minutes)}</span>
+                    </div>
+                  ))}
+
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', color: '#8a8a8a', textTransform: 'uppercase', margin: '18px 0 8px' }}>Materiały pobrane</div>
+                  {orderDetail.materials.length === 0 && <div style={{ color: '#727272', fontSize: 13 }}>Brak pobranych materiałów (RW).</div>}
+                  {orderDetail.materials.map((m, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid #2c2c2c' }}>
+                      <span style={{ fontSize: 13, color: '#fff', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.twrKod}</span>
+                      <span style={{ fontFamily: MONO, fontSize: 12, color: '#A5A7AA', flex: '0 0 auto' }}>{m.ilosc} szt</span>
+                      <span style={{ fontFamily: MONO, fontSize: 12, color: '#c7d99a', flex: '0 0 auto', minWidth: 78, textAlign: 'right' }}>{Math.round(m.wartoscNetto).toLocaleString('pl-PL')} zł</span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirm modal */}
       {confirmOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setConfirmOpen(false)}>
@@ -635,6 +816,10 @@ const navBtn: React.CSSProperties = {
   width: 34, height: 34, borderRadius: 8, border: '1px solid #464646', background: '#343434',
   cursor: 'pointer', fontSize: 18, color: '#A5A7AA', display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
+const segBtn = (active: boolean): React.CSSProperties => ({
+  padding: '6px 14px', borderRadius: 8, border: 'none', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', cursor: 'pointer',
+  background: active ? '#DFFFA9' : 'transparent', color: active ? '#161616' : '#A5A7AA',
+});
 const moveBtn: React.CSSProperties = {
   height: 30, padding: '0 12px', borderRadius: 8, border: '1px solid #464646', background: '#343434',
   cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#fff', fontFamily: 'inherit',

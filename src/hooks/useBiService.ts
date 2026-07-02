@@ -37,14 +37,43 @@ export const useProductGroups = () => {
  * `autoRefreshMs` enables periodic refetch (e.g. 15 min = 900000) so the board
  * stays in sync with the ERP without a manual reload.
  */
-export const useGrafik = (from: string, to?: string, autoRefreshMs?: number) => {
+export const useGrafik = (
+  from: string,
+  to?: string,
+  mode: 'plan' | 'actual' = 'plan',
+  autoRefreshMs?: number
+) => {
   return useQuery({
-    queryKey: [QUERY_KEYS.GRAFIK, from, to ?? from],
-    queryFn: () => biServiceApi.getGrafik(from, to),
+    queryKey: [QUERY_KEYS.GRAFIK, mode, from, to ?? from],
+    queryFn: () => (mode === 'actual' ? biServiceApi.getGrafikActual(from, to) : biServiceApi.getGrafik(from, to)),
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: 2,
     refetchInterval: autoRefreshMs && autoRefreshMs > 0 ? autoRefreshMs : false,
+  });
+};
+
+/** Order detail (actual-view popover): who worked + materials. Enabled when orderId set. */
+export const useGrafikOrderDetail = (orderId: number | null) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GRAFIK, 'order', orderId],
+    queryFn: () => biServiceApi.getGrafikOrderDetail(orderId as number),
+    enabled: orderId != null,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+};
+
+/** Live search over the grafik by contractor name or order number (min 2 chars). */
+export const useGrafikSearch = (q: string) => {
+  const term = q.trim();
+  return useQuery({
+    queryKey: [QUERY_KEYS.GRAFIK_SEARCH, term],
+    queryFn: () => biServiceApi.searchGrafik(term),
+    enabled: term.length >= 2,
+    staleTime: 30 * 1000,
+    gcTime: 60 * 1000,
+    retry: 1,
   });
 };
 

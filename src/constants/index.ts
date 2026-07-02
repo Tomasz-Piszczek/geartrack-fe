@@ -43,6 +43,9 @@ export const API_ENDPOINTS = {
     JOB_PROFITABILITY: '/api/analytics/job-profitability',
     WORKER_CASH: '/api/analytics/worker-cash-contribution',
     GRAFIK: '/api/grafik',
+    GRAFIK_ACTUAL: '/api/grafik/actual',
+    GRAFIK_SEARCH: '/api/grafik/search',
+    GRAFIK_ORDER: (orderId: number) => `/api/grafik/order/${orderId}`,
     GRAFIK_ITEM: (czsId: number) => `/api/grafik/${czsId}`,
   },
   ORGANIZATIONS: {
@@ -93,6 +96,7 @@ export const QUERY_KEYS = {
   JOB_PROFITABILITY: 'job-profitability',
   WORKER_CASH: 'worker-cash',
   GRAFIK: 'grafik',
+  GRAFIK_SEARCH: 'grafik-search',
 } as const;
 
 export const STORAGE_KEYS = {

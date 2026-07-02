@@ -337,6 +337,40 @@ export interface GrafikResponseDto {
   workers: GrafikWorkerDto[];
 }
 
+/** One search hit: an order on a specific day, with the workers assigned that day. */
+export interface GrafikSearchResultDto {
+  date: string; // yyyy-MM-dd — jump target
+  orderId: number;
+  orderNumber: string;
+  contractorName?: string | null;
+  productCode: string;
+  orderStatus: number;
+  quantity: number;
+  startTime: string; // "HH:mm"
+  workers: string[];
+  czsIds: number[];
+}
+
+export interface GrafikOrderWorkerDto {
+  workerName: string;
+  minutes: number;
+}
+export interface GrafikOrderMaterialDto {
+  twrKod: string;
+  ilosc: number;
+  wartoscNetto: number;
+}
+export interface GrafikOrderDetailDto {
+  orderId: number;
+  orderNumber: string;
+  contractorName?: string | null;
+  productCode: string;
+  quantity: number;
+  status: number;
+  workers: GrafikOrderWorkerDto[];
+  materials: GrafikOrderMaterialDto[];
+}
+
 const biServiceClient = axios.create({
   baseURL: BI_SERVICE_URL,
   timeout: 30000,
@@ -477,6 +511,32 @@ export const biServiceApi = {
     const response = await biServiceClient.get<GrafikResponseDto>(
       API_ENDPOINTS.BI.GRAFIK,
       { params: { from, to: to ?? from } }
+    );
+    return response.data;
+  },
+
+  /** ACTUAL (rzeczywisty) grafik — how orders were really executed. */
+  getGrafikActual: async (from: string, to?: string): Promise<GrafikResponseDto> => {
+    const response = await biServiceClient.get<GrafikResponseDto>(
+      API_ENDPOINTS.BI.GRAFIK_ACTUAL,
+      { params: { from, to: to ?? from } }
+    );
+    return response.data;
+  },
+
+  /** Order detail (actual view): who worked on it + materials issued. */
+  getGrafikOrderDetail: async (orderId: number): Promise<GrafikOrderDetailDto> => {
+    const response = await biServiceClient.get<GrafikOrderDetailDto>(
+      API_ENDPOINTS.BI.GRAFIK_ORDER(orderId)
+    );
+    return response.data;
+  },
+
+  /** Search the grafik by contractor name or order number. */
+  searchGrafik: async (q: string): Promise<GrafikSearchResultDto[]> => {
+    const response = await biServiceClient.get<GrafikSearchResultDto[]>(
+      API_ENDPOINTS.BI.GRAFIK_SEARCH,
+      { params: { q } }
     );
     return response.data;
   },
