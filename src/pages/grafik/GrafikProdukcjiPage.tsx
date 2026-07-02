@@ -503,11 +503,21 @@ const GrafikProdukcjiPage: React.FC = () => {
             <button onClick={() => setMode('plan')} style={segBtn(!isActual)}>Planowany</button>
             <button onClick={() => setMode('actual')} style={segBtn(isActual)}>Rzeczywisty</button>
           </div>
-          {!isActual && (
-            <button onClick={onSave} disabled={changes.length === 0 || saving} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'inherit', background: '#DFFFA9', color: '#161616', cursor: changes.length === 0 || saving ? 'not-allowed' : 'pointer', opacity: changes.length === 0 || saving ? 0.4 : 1 }}>
-              {saving ? 'Zapisywanie…' : changes.length > 0 ? `Zapisz zmiany · ${changes.length}` : 'Zapisz zmiany'}
-            </button>
-          )}
+          {/* always rendered (hidden in actual) so the toggle keeps its position; fixed width avoids shift when the count appears */}
+          <button
+            onClick={onSave}
+            disabled={changes.length === 0 || saving}
+            style={{
+              minWidth: 160, textAlign: 'center', padding: '9px 18px', borderRadius: 8, border: 'none', fontWeight: 700, fontSize: 14,
+              fontFamily: 'inherit', background: '#DFFFA9', color: '#161616',
+              cursor: changes.length === 0 || saving ? 'not-allowed' : 'pointer',
+              opacity: changes.length === 0 || saving ? 0.4 : 1,
+              visibility: isActual ? 'hidden' : 'visible',
+              pointerEvents: isActual ? 'none' : 'auto',
+            }}
+          >
+            {saving ? 'Zapisywanie…' : changes.length > 0 ? `Zapisz zmiany · ${changes.length}` : 'Zapisz zmiany'}
+          </button>
         </div>
       </header>
 
