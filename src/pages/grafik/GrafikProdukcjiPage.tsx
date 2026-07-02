@@ -168,7 +168,7 @@ const GrafikProdukcjiPage: React.FC = () => {
   const updateMutation = useUpdateGrafikAssignment();
 
   // actual-view order detail popover
-  const [detailOrder, setDetailOrder] = useState<{ orderId: number; orderNumber: string; contractorName?: string | null; product: string } | null>(null);
+  const [detailOrder, setDetailOrder] = useState<{ orderId: number; orderNumber: string; contractorName?: string | null; product: string; workerName: string; range: string } | null>(null);
   const { data: orderDetail, isLoading: detailLoading } = useGrafikOrderDetail(detailOrder?.orderId ?? null);
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -647,7 +647,7 @@ const GrafikProdukcjiPage: React.FC = () => {
                               key={a.czsId}
                               data-czs={a.czsId}
                               title={spanning ? `Wielodniowe: ${dt(a.startDate, a.startMin)} → ${dt(a.endDate, a.endMin)} · kliknij aby edytować` : undefined}
-                              onPointerDown={isActual ? () => setDetailOrder({ orderId: a.orderId, orderNumber: a.orderNumber, contractorName: a.contractorName, product: a.product }) : canDrag ? (e) => startDrag(e, a.czsId, 'body') : (e) => openEditorAt(e, a.czsId)}
+                              onPointerDown={isActual ? () => setDetailOrder({ orderId: a.orderId, orderNumber: a.orderNumber, contractorName: a.contractorName, product: a.product, workerName: a.workerName, range: a.startDate === a.endDate ? `${dm(a.startDate)} ${fmt(a.startMin)}–${fmt(a.endMin)}` : `${dm(a.startDate)} ${fmt(a.startMin)} → ${dm(a.endDate)} ${fmt(a.endMin)}` }) : canDrag ? (e) => startDrag(e, a.czsId, 'body') : (e) => openEditorAt(e, a.czsId)}
                               style={{
                                 position: 'absolute', top, left, width, height: BLOCK_H, boxSizing: 'border-box',
                                 background: c.bg, border: `1px solid ${hl ? '#DFFFA9' : c.border}`, borderLeft: `3px solid ${hl ? '#DFFFA9' : c.spine}`,
@@ -732,6 +732,7 @@ const GrafikProdukcjiPage: React.FC = () => {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{detailOrder.contractorName || detailOrder.orderNumber}</div>
                 <div style={{ fontSize: 12, color: '#8a8a8a', fontFamily: MONO, marginTop: 3 }}>{detailOrder.orderNumber} · {detailOrder.product}</div>
+                <div style={{ fontSize: 13, color: '#DFFFA9', marginTop: 8, fontFamily: MONO }}>{detailOrder.workerName}: {detailOrder.range}</div>
               </div>
               <button onClick={() => setDetailOrder(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#A5A7AA', lineHeight: 1, padding: '2px 4px' }}>✕</button>
             </div>

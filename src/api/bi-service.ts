@@ -354,6 +354,8 @@ export interface GrafikSearchResultDto {
 export interface GrafikOrderWorkerDto {
   workerName: string;
   minutes: number;
+  fromTime?: string | null; // ISO — earliest logged start
+  toTime?: string | null;   // ISO — latest logged end
 }
 export interface GrafikOrderMaterialDto {
   twrKod: string;
