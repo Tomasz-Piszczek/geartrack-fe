@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useGrafik, useGrafikSearch, useGrafikOrderDetail, useUpdateGrafikAssignment } from '../../hooks/useBiService';
-import type { GrafikResponseDto, GrafikSearchResultDto } from '../../api/bi-service';
+import { useGrafik, useGrafikSearch, useGrafikOverdue, useGrafikOrderDetail, useUpdateGrafikAssignment } from '../../hooks/useBiService';
+import type { GrafikResponseDto, GrafikSearchResultDto, GrafikOverdueDto } from '../../api/bi-service';
 
 /** Workers hidden from the grafik view on request (not shown on the board or in search). */
 const HIDDEN_WORKERS = new Set(['piszczek paweł1', 'małgorzata jasica']);
@@ -39,6 +39,8 @@ interface Assignment {
   czsId: number;
   orderId: number;
   workerName: string;
+  /** Resource the block is on; shown in parens when it differs from workerName (actual view). */
+  resourceName: string;
   orderNumber: string;
   contractorName: string;
   product: string;
@@ -49,6 +51,8 @@ interface Assignment {
   endDate: string;
   startMin: number;  // real time-of-day of start (on startDate)
   endMin: number;    // real time-of-day of end (on endDate)
+  /** Actual view: open/in-progress session (no clock-out) — tile cut to now, no nice end. */
+  inProgress: boolean;
   workHours: number;
 }
 
@@ -134,13 +138,19 @@ const colorFor = (hue: number) => ({
 
 const mapResponse = (data: GrafikResponseDto): Assignment[] => {
   const out: Assignment[] = [];
+  const now = new Date();
+  const nowIso = `${toIsoDate(now)}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
   for (const w of data.workers) {
     if (isHiddenWorker(w.workerName)) continue;
     for (const e of w.entries) {
+      // Open/in-progress actual session: endTime is null → cut the tile to now.
+      const inProgress = !e.endTime || !String(e.endTime).trim();
+      const endIso = inProgress ? nowIso : e.endTime;
       out.push({
         czsId: e.czsId,
         orderId: e.orderId,
         workerName: w.workerName,
+        resourceName: (e.resourceName ?? '').trim(),
         orderNumber: e.orderNumber,
         contractorName: (e.contractorName ?? '').trim() || e.orderNumber,
         product: e.productCode,
@@ -148,10 +158,11 @@ const mapResponse = (data: GrafikResponseDto): Assignment[] => {
         status: e.orderStatus,
         hue: hueFor(e.orderNumber),
         startDate: dayOf(e.startTime),
-        endDate: dayOf(e.endTime),
+        endDate: dayOf(endIso),
         startMin: timeMin(e.startTime),
-        endMin: timeMin(e.endTime),
+        endMin: timeMin(endIso),
         workHours: e.plannedHours ?? 0,
+        inProgress,
       });
     }
   }
@@ -187,6 +198,10 @@ const GrafikProdukcjiPage: React.FC = () => {
   const highlightTimer = useRef<number | null>(null);
   const focusNonce = useRef(0);
   const [focus, setFocus] = useState<{ date: string; czsIds: number[]; n: number } | null>(null);
+
+  // ---- overdue (zaległe) side panel ----
+  const [overdueOpen, setOverdueOpen] = useState(false);
+  const { data: overdue, isFetching: overdueLoading } = useGrafikOverdue(overdueOpen);
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebounced(search), 220);
@@ -260,6 +275,15 @@ const GrafikProdukcjiPage: React.FC = () => {
     setSearchOpen(false);
     focusNonce.current += 1;
     setFocus({ date: r.date, czsIds: r.czsIds, n: focusNonce.current });
+  };
+
+  // Jump to an overdue order: force Plan view, switch to its planned-end day, highlight it.
+  const goToOverdue = (o: GrafikOverdueDto) => {
+    setMode('plan');
+    const [y, m, d] = o.plannedEnd.split('-').map(Number);
+    setDate(new Date(y, m - 1, d));
+    focusNonce.current += 1;
+    setFocus({ date: o.plannedEnd, czsIds: o.czsIds, n: focusNonce.current });
   };
 
   useEffect(() => {
@@ -420,7 +444,10 @@ const GrafikProdukcjiPage: React.FC = () => {
   // ---- derived view (lanes + availability gaps) ----
   const workers = useMemo(() => {
     const byName = new Map<string, Assignment[]>();
-    const order = (data?.workers.map((w) => w.workerName) ?? []).filter((n) => !isHiddenWorker(n));
+    // Seed a row for EVERY named worker (even with no assignment / absent), not only
+    // those returning data this day. Falls back to the day's workers if allWorkers is absent.
+    const seed = (data?.allWorkers && data.allWorkers.length ? data.allWorkers : data?.workers.map((w) => w.workerName)) ?? [];
+    const order = seed.filter((n) => !isHiddenWorker(n));
     order.forEach((n) => byName.set(n, []));
     for (const a of assignments) {
       // only show blocks that still cover the viewed day (edits can move a block off it)
@@ -503,6 +530,22 @@ const GrafikProdukcjiPage: React.FC = () => {
             <button onClick={() => setMode('plan')} style={segBtn(!isActual)}>Planowany</button>
             <button onClick={() => setMode('actual')} style={segBtn(isActual)}>Rzeczywisty</button>
           </div>
+          <button
+            onClick={() => setOverdueOpen((v) => !v)}
+            title="Zlecenia po terminie, nierobione"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 10, fontFamily: 'inherit',
+              fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              border: `1px solid ${overdueOpen ? '#FF7A5A' : '#464646'}`,
+              background: overdueOpen ? '#3a241f' : '#2a2a2a', color: overdueOpen ? '#FFB59E' : '#e6e6e6',
+            }}
+          >
+            <span style={{ fontSize: 14 }}>⚠</span>
+            Zaległe
+            {typeof overdue?.length === 'number' && overdue.length > 0 && (
+              <span style={{ background: '#FF7A5A', color: '#161616', borderRadius: 999, fontSize: 11, fontWeight: 800, padding: '1px 7px' }}>{overdue.length}</span>
+            )}
+          </button>
           {/* always rendered (hidden in actual) so the toggle keeps its position; fixed width avoids shift when the count appears */}
           <button
             onClick={onSave}
@@ -666,12 +709,17 @@ const GrafikProdukcjiPage: React.FC = () => {
                                 boxShadow: hl ? '0 0 0 2px #DFFFA9, 0 0 18px rgba(223,255,169,.75)' : '0 1px 3px rgba(0,0,0,.35)',
                                 touchAction: 'none', fontSize: 12, lineHeight: 1.15, zIndex: hl ? 5 : 2,
                                 transition: 'box-shadow .2s ease, border-color .2s ease',
+                                // in-progress (open session): cut the right edge — no rounding, no right border
+                                ...(a.inProgress ? { borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none' } : {}),
                               }}
                             >
                               {canDrag && <div onPointerDown={(e) => startDrag(e, a.czsId, 'left')} style={{ position: 'absolute', top: 0, bottom: 0, left: -1, width: 10, cursor: 'ew-resize', zIndex: 3, borderRadius: '8px 0 0 8px' }} />}
                               {before && <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.spine, fontWeight: 800, fontSize: 13, background: `linear-gradient(270deg, transparent, ${c.bg})` }}>‹</div>}
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                                 <span style={{ fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0, letterSpacing: '.01em' }}>{a.product}</span>
+                                {a.resourceName && a.resourceName !== a.workerName && (
+                                  <span title={`Zasób: ${a.resourceName}`} style={{ color: c.meta, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', flex: '0 0 auto' }}>({a.resourceName})</span>
+                                )}
                                 <span style={{ background: c.pill, color: c.pillText, borderRadius: 5, padding: '1px 5px', fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: MONO, flex: '0 0 auto' }}>{pill}</span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, marginTop: 1 }}>
@@ -680,7 +728,7 @@ const GrafikProdukcjiPage: React.FC = () => {
                               </div>
                               {canDrag
                                 ? <div onPointerDown={(e) => startDrag(e, a.czsId, 'right')} style={{ position: 'absolute', top: 0, bottom: 0, right: -1, width: 10, cursor: 'ew-resize', zIndex: 3, borderRadius: '0 8px 8px 0' }} />
-                                : after ? <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.spine, fontWeight: 800, fontSize: 13, background: `linear-gradient(90deg, transparent, ${c.bg})` }}>›</div> : null}
+                                : after && !a.inProgress ? <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.spine, fontWeight: 800, fontSize: 13, background: `linear-gradient(90deg, transparent, ${c.bg})` }}>›</div> : null}
                             </div>
                           );
                         })}
@@ -810,6 +858,63 @@ const GrafikProdukcjiPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Overdue (zaległe) side panel */}
+      {overdueOpen && (
+        <>
+          <div onClick={() => setOverdueOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 55, background: 'rgba(0,0,0,.35)' }} />
+          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(440px, 92vw)', zIndex: 56, background: '#232323', borderLeft: '1px solid #3d3d3d', boxShadow: '-14px 0 40px rgba(0,0,0,.5)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 18px', borderBottom: '1px solid #343434' }}>
+              <span style={{ fontSize: 16 }}>⚠</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Zaległe zlecenia</div>
+                <div style={{ fontSize: 11, color: '#8a8a8a' }}>Po terminie, nierobione (wszystkie zasoby skończyły wg planu)</div>
+              </div>
+              <button onClick={() => setOverdueOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#A5A7AA', lineHeight: 1, padding: '2px 4px' }}>✕</button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+              {overdueLoading && (!overdue || overdue.length === 0) && (
+                <div style={{ padding: 20, color: '#A5A7AA', fontSize: 13 }}>Ładowanie…</div>
+              )}
+              {!overdueLoading && overdue && overdue.length === 0 && (
+                <div style={{ padding: 20, color: '#A5A7AA', fontSize: 13 }}>Brak zaległych zleceń. 🎉</div>
+              )}
+              {(overdue ?? []).map((o) => {
+                const workers = o.workers.filter((w) => !isHiddenWorker(w));
+                return (
+                  <button
+                    key={o.orderId}
+                    onClick={() => goToOverdue(o)}
+                    style={{ display: 'block', width: '100%', textAlign: 'left', border: '1px solid #343434', background: '#1f1f1f', cursor: 'pointer', padding: '11px 12px', borderRadius: 10, color: '#fff', fontFamily: 'inherit', marginBottom: 8 }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#2b2b2b')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = '#1f1f1f')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {o.contractorName && o.contractorName.trim() ? o.contractorName : o.orderNumber}
+                      </span>
+                      <span style={{ flex: '0 0 auto', fontSize: 11, fontWeight: 800, color: '#161616', background: '#FF7A5A', borderRadius: 6, padding: '2px 7px' }}>
+                        {o.daysOverdue} {o.daysOverdue === 1 ? 'dzień' : 'dni'} po
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, minWidth: 0 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 11, color: '#A5A7AA', flex: '0 0 auto' }}>{o.orderNumber}</span>
+                      <span style={{ fontSize: 11, color: '#8a8a8a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.productCode}</span>
+                      <span style={{ flex: '0 0 auto', fontSize: 10, fontWeight: 700, color: '#fff', background: statusColor(o.orderStatus), borderRadius: 5, padding: '1px 6px' }}>{statusText(o.orderStatus)}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, minWidth: 0 }}>
+                      <span style={{ fontSize: 11, color: '#DFFFA9', fontWeight: 600, flex: '0 0 auto' }}>Plan do {searchDateLabel(o.plannedEnd)}</span>
+                      {workers.length > 0 && (
+                        <span style={{ fontSize: 11, color: '#8a8a8a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{workers.join(', ')}</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
       )}
 
       {/* Toast */}

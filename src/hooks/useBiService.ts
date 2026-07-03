@@ -77,6 +77,18 @@ export const useGrafikSearch = (q: string) => {
   });
 };
 
+/** Overdue orders (all resources finished in the past, order not closed). */
+export const useGrafikOverdue = (enabled: boolean) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GRAFIK_OVERDUE],
+    queryFn: biServiceApi.getGrafikOverdue,
+    enabled,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+};
+
 /** Move/resize an assignment's time window (both ends snapped to 15 min server-side). */
 export const useUpdateGrafikAssignment = () => {
   const queryClient = useQueryClient();

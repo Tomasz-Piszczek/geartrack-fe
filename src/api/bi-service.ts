@@ -298,6 +298,8 @@ export interface GrafikEntryDto {
   czsId: number;
   workerName: string;
   resourceId: number;
+  /** Resource CZ_Kod; in the actual view can differ from workerName (e.g. "Wycinanie"). */
+  resourceName?: string | null;
   orderId: number;
   orderNumber: string;
   /** Contractor/customer name (odbiorca on the linked RO doc); may be null/empty. */
@@ -335,6 +337,22 @@ export interface GrafikResponseDto {
   orderCount: number;
   totalHours: number;
   workers: GrafikWorkerDto[];
+  /** All named workers (Pracownicy group) — render a row for each even when empty/absent. */
+  allWorkers?: string[];
+}
+
+/** One overdue order: all resources finished in the past yet the order is not closed. */
+export interface GrafikOverdueDto {
+  orderId: number;
+  orderNumber: string;
+  contractorName?: string | null;
+  productCode: string;
+  quantity: number;
+  orderStatus: number;
+  plannedEnd: string;   // yyyy-MM-dd (jump target)
+  daysOverdue: number;
+  workers: string[];
+  czsIds: number[];
 }
 
 /** One search hit: an order on a specific day, with the workers assigned that day. */
@@ -539,6 +557,14 @@ export const biServiceApi = {
     const response = await biServiceClient.get<GrafikSearchResultDto[]>(
       API_ENDPOINTS.BI.GRAFIK_SEARCH,
       { params: { q } }
+    );
+    return response.data;
+  },
+
+  /** Overdue orders as of today (all resources finished in the past, not closed). */
+  getGrafikOverdue: async (): Promise<GrafikOverdueDto[]> => {
+    const response = await biServiceClient.get<GrafikOverdueDto[]>(
+      API_ENDPOINTS.BI.GRAFIK_OVERDUE
     );
     return response.data;
   },

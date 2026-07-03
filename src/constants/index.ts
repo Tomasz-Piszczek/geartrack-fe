@@ -45,6 +45,7 @@ export const API_ENDPOINTS = {
     GRAFIK: '/api/grafik',
     GRAFIK_ACTUAL: '/api/grafik/actual',
     GRAFIK_SEARCH: '/api/grafik/search',
+    GRAFIK_OVERDUE: '/api/grafik/overdue',
     GRAFIK_ORDER: (orderId: number) => `/api/grafik/order/${orderId}`,
     GRAFIK_ITEM: (czsId: number) => `/api/grafik/${czsId}`,
   },
@@ -97,6 +98,7 @@ export const QUERY_KEYS = {
   WORKER_CASH: 'worker-cash',
   GRAFIK: 'grafik',
   GRAFIK_SEARCH: 'grafik-search',
+  GRAFIK_OVERDUE: 'grafik-overdue',
 } as const;
 
 export const STORAGE_KEYS = {
