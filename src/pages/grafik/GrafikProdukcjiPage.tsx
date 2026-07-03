@@ -169,9 +169,20 @@ const mapResponse = (data: GrafikResponseDto): Assignment[] => {
   return out;
 };
 
+const DATE_STORAGE_KEY = 'grafik.selectedDate';
+
 const GrafikProdukcjiPage: React.FC = () => {
-  const [date, setDate] = useState<Date>(() => new Date());
+  const [date, setDate] = useState<Date>(() => {
+    // keep the chosen day across page refreshes
+    const saved = localStorage.getItem(DATE_STORAGE_KEY);
+    if (saved && /^\d{4}-\d{2}-\d{2}$/.test(saved)) {
+      const [y, m, d] = saved.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+    return new Date();
+  });
   const dateIso = toIsoDate(date);
+  useEffect(() => { localStorage.setItem(DATE_STORAGE_KEY, dateIso); }, [dateIso]);
   const [mode, setMode] = useState<'plan' | 'actual'>('plan');
   const isActual = mode === 'actual';
 
@@ -688,7 +699,9 @@ const GrafikProdukcjiPage: React.FC = () => {
                           const spanning = before || after;
                           const canDrag = !isActual && sameDay(a);
                           const left = (start - DS) * PM;
-                          const width = Math.max((end - start) * PM, 46);
+                          // width = exact duration so the right edge lands on the real end time.
+                          // tiny floor only so sub-minute blocks stay clickable (no 46px overshoot).
+                          const width = Math.max((end - start) * PM, 6);
                           const top = BLOCK_TOP + lane * (BLOCK_H + LANE_GAP);
                           const timeLabel = before
                             ? `${dt(a.startDate, a.startMin)} → ${fmt(a.endMin)}`
