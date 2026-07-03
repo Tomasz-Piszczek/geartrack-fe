@@ -3,7 +3,7 @@ import { useGrafik, useGrafikSearch, useGrafikOverdue, useGrafikOrderDetail, use
 import type { GrafikResponseDto, GrafikSearchResultDto, GrafikOverdueDto } from '../../api/bi-service';
 
 /** Workers hidden from the grafik view on request (not shown on the board or in search). */
-const HIDDEN_WORKERS = new Set(['piszczek paweł1', 'małgorzata jasica']);
+const HIDDEN_WORKERS = new Set(['piszczek paweł1', 'małgorzata jasica', 'damian falarz', 'mariusz kowalczyk']);
 const isHiddenWorker = (name: string | null | undefined) =>
   HIDDEN_WORKERS.has((name ?? '').trim().toLowerCase());
 
@@ -149,7 +149,7 @@ const mapResponse = (data: GrafikResponseDto): Assignment[] => {
       out.push({
         czsId: e.czsId,
         orderId: e.orderId,
-        workerName: w.workerName,
+        workerName: (w.workerName ?? '').trim(),
         resourceName: (e.resourceName ?? '').trim(),
         orderNumber: e.orderNumber,
         contractorName: (e.contractorName ?? '').trim() || e.orderNumber,
@@ -247,7 +247,7 @@ const GrafikProdukcjiPage: React.FC = () => {
     const map = new Map<string, { from: number; to: number }[]>();
     for (const w of data?.workers ?? []) {
       map.set(
-        w.workerName,
+        (w.workerName ?? '').trim(),
         (w.available ?? []).map((iv) => ({ from: hhmmToMin(iv.from), to: hhmmToMin(iv.to) }))
       );
     }
@@ -457,7 +457,7 @@ const GrafikProdukcjiPage: React.FC = () => {
     const byName = new Map<string, Assignment[]>();
     // Seed a row for EVERY named worker (even with no assignment / absent), not only
     // those returning data this day. Falls back to the day's workers if allWorkers is absent.
-    const seed = (data?.allWorkers && data.allWorkers.length ? data.allWorkers : data?.workers.map((w) => w.workerName)) ?? [];
+    const seed = ((data?.allWorkers && data.allWorkers.length ? data.allWorkers : data?.workers.map((w) => w.workerName)) ?? []).map((n) => (n ?? '').trim());
     const order = seed.filter((n) => !isHiddenWorker(n));
     order.forEach((n) => byName.set(n, []));
     for (const a of assignments) {
