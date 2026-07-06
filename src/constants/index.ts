@@ -105,6 +105,8 @@ export const STORAGE_KEYS = {
   TOKEN: 'geartrack_token',
   REFRESH_TOKEN: 'geartrack_refresh_token',
   USER: 'geartrack_user',
+  /** Prefix for the remembered Wyceny user filter — suffixed with the logged-in userId. */
+  QUOTES_FILTER_USER: 'geartrack_quotes_filter_user',
 } as const;
 
 export const ROUTES = {

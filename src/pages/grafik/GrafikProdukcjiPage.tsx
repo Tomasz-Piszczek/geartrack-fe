@@ -185,6 +185,8 @@ const GrafikProdukcjiPage: React.FC = () => {
   useEffect(() => { localStorage.setItem(DATE_STORAGE_KEY, dateIso); }, [dateIso]);
   const [mode, setMode] = useState<'plan' | 'actual'>('plan');
   const isActual = mode === 'actual';
+  // Plan tab: hide finished (closed, CZN_Status = 3) orders. On by default.
+  const [hideFinished, setHideFinished] = useState(true);
 
   const { data, isLoading, isError, error } = useGrafik(dateIso, dateIso, mode);
   const updateMutation = useUpdateGrafikAssignment();
@@ -463,6 +465,8 @@ const GrafikProdukcjiPage: React.FC = () => {
     for (const a of assignments) {
       // only show blocks that still cover the viewed day (edits can move a block off it)
       if (a.startDate > dateIso || a.endDate < dateIso) continue;
+      // Plan tab: optionally hide finished (closed) orders.
+      if (!isActual && hideFinished && a.status >= 3) continue;
       if (!byName.has(a.workerName)) byName.set(a.workerName, []);
       byName.get(a.workerName)!.push(a);
     }
@@ -498,7 +502,7 @@ const GrafikProdukcjiPage: React.FC = () => {
       return { name, placed, rowH, total, count: as.length, gaps, fullyUnavailable };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assignments, data, availByWorker, dateIso]);
+  }, [assignments, data, availByWorker, dateIso, isActual, hideFinished]);
 
   const editingAssignment = editing ? assignments.find((x) => x.czsId === editing.czsId) : undefined;
 
@@ -557,6 +561,12 @@ const GrafikProdukcjiPage: React.FC = () => {
               <span style={{ background: '#FF7A5A', color: '#161616', borderRadius: 999, fontSize: 11, fontWeight: 800, padding: '1px 7px' }}>{overdue.length}</span>
             )}
           </button>
+          {!isActual && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#cfcfcf', userSelect: 'none' }}>
+              <input type="checkbox" checked={hideFinished} onChange={(e) => setHideFinished(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#DFFFA9', cursor: 'pointer' }} />
+              Ukryj zakończone
+            </label>
+          )}
           {/* always rendered (hidden in actual) so the toggle keeps its position; fixed width avoids shift when the count appears */}
           <button
             onClick={onSave}

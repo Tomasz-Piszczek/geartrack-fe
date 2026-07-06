@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { quotesApi } from '../../api/quotes';
@@ -6,6 +6,18 @@ import type { QuoteListDto } from '../../api/quotes';
 import { usersApi } from '../../api/users';
 import { toast } from '../../lib/toast';
 import { useAuth } from '../../context/AuthContext';
+import { STORAGE_KEYS } from '../../constants';
+
+/** localStorage key for the remembered user filter, scoped to the logged-in user. */
+const quotesFilterKey = (userId?: string) => `${STORAGE_KEYS.QUOTES_FILTER_USER}:${userId || 'anon'}`;
+/** userId of the logged-in user, read synchronously from localStorage (for lazy init). */
+const storedUserId = (): string => {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.USER) || '{}')?.userId || '';
+  } catch {
+    return '';
+  }
+};
 
 const GRID = '170px minmax(180px,1.25fr) minmax(170px,1.3fr) 140px 110px 178px';
 
@@ -165,11 +177,22 @@ const QuoteRow: React.FC<RowProps> = ({ quote, adminUser, duplicatingId, onEdit,
 const QuotesListPage: React.FC = () => {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
-  const [createdBy, setCreatedBy] = useState('');
+  // Remembered per logged-in user: hydrate from localStorage on first render.
+  const [createdBy, setCreatedBy] = useState(() => localStorage.getItem(quotesFilterKey(storedUserId())) || '');
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const adminUser = user?.role === 'ADMIN';
+
+  // Persist the filter (per logged-in user) whenever it changes.
+  useEffect(() => {
+    const key = quotesFilterKey(user?.userId || storedUserId());
+    if (createdBy) {
+      localStorage.setItem(key, createdBy);
+    } else {
+      localStorage.removeItem(key);
+    }
+  }, [createdBy, user?.userId]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['quotes', page, search, createdBy],
@@ -180,6 +203,15 @@ const QuotesListPage: React.FC = () => {
     queryKey: ['users'],
     queryFn: () => usersApi.getAllUsers(),
   });
+
+  // Drop a stale/foreign remembered id once the user list loads (avoids a phantom
+  // filter returning zero results with no visible reason).
+  useEffect(() => {
+    if (createdBy && users && !users.some((u) => u.userId === createdBy)) {
+      setCreatedBy('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [users]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,7 +304,7 @@ const QuotesListPage: React.FC = () => {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9a9a9a" strokeWidth="2"><circle cx="12" cy="8" r="3.2" /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" /></svg>
           <select
             value={createdBy}
-            onChange={e => setCreatedBy(e.target.value)}
+            onChange={e => { setCreatedBy(e.target.value); setPage(0); }}
             style={{ background: 'transparent', border: 'none', outline: 'none', color: '#cfcfcf', fontSize: 14, flex: 1, fontFamily: 'inherit', cursor: 'pointer' }}
           >
             <option value="" style={{ background: '#2c2c2c' }}>Wszyscy użytkownicy</option>
