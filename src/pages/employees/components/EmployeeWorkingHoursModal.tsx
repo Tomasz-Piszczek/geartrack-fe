@@ -4,6 +4,7 @@ import Modal from '../../../components/common/Modal';
 import Button from '../../../components/common/Button';
 import { useQuery } from '@tanstack/react-query';
 import { payrollApi } from '../../../api/payroll';
+import type { ApiError } from '../../../types';
 
 interface EmployeeWorkingHoursModalProps {
   show: boolean;
@@ -39,13 +40,21 @@ const EmployeeWorkingHoursModal: React.FC<EmployeeWorkingHoursModalProps> = ({
     { value: 12, label: 'Grudzień' }
   ];
 
-  const { data: workingHoursData } = useQuery({
+  const {
+    data: workingHoursData,
+    error: workingHoursError,
+    isLoading: isWorkingHoursLoading,
+  } = useQuery({
     queryKey: ['employee-working-hours', employeeName, selectedYearMonth?.year, selectedYearMonth?.month],
     queryFn: () => selectedYearMonth
       ? payrollApi.getEmployeeWorkingHours(employeeName, selectedYearMonth.year, selectedYearMonth.month)
       : Promise.resolve(null),
     enabled: !!selectedYearMonth && show,
+    retry: (failureCount, error) =>
+      (error as unknown as ApiError).status !== 403 && failureCount < 1,
   });
+
+  const workingHoursApiError = workingHoursError as unknown as ApiError | null;
 
   const toggleYear = (year: number) => {
     setExpandedYears(prev => ({
@@ -114,7 +123,10 @@ const EmployeeWorkingHoursModal: React.FC<EmployeeWorkingHoursModalProps> = ({
                   {months.map(month => {
                     const key = `${year}-${month.value}`;
                     const isExpanded = expandedMonths[key];
-                    const isLoading = isExpanded && selectedYearMonth?.year === year && selectedYearMonth?.month === month.value && !workingHoursData;
+                    const isSelectedMonth = selectedYearMonth?.year === year && selectedYearMonth?.month === month.value;
+                    const isLoading = isExpanded && isSelectedMonth && isWorkingHoursLoading;
+                    const isForbidden = isExpanded && isSelectedMonth && workingHoursApiError?.status === 403;
+                    const hasError = isExpanded && isSelectedMonth && !!workingHoursApiError;
 
                     return (
                       <div key={month.value} className="bg-section-grey rounded-lg overflow-hidden">
@@ -134,6 +146,14 @@ const EmployeeWorkingHoursModal: React.FC<EmployeeWorkingHoursModalProps> = ({
                             {isLoading ? (
                               <div className="flex justify-center py-4">
                                 <div className="spinner"></div>
+                              </div>
+                            ) : isForbidden ? (
+                              <div className="text-red-400 text-sm py-4 text-center">
+                                Brak uprawnień do sprawdzania godzin pracownika.
+                              </div>
+                            ) : hasError ? (
+                              <div className="text-red-400 text-sm py-4 text-center">
+                                {workingHoursApiError.message || 'Nie udało się pobrać godzin pracownika.'}
                               </div>
                             ) : workingHoursData ? (
                               <div className="mt-3 space-y-3">
